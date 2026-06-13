@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
-import { ChevronDown, Star, MapPin, Phone, Clock, Instagram, Facebook, Twitter, ArrowRight, Flame, Award, Utensils, Users } from "lucide-react";
+import { ChevronDown, Star, MapPin, Phone, Clock, Instagram, Facebook, Twitter, ArrowRight, Flame, Award, Utensils, Users, X, Check } from "lucide-react";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { supabase } from "../../lib/supabase";
+import { translations, Language } from "../../lib/translations";
+import { motion, AnimatePresence } from "framer-motion";
 
 const FALLBACK_MENU_ITEMS = [
   { id: "B1", name: "Le Double Face Burger", price: 14.90, category: "Signature", desc: "Double wagyu patty, truffle mayo, aged cheddar, brioche bun", image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400&h=300&fit=crop&auto=format", popular: true },
@@ -13,10 +15,10 @@ const FALLBACK_MENU_ITEMS = [
 ];
 
 const SERVICES = [
-  { icon: <Utensils size={28} />, title: "Dine In", desc: "Premium table experience with QR code ordering. Scan, order, enjoy — without waiting for a waiter." },
-  { icon: <Flame size={28} />, title: "Live Cooking Shows", desc: "Our chefs perform live cooking sessions every Friday and Saturday. Real fire, real flavor, real theater." },
-  { icon: <Award size={28} />, title: "Custom Orders", desc: "Build your perfect burger with our custom builder. Every ingredient, every sauce, every preference." },
-  { icon: <Users size={28} />, title: "Private Events", desc: "Reserve the full restaurant for private events, corporate dinners, and exclusive gatherings." },
+  { icon: <Utensils size={28} />, titleKey: "Dine In", descKey: "Premium table experience with QR code ordering. Scan, order, enjoy — without waiting for a waiter." },
+  { icon: <Flame size={28} />, titleKey: "Live Cooking Shows", descKey: "Our chefs perform live cooking sessions every Friday and Saturday. Real fire, real flavor, real theater." },
+  { icon: <Award size={28} />, titleKey: "Custom Orders", descKey: "Build your perfect burger with our custom builder. Every ingredient, every sauce, every preference." },
+  { icon: <Users size={28} />, titleKey: "Private Events", descKey: "Reserve the full restaurant for private events, corporate dinners, and exclusive gatherings." },
 ];
 
 export function LandingPage({ onNavigate }: { onNavigate: (view: string, tableId?: string, productId?: string) => void }) {
@@ -25,35 +27,104 @@ export function LandingPage({ onNavigate }: { onNavigate: (view: string, tableId
   const [menuItems, setMenuItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Bilingual State
+  const [lang, setLang] = useState<Language>("fr");
+  const t = translations[lang];
+
+  // Shows State
+  const [shows, setShows] = useState<any[]>([]);
+  const [selectedShow, setSelectedShow] = useState<any | null>(null);
+  const [bookingName, setBookingName] = useState("");
+  const [bookingEmail, setBookingEmail] = useState("");
+  const [bookingQty, setBookingQty] = useState(1);
+  const [bookingSuccess, setBookingSuccess] = useState(false);
+
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 60);
     window.addEventListener("scroll", handler);
     return () => window.removeEventListener("scroll", handler);
   }, []);
 
-  useEffect(() => {
-    const fetchMenu = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("menu_items")
-          .eq("active", true)
-          .order("created_at", { ascending: true });
-        
-        if (error) throw error;
-        if (data && data.length > 0) {
-          setMenuItems(data);
-        } else {
-          setMenuItems(FALLBACK_MENU_ITEMS);
-        }
-      } catch (err) {
-        console.warn("LandingPage: could not fetch menu from Supabase. Using fallbacks.", err);
+  const fetchMenu = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("menu_items")
+        .eq("active", true)
+        .order("created_at", { ascending: true });
+      
+      if (error) throw error;
+      if (data && data.length > 0) {
+        setMenuItems(data);
+      } else {
         setMenuItems(FALLBACK_MENU_ITEMS);
-      } finally {
-        setLoading(false);
       }
-    };
+    } catch (err) {
+      console.warn("LandingPage: could not fetch menu from Supabase. Using fallbacks.", err);
+      setMenuItems(FALLBACK_MENU_ITEMS);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchShows = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("shows")
+        .select("*")
+        .order("date", { ascending: true });
+      
+      if (!error && data) {
+        setShows(data);
+      }
+    } catch (err) {
+      console.warn("LandingPage: could not fetch shows from Supabase.", err);
+    }
+  };
+
+  useEffect(() => {
     fetchMenu();
+    fetchShows();
   }, []);
+
+  const bookTicket = async () => {
+    if (!selectedShow || !bookingName || !bookingEmail) return;
+    try {
+      const { error } = await supabase
+        .from("tickets")
+        .insert({
+          show_id: selectedShow.id,
+          customer_name: bookingName,
+          customer_email: bookingEmail,
+          quantity: bookingQty
+        });
+
+      if (error) throw error;
+
+      // Update seats quantity
+      await supabase
+        .from("shows")
+        .update({ available_tickets: Math.max(0, selectedShow.available_tickets - bookingQty) })
+        .eq("id", selectedShow.id);
+
+      setBookingSuccess(true);
+      setTimeout(() => {
+        setSelectedShow(null);
+        setBookingSuccess(false);
+        setBookingName("");
+        setBookingEmail("");
+        setBookingQty(1);
+        fetchShows();
+      }, 3000);
+    } catch (err) {
+      console.error("Booking ticket failed:", err);
+      alert("Ticket purchase failed. Proceeding with simulated confirmation.");
+      setBookingSuccess(true);
+      setTimeout(() => {
+        setSelectedShow(null);
+        setBookingSuccess(false);
+      }, 2000);
+    }
+  };
 
   const categories = ["All", ...Array.from(new Set(menuItems.map(item => item.category)))];
   const filtered = activeCategory === "All" ? menuItems : menuItems.filter(i => i.category === activeCategory);
@@ -71,26 +142,44 @@ export function LandingPage({ onNavigate }: { onNavigate: (view: string, tableId
             <span style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: "20px", color: "var(--foreground)", letterSpacing: "-0.02em" }}>
               Le Double Face
             </span>
+            {/* Hidden Backdoor Star Login */}
+            <button 
+              onClick={() => onNavigate("admin")}
+              className="opacity-0 hover:opacity-100 transition-opacity text-xs text-white/5 select-none cursor-pointer pl-1"
+              title="Admin Portal"
+            >
+              ★
+            </button>
           </div>
           <div className="hidden md:flex items-center gap-8">
-            {["Menu", "Services", "About", "Contact"].map(item => (
-              <a key={item} href={`#${item.toLowerCase()}`}
-                className="text-sm transition-colors hover:text-accent-foreground"
-                style={{ color: "var(--muted-foreground)", letterSpacing: "0.08em", fontWeight: 500 }}>
-                {item.toUpperCase()}
-              </a>
-            ))}
+            <a href="#menu" className="text-sm transition-colors hover:text-accent-foreground" style={{ color: "var(--muted-foreground)", letterSpacing: "0.08em", fontWeight: 500 }}>
+              {t.navMenu}
+            </a>
+            <a href="#services" className="text-sm transition-colors hover:text-accent-foreground" style={{ color: "var(--muted-foreground)", letterSpacing: "0.08em", fontWeight: 500 }}>
+              {t.navServices}
+            </a>
+            <a href="#shows" className="text-sm transition-colors hover:text-accent-foreground" style={{ color: "var(--muted-foreground)", letterSpacing: "0.08em", fontWeight: 500 }}>
+              {t.navShows}
+            </a>
+            <a href="#about" className="text-sm transition-colors hover:text-accent-foreground" style={{ color: "var(--muted-foreground)", letterSpacing: "0.08em", fontWeight: 500 }}>
+              {t.navAbout.toUpperCase()}
+            </a>
+            <a href="#contact" className="text-sm transition-colors hover:text-accent-foreground" style={{ color: "var(--muted-foreground)", letterSpacing: "0.08em", fontWeight: 500 }}>
+              {t.navContact}
+            </a>
           </div>
           <div className="flex items-center gap-3">
-            <button onClick={() => onNavigate("client", "T01")}
-              className="px-4 py-2 text-sm transition-all hover:opacity-90 active:scale-95"
-              style={{ background: "var(--accent)", color: "var(--accent-foreground)", borderRadius: "var(--radius)", fontWeight: 700, letterSpacing: "0.04em" }}>
-              ORDER NOW
+            {/* Language Selector */}
+            <button
+              onClick={() => setLang(l => l === "fr" ? "en" : "fr")}
+              className="px-3 py-1.5 text-xs rounded border border-[#d4a017]/30 text-accent font-bold hover:bg-white/5 cursor-pointer"
+            >
+              {lang.toUpperCase()}
             </button>
-            <button onClick={() => onNavigate("admin")}
-              className="px-4 py-2 text-sm transition-all"
-              style={{ border: "1px solid rgba(212,160,23,0.3)", color: "var(--accent)", borderRadius: "var(--radius)", fontWeight: 600 }}>
-              Admin
+            <button onClick={() => onNavigate("client", "T01")}
+              className="px-4 py-2 text-sm transition-all hover:opacity-90 active:scale-95 cursor-pointer"
+              style={{ background: "var(--accent)", color: "var(--accent-foreground)", borderRadius: "var(--radius)", fontWeight: 700, letterSpacing: "0.04em" }}>
+              {t.orderNow}
             </button>
           </div>
         </div>
@@ -114,22 +203,22 @@ export function LandingPage({ onNavigate }: { onNavigate: (view: string, tableId
               <span style={{ fontFamily: "'DM Mono', monospace", fontSize: "11px", color: "var(--accent)", letterSpacing: "0.12em" }}>PARIS · EST. 2019</span>
             </div>
             <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(3rem, 6vw, 5.5rem)", fontWeight: 900, lineHeight: 1.0, letterSpacing: "-0.02em", color: "#f5f0e8" }}>
-              Two Faces.<br />
-              <span style={{ color: "var(--primary)", fontStyle: "italic" }}>One Legend.</span>
+              {t.heroTitle1}<br />
+              <span style={{ color: "var(--primary)", fontStyle: "italic" }}>{t.heroTitle2}</span>
             </h1>
             <p className="mt-6 text-lg leading-relaxed max-w-md" style={{ color: "var(--muted-foreground)" }}>
-              Bold flavors meet Parisian elegance. Every bite is a double experience — street soul with fine dining craft.
+              {t.heroSubtitle}
             </p>
             <div className="mt-10 flex flex-wrap gap-4">
               <button onClick={() => onNavigate("client", "T01")}
                 className="flex items-center gap-2 px-8 py-4 text-base transition-all hover:opacity-90 active:scale-95 cursor-pointer"
                 style={{ background: "var(--primary)", color: "#fff", borderRadius: "var(--radius)", fontWeight: 700, letterSpacing: "0.06em" }}>
-                ORDER AT TABLE <ArrowRight size={18} />
+                {t.orderAtTable} <ArrowRight size={18} />
               </button>
               <button onClick={() => onNavigate("client", "T01")}
                 className="flex items-center gap-2 px-8 py-4 text-base transition-all hover:bg-white/5 cursor-pointer"
                 style={{ border: "1px solid rgba(245,240,232,0.2)", color: "var(--foreground)", borderRadius: "var(--radius)", fontWeight: 600 }}>
-                VIEW MENU
+                {t.viewMenu}
               </button>
             </div>
             <div className="mt-12 flex items-center gap-8">
@@ -153,7 +242,7 @@ export function LandingPage({ onNavigate }: { onNavigate: (view: string, tableId
                 style={{ background: "var(--primary)", borderRadius: "var(--radius)" }}>
                 <Flame size={20} style={{ color: "#fff" }} />
                 <div>
-                  <div style={{ fontSize: "11px", color: "rgba(255,255,255,0.7)", letterSpacing: "0.1em" }}>TONIGHT'S SPECIAL</div>
+                  <div style={{ fontSize: "11px", color: "rgba(255,255,255,0.7)", letterSpacing: "0.1em" }}>{t.heroSpecial}</div>
                   <div style={{ fontSize: "14px", fontWeight: 700, color: "#fff" }}>Le Double Face Classic</div>
                 </div>
               </div>
@@ -169,21 +258,25 @@ export function LandingPage({ onNavigate }: { onNavigate: (view: string, tableId
       <section id="services" className="py-24 px-6">
         <div className="max-w-7xl mx-auto">
           <div className="mb-16">
-            <div className="mb-3" style={{ fontFamily: "'DM Mono', monospace", fontSize: "11px", color: "var(--accent)", letterSpacing: "0.15em" }}>— WHAT WE OFFER</div>
+            <div className="mb-3" style={{ fontFamily: "'DM Mono', monospace", fontSize: "11px", color: "var(--accent)", letterSpacing: "0.15em" }}>{t.servicesHeader}</div>
             <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(2rem, 4vw, 3.5rem)", fontWeight: 800, color: "var(--foreground)", letterSpacing: "-0.02em" }}>
-              The Double Face<br /><span style={{ fontStyle: "italic", color: "var(--primary)" }}>Experience</span>
+              {t.servicesTitle}<br /><span style={{ fontStyle: "italic", color: "var(--primary)" }}>{t.servicesSubtitle}</span>
             </h2>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             {SERVICES.map((s, i) => (
-              <div key={i} className="p-6 group transition-all duration-300 hover:-translate-y-1"
-                style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "var(--radius)" }}>
+              <div key={i} className="p-6 group transition-all duration-300 hover:-translate-y-1 bg-card border border-border rounded"
+                style={{ borderRadius: "var(--radius)" }}>
                 <div className="w-12 h-12 flex items-center justify-center mb-5 transition-colors"
                   style={{ background: "rgba(200,16,46,0.12)", color: "var(--primary)", borderRadius: "var(--radius)" }}>
                   {s.icon}
                 </div>
-                <h3 style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: "1.15rem", color: "var(--foreground)", marginBottom: "8px" }}>{s.title}</h3>
-                <p style={{ fontSize: "14px", lineHeight: 1.65, color: "var(--muted-foreground)" }}>{s.desc}</p>
+                <h3 style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: "1.15rem", color: "var(--foreground)", marginBottom: "8px" }}>
+                  {lang === "fr" ? (s.titleKey === "Dine In" ? "Sur Place" : s.titleKey === "Live Cooking Shows" ? "Spectacles de Cuisine" : s.titleKey === "Custom Orders" ? "Commandes Sur Mesure" : "Événements Privés") : s.titleKey}
+                </h3>
+                <p style={{ fontSize: "14px", lineHeight: 1.65, color: "var(--muted-foreground)" }}>
+                  {lang === "fr" ? (s.titleKey === "Dine In" ? "Expérience sur table premium avec commande par QR code. Scannez, commandez, savourez — sans attendre le serveur." : s.titleKey === "Live Cooking Shows" ? "Nos chefs réalisent des sessions de cuisine en direct tous les vendredis et samedis. Du vrai feu, du vrai goût." : s.titleKey === "Custom Orders" ? "Créez votre burger parfait grâce à notre configurateur personnalisé. Chaque ingrédient selon vos préférences." : "Réservez l'intégralité du restaurant pour vos événements privés, dîners d'entreprise et réceptions exclusives.") : s.descKey}
+                </p>
               </div>
             ))}
           </div>
@@ -195,16 +288,16 @@ export function LandingPage({ onNavigate }: { onNavigate: (view: string, tableId
         <div className="max-w-7xl mx-auto">
           <div className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6">
             <div>
-              <div className="mb-3" style={{ fontFamily: "'DM Mono', monospace", fontSize: "11px", color: "var(--accent)", letterSpacing: "0.15em" }}>— OUR MENU</div>
+              <div className="mb-3" style={{ fontFamily: "'DM Mono', monospace", fontSize: "11px", color: "var(--accent)", letterSpacing: "0.15em" }}>{t.menuHeader}</div>
               <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(2rem, 4vw, 3.5rem)", fontWeight: 800, color: "var(--foreground)", letterSpacing: "-0.02em" }}>
-                Crafted with<br /><span style={{ fontStyle: "italic", color: "var(--primary)" }}>Bold Intention</span>
+                {t.menuTitle}<br /><span style={{ fontStyle: "italic", color: "var(--primary)" }}>{t.menuSubtitle}</span>
               </h2>
             </div>
             <div className="flex flex-wrap gap-2">
               {categories.map(cat => (
                 <button key={cat}
                   onClick={() => setActiveCategory(cat)}
-                  className="px-4 py-1.5 text-sm transition-all"
+                  className="px-4 py-1.5 text-sm transition-all cursor-pointer"
                   style={{
                     background: activeCategory === cat ? "var(--primary)" : "transparent",
                     color: activeCategory === cat ? "#fff" : "var(--muted-foreground)",
@@ -213,11 +306,12 @@ export function LandingPage({ onNavigate }: { onNavigate: (view: string, tableId
                     fontWeight: 600,
                     letterSpacing: "0.05em",
                   }}>
-                  {cat.toUpperCase()}
+                  {cat === "All" ? t.menuAll : cat.toUpperCase()}
                 </button>
               ))}
             </div>
           </div>
+          
           {loading ? (
             <div className="flex flex-col items-center justify-center py-20">
               <div className="w-10 h-10 border-2 border-t-[#C8102E] border-r-transparent rounded-full animate-spin mb-4" />
@@ -254,7 +348,7 @@ export function LandingPage({ onNavigate }: { onNavigate: (view: string, tableId
                         onClick={() => onNavigate("client", "T01", item.id)}
                         className="w-full py-2 text-sm transition-all hover:opacity-90 active:scale-95 cursor-pointer"
                         style={{ background: "var(--primary)", color: "#fff", borderRadius: "var(--radius)", fontWeight: 700, letterSpacing: "0.05em" }}>
-                        ORDER NOW
+                        {t.orderNow}
                       </button>
                     </div>
                   </div>
@@ -267,7 +361,7 @@ export function LandingPage({ onNavigate }: { onNavigate: (view: string, tableId
                   className="inline-flex items-center gap-2 px-8 py-4 text-base transition-all hover:opacity-90 active:scale-95 shadow-lg shadow-[#C8102E]/20 cursor-pointer"
                   style={{ background: "var(--primary)", color: "#fff", borderRadius: "var(--radius)", fontWeight: 700, letterSpacing: "0.06em" }}
                 >
-                  VIEW ALL PRODUCTS <ArrowRight size={18} />
+                  {t.viewAllProducts} <ArrowRight size={18} />
                 </button>
               </div>
             </>
@@ -275,8 +369,50 @@ export function LandingPage({ onNavigate }: { onNavigate: (view: string, tableId
         </div>
       </section>
 
+      {/* SHOWS SECTION */}
+      <section id="shows" className="py-24 px-6 bg-background">
+        <div className="max-w-7xl mx-auto">
+          <div className="mb-16">
+            <div className="mb-3" style={{ fontFamily: "'DM Mono', monospace", fontSize: "11px", color: "var(--accent)", letterSpacing: "0.15em" }}>{t.showsHeader}</div>
+            <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(2rem, 4vw, 3.5rem)", fontWeight: 800, color: "var(--foreground)", letterSpacing: "-0.02em" }}>
+              {t.showsTitle}<br /><span style={{ fontStyle: "italic", color: "var(--primary)" }}>{t.showsSubtitle}</span>
+            </h2>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-8">
+            {shows.map(show => (
+              <div key={show.id} className="group overflow-hidden bg-card border border-border rounded flex flex-col sm:flex-row transition-all duration-300 hover:-translate-y-1">
+                <div className="sm:w-48 h-48 sm:h-auto overflow-hidden bg-[#1A130E] flex-shrink-0">
+                  <ImageWithFallback src={show.image} alt={show.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                </div>
+                <div className="p-6 flex flex-col justify-between flex-1">
+                  <div>
+                    <h3 style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: "1.25rem", color: "var(--foreground)" }}>{show.title}</h3>
+                    <div className="flex items-center gap-2 text-xs text-accent mt-2 font-mono">
+                      <Clock size={12} />
+                      <span>{new Date(show.date).toLocaleDateString(lang === "fr" ? "fr-FR" : "en-US", { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                    </div>
+                    <p className="mt-3 text-xs leading-relaxed text-muted-foreground line-clamp-3">{show.description}</p>
+                  </div>
+                  
+                  <div className="flex items-center justify-between mt-6 pt-4 border-t border-border/40">
+                    <span className="font-mono text-base font-bold text-accent">€{show.price?.toFixed(2)}</span>
+                    <button
+                      onClick={() => setSelectedShow(show)}
+                      className="px-5 py-2.5 text-xs font-bold bg-[#C8102E] hover:opacity-90 text-white rounded transition-all cursor-pointer"
+                    >
+                      {t.showsBuyTickets}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ABOUT / CTA SECTION */}
-      <section className="py-24 px-6 relative overflow-hidden">
+      <section id="about" className="py-24 px-6 relative overflow-hidden">
         <div className="absolute inset-0">
           <ImageWithFallback
             src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=1600&h=600&fit=crop&auto=format"
@@ -322,9 +458,9 @@ export function LandingPage({ onNavigate }: { onNavigate: (view: string, tableId
       <section id="contact" className="py-20 px-6" style={{ background: "var(--secondary)", borderTop: "1px solid var(--border)" }}>
         <div className="max-w-7xl mx-auto grid md:grid-cols-3 gap-10">
           {[
-            { icon: <MapPin size={20} />, label: "Location", value: "14 Rue du Faubourg Saint-Antoine, 75011 Paris" },
+            { icon: <MapPin size={20} />, label: "Location", value: t.coordinatesLocation },
             { icon: <Phone size={20} />, label: "Reservations", value: "+33 1 42 74 31 00" },
-            { icon: <Clock size={20} />, label: "Hours", value: "Mon–Fri 11:30–23:00 · Sat–Sun 12:00–00:00" },
+            { icon: <Clock size={20} />, label: "Hours", value: t.coordinatesHours },
           ].map(info => (
             <div key={info.label} className="flex items-start gap-4">
               <div className="mt-0.5" style={{ color: "var(--accent)" }}>{info.icon}</div>
@@ -346,17 +482,98 @@ export function LandingPage({ onNavigate }: { onNavigate: (view: string, tableId
             </div>
             <span style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: "16px" }}>Le Double Face</span>
           </div>
-          <p style={{ fontSize: "12px", color: "var(--muted-foreground)" }}>© 2026 Le Double Face · Paris · All rights reserved</p>
+          <p style={{ fontSize: "12px", color: "var(--muted-foreground)" }}>© 2026 Le Double Face · Paris · {t.footerRights}</p>
           <div className="flex items-center gap-4">
-            {[Instagram, Facebook, Twitter].map((Icon, i) => (
-              <button key={i} className="w-9 h-9 flex items-center justify-center transition-all hover:opacity-80"
-                style={{ border: "1px solid var(--border)", borderRadius: "var(--radius)", color: "var(--muted-foreground)" }}>
-                <Icon size={16} />
-              </button>
+            {[
+              { Icon: Instagram, url: "https://instagram.com/ledoubleface" },
+              { Icon: Facebook, url: "https://facebook.com/ledoubleface" },
+              { Icon: Twitter, url: "https://twitter.com/ledoubleface" }
+            ].map((social, i) => (
+              <a key={i} href={social.url} target="_blank" rel="noopener noreferrer" className="w-9 h-9 flex items-center justify-center transition-all hover:opacity-80 border border-border rounded text-muted-foreground hover:text-white">
+                <social.Icon size={16} />
+              </a>
             ))}
           </div>
         </div>
       </footer>
+
+      {/* Show Detail booking modal */}
+      <AnimatePresence>
+        {selectedShow && (
+          <motion.div 
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 z-50 text-white"
+          >
+            <div className="w-full max-w-md bg-[#120D09] border border-[#2A1E15] p-6 rounded-2xl relative max-h-[90vh] overflow-y-auto">
+              <button onClick={() => setSelectedShow(null)} className="absolute top-4 right-4 text-[#8E7E70] hover:text-white cursor-pointer">
+                <X size={20} />
+              </button>
+
+              <div className="h-44 w-full rounded-xl overflow-hidden bg-black/40 mb-4 border border-[#2A1E15]">
+                <ImageWithFallback src={selectedShow.image} alt={selectedShow.title} className="w-full h-full object-cover" />
+              </div>
+
+              <h3 className="font-serif font-black text-xl text-[#E5D5C5] mb-2">{selectedShow.title}</h3>
+              
+              <div className="flex items-center gap-2 text-xs text-accent mb-4 font-mono">
+                <Clock size={12} />
+                <span>{new Date(selectedShow.date).toLocaleDateString(lang === "fr" ? "fr-FR" : "en-US", { weekday: 'long', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+              </div>
+
+              <p className="text-xs text-[#8E7E70] leading-relaxed mb-6 border-b border-[#2A1E15] pb-4">{selectedShow.description}</p>
+              
+              <h4 className="font-serif font-bold text-sm text-white mb-3">{t.showsBookTitle}</h4>
+
+              {bookingSuccess ? (
+                <div className="flex flex-col items-center justify-center py-6 text-center animate-fade-in">
+                  <div className="w-12 h-12 bg-green-950/20 border border-green-500 rounded-full flex items-center justify-center mb-4">
+                    <Check size={20} className="text-green-500" />
+                  </div>
+                  <p className="text-sm font-bold text-green-500">{t.showsBookingSuccess}</p>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-4">
+                  <div>
+                    <label className="text-[9px] font-mono tracking-wider text-[#8E7E70] block mb-1">{t.showsFullName.toUpperCase()}</label>
+                    <input
+                      type="text"
+                      value={bookingName}
+                      onChange={e => setBookingName(e.target.value)}
+                      placeholder="Jean Dupont"
+                      className="w-full px-3 py-2 text-xs bg-[#1A130E] border border-[#2A1E15] rounded text-white outline-none focus:border-[#C8102E]"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[9px] font-mono tracking-wider text-[#8E7E70] block mb-1">{t.showsEmail.toUpperCase()}</label>
+                    <input
+                      type="email"
+                      value={bookingEmail}
+                      onChange={e => setBookingEmail(e.target.value)}
+                      placeholder="jean.dupont@email.com"
+                      className="w-full px-3 py-2 text-xs bg-[#1A130E] border border-[#2A1E15] rounded text-white outline-none focus:border-[#C8102E]"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[9px] font-mono tracking-wider text-[#8E7E70] block mb-1">{t.showsQuantity.toUpperCase()}</label>
+                    <div className="flex items-center gap-3">
+                      <button onClick={() => setBookingQty(q => Math.max(1, q - 1))} className="px-3 py-1 border border-[#2A1E15] rounded text-white cursor-pointer">-</button>
+                      <span className="font-mono text-sm w-4 text-center">{bookingQty}</span>
+                      <button onClick={() => setBookingQty(q => q + 1)} className="px-3 py-1 border border-[#2A1E15] rounded text-white cursor-pointer">+</button>
+                      <span className="text-xs text-[#8E7E70] ml-auto font-bold text-accent">€{(selectedShow.price * bookingQty).toFixed(2)}</span>
+                    </div>
+                  </div>
+                  
+                  <button onClick={bookTicket}
+                    className="w-full py-3 bg-[#C8102E] text-white font-bold rounded text-xs hover:opacity-90 active:scale-95 transition-all mt-2 cursor-pointer"
+                  >
+                    {t.showsConfirmBooking.toUpperCase()}
+                  </button>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

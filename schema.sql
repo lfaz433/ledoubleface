@@ -120,13 +120,101 @@ on public.order_items for delete using (true);
 -- 7. Enable Realtime Publications
 -- Enable realtime for menu_items and orders so they sync across devices instantly.
 begin;
-  -- Check if supabase_realtime publication exists. If not, create it.
-  -- Add tables to the publication.
   alter publication supabase_realtime add table public.menu_items;
   alter publication supabase_realtime add table public.orders;
   alter publication supabase_realtime add table public.order_items;
 exception when others then
-  -- In case publication isn't set up default-style, let it be.
   raise notice 'Could not automatically add to publication';
+end;
+commit;
+
+-- 8. Advanced Hospitality Additions
+-- Add columns to orders
+alter table public.orders add column if not exists paid boolean default false;
+alter table public.orders add column if not exists invoice_no text;
+
+-- Create Restaurant Tables Registry
+create table if not exists public.restaurant_tables (
+    id text primary key, -- T01, T02, etc.
+    area text not null default 'Inside Lounge', -- 'Terrace Patio' | 'Inside Lounge'
+    is_terrace boolean default false,
+    waiter_called boolean default false,
+    created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- Seed initial tables
+insert into public.restaurant_tables (id, area, is_terrace, waiter_called) values
+('T01', 'Inside Lounge', false, false),
+('T02', 'Inside Lounge', false, false),
+('T03', 'Inside Lounge', false, false),
+('T04', 'Inside Lounge', false, false),
+('T05', 'Inside Lounge', false, false),
+('T06', 'Inside Lounge', false, false),
+('T07', 'Terrace Patio', true, false),
+('T08', 'Terrace Patio', true, false),
+('T09', 'Terrace Patio', true, false),
+('T10', 'Terrace Patio', true, false),
+('T11', 'Terrace Patio', true, false),
+('T12', 'Terrace Patio', true, false)
+on conflict (id) do nothing;
+
+-- Create Shows Table
+create table if not exists public.shows (
+    id uuid default gen_random_uuid() primary key,
+    title text not null,
+    description text,
+    date timestamp with time zone not null,
+    price numeric(10, 2) not null,
+    image text,
+    available_tickets integer default 50,
+    created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- Seed Initial Show
+insert into public.shows (title, description, date, price, image, available_tickets) values
+('Gipsy Kings Tribute Night', 'Live acoustic flamenco performance under the Parisian stars. Real fire, real guitars, and authentic tapas experience.', now() + interval '5 days', 25.00, 'https://images.unsplash.com/photo-1511192336575-5a79af67a629?w=600&h=400&fit=crop&auto=format', 45),
+('Cabaret Parisien Double Face', 'A mesmerizing double-act drag & cabaret dinner show detailing history, music, and comedy.', now() + interval '12 days', 35.00, 'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=600&h=400&fit=crop&auto=format', 30)
+on conflict do nothing;
+
+-- Create Tickets Table
+create table if not exists public.tickets (
+    id uuid default gen_random_uuid() primary key,
+    show_id uuid references public.shows(id) on delete cascade not null,
+    customer_name text not null,
+    customer_email text not null,
+    quantity integer not null,
+    created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- Enable RLS for new tables
+alter table public.restaurant_tables enable row level security;
+alter table public.shows enable row level security;
+alter table public.tickets enable row level security;
+
+-- Policies for restaurant_tables
+create policy "Allow public read access to tables" on public.restaurant_tables for select using (true);
+create policy "Allow public insert access to tables" on public.restaurant_tables for insert with check (true);
+create policy "Allow public update access to tables" on public.restaurant_tables for update using (true);
+create policy "Allow public delete access to tables" on public.restaurant_tables for delete using (true);
+
+-- Policies for shows
+create policy "Allow public read access to shows" on public.shows for select using (true);
+create policy "Allow public insert access to shows" on public.shows for insert with check (true);
+create policy "Allow public update access to shows" on public.shows for update using (true);
+create policy "Allow public delete access to shows" on public.shows for delete using (true);
+
+-- Policies for tickets
+create policy "Allow public read access to tickets" on public.tickets for select using (true);
+create policy "Allow public insert access to tickets" on public.tickets for insert with check (true);
+create policy "Allow public update access to tickets" on public.tickets for update using (true);
+create policy "Allow public delete access to tickets" on public.tickets for delete using (true);
+
+-- Enable Realtime for additions
+begin;
+  alter publication supabase_realtime add table public.restaurant_tables;
+  alter publication supabase_realtime add table public.shows;
+  alter publication supabase_realtime add table public.tickets;
+exception when others then
+  raise notice 'Could not add additions to publication';
 end;
 commit;

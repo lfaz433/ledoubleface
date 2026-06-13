@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Package, ShoppingBag, Tv, QrCode, Settings,
   Plus, Trash2, Edit2, Check, X, Bell, TrendingUp, Users, DollarSign,
   Eye, MoreVertical, ChevronDown, AlertCircle, Clock, CheckCircle2,
-  GripVertical, ChevronRight, Save, ArrowLeft, RefreshCw, Upload
+  GripVertical, ChevronRight, Save, ArrowLeft, RefreshCw, Upload, Award
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { supabase } from "../../lib/supabase";
@@ -45,19 +45,29 @@ interface Order {
   time: string;
   total: number;
   note?: string;
+  paid?: boolean;
 }
 
-// Local Seed fallbacks
-const SEED_PRODUCTS: Product[] = [
-  { id: "B1", name: "Le Double Face Classic", category: "Burgers", price: 14.90, desc: "Double wagyu patty, truffle mayo, aged cheddar", image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=200&h=150&fit=crop&auto=format", active: true, customFields: [{ id: "c1", name: "Cooking", type: "radio", options: ["Saignant", "À point", "Bien cuit"], required: true }] },
-  { id: "B2", name: "Smash & Burn", category: "Burgers", price: 13.90, desc: "Smash patty, BBQ, crispy bacon, pickles", image: "https://images.unsplash.com/photo-1550547660-d9450f859349?w=200&h=150&fit=crop&auto=format", active: true, customFields: [] },
-  { id: "D3", name: "Le Cocktail Double Face", category: "Drinks", price: 12.00, desc: "Premium signature cocktail with dual-distilled gin", image: "https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=200&h=150&fit=crop&auto=format", active: true, customFields: [] },
-  { id: "S1", name: "La Truffe Fries", category: "Sides", price: 6.90, desc: "Belgian fries, truffle oil, parmesan", image: "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=200&h=150&fit=crop&auto=format", active: true, customFields: [] },
-];
+interface RestaurantTable {
+  id: string;
+  area: string;
+  is_terrace: boolean;
+  waiter_called: boolean;
+}
 
-const TABLES = Array.from({ length: 12 }, (_, i) => `T${String(i + 1).padStart(2, "0")}`);
+interface Show {
+  id: string;
+  title: string;
+  description: string;
+  date: string;
+  price: number;
+  image: string;
+  available_tickets: number;
+}
 
-type AdminSection = "dashboard" | "products" | "orders" | "tables" | "settings";
+const STATIC_TABLE_IDS = ["T01", "T02", "T03", "T04", "T05", "T06", "T07", "T08", "T09", "T10", "T11", "T12"];
+
+type AdminSection = "dashboard" | "products" | "orders" | "tables" | "settings" | "shows";
 
 export function AdminDashboard() {
   const [section, setSection] = useState<AdminSection>("dashboard");
@@ -69,6 +79,15 @@ export function AdminDashboard() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [showProductForm, setShowProductForm] = useState(false);
   const [notifications, setNotifications] = useState(0);
+
+  // Table Registry & waiter call states
+  const [dbTables, setDbTables] = useState<RestaurantTable[]>([]);
+
+  // Shows manager states
+  const [shows, setShows] = useState<Show[]>([]);
+  const [tickets, setTickets] = useState<any[]>([]);
+  const [showShowForm, setShowShowForm] = useState(false);
+  const [editingShow, setEditingShow] = useState<Show | null>(null);
 
   // 1. Fetch Orders from Database (Real-time Joined Query)
   const loadOrders = async () => {
@@ -82,6 +101,7 @@ export function AdminDashboard() {
           status,
           total,
           note,
+          paid,
           created_at,
           order_items (
             product_id,
@@ -107,26 +127,26 @@ export function AdminDashboard() {
             status: o.status,
             total: Number(o.total),
             note: o.note,
+            paid: o.paid,
             time: timeString,
-            items: (o.order_items || []).map((item: any) => ({
-              product_id: item.product_id,
-              name: item.name,
-              price: Number(item.price),
-              quantity: item.quantity,
-              customizations: item.customizations || {}
-            }))
+            items: o.order_items || []
           };
         });
         setOrders(formatted);
-        setNotifications(formatted.filter(o => o.status === "pending").length);
+        
+        // Count pending orders for badge notifications
+        const pendingCount = formatted.filter(o => o.status === "pending").length;
+        setNotifications(pendingCount);
       }
     } catch (err) {
       console.warn("Could not load orders from Supabase. Offline mode active.", err);
       setDbError(true);
+    } finally {
+      setLoading(false);
     }
   };
 
-  // 2. Fetch Products from Database
+  // 2. Fetch Products
   const loadProducts = async () => {
     try {
       const { data, error } = await supabase
@@ -136,7 +156,7 @@ export function AdminDashboard() {
 
       if (error) throw error;
 
-      if (data && data.length > 0) {
+      if (data) {
         const formatted: Product[] = data.map((p: any) => ({
           id: p.id,
           name: p.name,
@@ -148,27 +168,66 @@ export function AdminDashboard() {
           customFields: p.custom_fields || []
         }));
         setProducts(formatted);
-      } else {
-        setProducts(SEED_PRODUCTS);
       }
     } catch (err) {
-      console.warn("Could not load products. Using fallbacks.", err);
-      setProducts(SEED_PRODUCTS);
+      console.warn("Could not load products from Supabase.", err);
     }
   };
 
-  const loadAllData = async () => {
-    setLoading(true);
-    await Promise.all([loadOrders(), loadProducts()]);
-    setLoading(false);
+  // 3. Fetch Tables Registry
+  const loadTables = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("restaurant_tables")
+        .select("*")
+        .order("id", { ascending: true });
+      if (!error && data) {
+        setDbTables(data);
+      }
+    } catch (err) {
+      console.warn("Could not load tables registry:", err);
+    }
+  };
+
+  // 4. Fetch Shows & Tickets
+  const loadShows = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("shows")
+        .select("*")
+        .order("date", { ascending: true });
+      if (!error && data) {
+        setShows(data);
+      }
+    } catch (err) {
+      console.warn("Could not load shows list:", err);
+    }
+  };
+
+  const loadTickets = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("tickets")
+        .select("*, shows(title)")
+        .order("created_at", { ascending: false });
+      if (!error && data) {
+        setTickets(data);
+      }
+    } catch (err) {
+      console.warn("Could not load tickets list:", err);
+    }
   };
 
   useEffect(() => {
-    loadAllData();
+    loadOrders();
+    loadProducts();
+    loadTables();
+    loadShows();
+    loadTickets();
 
-    // Subscribe to Orders changes in real-time
+    // Subscribe to orders changes in real-time
     const ordersChannel = supabase
-      .channel("admin-orders-live")
+      .channel("orders-admin-sync")
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "orders" },
@@ -176,34 +235,27 @@ export function AdminDashboard() {
           loadOrders();
         }
       )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "order_items" },
-        () => {
-          loadOrders();
-        }
-      )
       .subscribe();
 
-    // Subscribe to Products changes in real-time
-    const productsChannel = supabase
-      .channel("admin-products-live")
+    // Subscribe to table update events (waiter calls)
+    const tablesChannel = supabase
+      .channel("tables-admin-sync")
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "menu_items" },
+        { event: "*", schema: "public", table: "restaurant_tables" },
         () => {
-          loadProducts();
+          loadTables();
         }
       )
       .subscribe();
 
     return () => {
       supabase.removeChannel(ordersChannel);
-      supabase.removeChannel(productsChannel);
+      supabase.removeChannel(tablesChannel);
     };
   }, []);
 
-  // 3. Pipeline advance actions (Pending -> Preparing -> Ready -> Delivered/Archived)
+  // Pipeline advance actions (Pending -> Preparing -> Ready -> Delivered)
   async function advanceOrder(id: string, currentStatus: Order["status"]) {
     const statusSequence: Order["status"][] = ["pending", "preparing", "ready", "delivered"];
     const currentIndex = statusSequence.indexOf(currentStatus);
@@ -221,12 +273,163 @@ export function AdminDashboard() {
       loadOrders();
     } catch (err) {
       console.error("Failed to advance order:", err);
-      // Fallback state modification for offline simulation
       setOrders(prev => prev.map(o => o.id === id ? { ...o, status: nextStatus } : o));
     }
   }
 
-  // 4. CMS Product Actions
+  // Reset/Payment action
+  async function markOrderPaid(id: string) {
+    try {
+      const { error } = await supabase
+        .from("orders")
+        .update({ paid: true })
+        .eq("id", id);
+
+      if (error) throw error;
+      loadOrders();
+    } catch (err) {
+      console.error("Failed to mark order as paid:", err);
+      setOrders(prev => prev.map(o => o.id === id ? { ...o, paid: true } : o));
+    }
+  }
+
+  // Dismiss Waiter Call
+  async function dismissWaiterCall(tableId: string) {
+    setDbTables(prev => prev.map(t => t.id === tableId ? { ...t, waiter_called: false } : t));
+    try {
+      const { error } = await supabase
+        .from("restaurant_tables")
+        .update({ waiter_called: false })
+        .eq("id", tableId);
+      if (error) throw error;
+    } catch (err) {
+      console.warn("Could not dismiss waiter call in DB:", err);
+    }
+  }
+
+  // Toggle Terrace status
+  async function toggleTerrace(tableId: string, currentVal: boolean) {
+    const newVal = !currentVal;
+    const newArea = newVal ? "Terrace Patio" : "Inside Lounge";
+    
+    setDbTables(prev => prev.map(t => t.id === tableId ? { ...t, is_terrace: newVal, area: newArea } : t));
+    try {
+      const { error } = await supabase
+        .from("restaurant_tables")
+        .update({ is_terrace: newVal, area: newArea })
+        .eq("id", tableId);
+      if (error) throw error;
+    } catch (err) {
+      console.warn("Could not toggle terrace status in DB:", err);
+    }
+  }
+
+  // Print QR Template
+  const printQrCode = (tableId: string, area: string) => {
+    const tableUrl = `${window.location.origin}/?table=${tableId}`;
+    const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(tableUrl)}`;
+    
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+    
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Print QR Code - Table ${tableId}</title>
+          <style>
+            body {
+              font-family: 'Playfair Display', serif;
+              background-color: #ffffff;
+              color: #0A0704;
+              text-align: center;
+              margin: 0;
+              padding: 40px;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              height: 90vh;
+            }
+            .qr-container {
+              border: 4px double #C8102E;
+              padding: 40px;
+              border-radius: 15px;
+              max-width: 400px;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+            }
+            .logo {
+              font-size: 28px;
+              font-weight: 900;
+              color: #C8102E;
+              margin-bottom: 5px;
+            }
+            .restaurant-name {
+              font-size: 22px;
+              font-weight: 700;
+              margin-bottom: 25px;
+              letter-spacing: 1px;
+            }
+            .qr-image {
+              width: 250px;
+              height: 250px;
+              margin-bottom: 25px;
+            }
+            .table-id {
+              font-size: 36px;
+              font-weight: 900;
+              margin-bottom: 10px;
+              letter-spacing: -0.5px;
+            }
+            .area {
+              font-size: 14px;
+              color: #8E7E70;
+              margin-bottom: 15px;
+              text-transform: uppercase;
+              font-family: monospace;
+            }
+            .instruction {
+              font-size: 12px;
+              color: #555;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="qr-container">
+            <div class="logo">LF</div>
+            <div class="restaurant-name">LE DOUBLE FACE</div>
+            <img class="qr-image" src="${qrImageUrl}" alt="Table QR" />
+            <div class="table-id">TABLE ${tableId}</div>
+            <div class="area">${area}</div>
+            <div class="instruction">Scan to order drinks, dishes & request waiter service</div>
+          </div>
+          <script>
+            window.onload = function() {
+              window.print();
+              setTimeout(function() { window.close(); }, 500);
+            }
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
+  const downloadQrCode = (tableId: string) => {
+    const tableUrl = `${window.location.origin}/?table=${tableId}`;
+    const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(tableUrl)}`;
+    
+    const link = document.createElement("a");
+    link.href = qrImageUrl;
+    link.target = "_blank";
+    link.download = `QR_Table_${tableId}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // CMS Product Actions
   async function handleSaveProduct(p: Product) {
     try {
       const { error } = await supabase
@@ -247,7 +450,6 @@ export function AdminDashboard() {
       setShowProductForm(false);
     } catch (err) {
       console.error("Failed to save product:", err);
-      // Local simulated save for offline fallback
       setProducts(prev => {
         const exists = prev.some(x => x.id === p.id);
         if (exists) return prev.map(x => x.id === p.id ? p : x);
@@ -283,22 +485,78 @@ export function AdminDashboard() {
       if (error) throw error;
       loadProducts();
     } catch (err) {
-      console.error("Failed to toggle product status:", err);
+      console.error("Failed to toggle active state:", err);
       setProducts(prev => prev.map(x => x.id === p.id ? { ...x, active: !x.active } : x));
     }
   }
 
-  // 5. Calculations for Statistics
-  const todayOrders = orders.filter(o => {
-    // If db timestamp is missing, assume today
-    return true; 
-  });
-  
-  const totalRevenue = todayOrders.reduce((sum, o) => sum + o.total, 0);
-  const activeTablesCount = new Set(orders.filter(o => o.status !== "delivered").map(o => o.table_id)).size;
-  const avgOrderVal = todayOrders.length > 0 ? totalRevenue / todayOrders.length : 0;
+  // Shows manager actions
+  async function saveShow() {
+    if (!editingShow) return;
+    try {
+      const isNew = !editingShow.id;
+      const payload: any = {
+        title: editingShow.title,
+        description: editingShow.description,
+        date: editingShow.date,
+        price: editingShow.price,
+        image: editingShow.image,
+        available_tickets: editingShow.available_tickets
+      };
+      if (editingShow.id) {
+        payload.id = editingShow.id;
+      }
+      
+      const { error } = await supabase
+        .from("shows")
+        .upsert(payload);
 
-  // Chart Data preparation
+      if (error) throw error;
+      loadShows();
+      setShowShowForm(false);
+    } catch (err) {
+      console.error("Failed to save show:", err);
+      // fallback
+      setShows(prev => {
+        if (!editingShow.id) {
+          const item = { ...editingShow, id: `S-${Date.now()}` };
+          return [...prev, item];
+        }
+        return prev.map(s => s.id === editingShow.id ? editingShow : s);
+      });
+      setShowShowForm(false);
+    }
+  }
+
+  async function deleteShow(id: string) {
+    if (!confirm("Are you sure you want to delete this show?")) return;
+    try {
+      const { error } = await supabase
+        .from("shows")
+        .delete()
+        .eq("id", id);
+      if (error) throw error;
+      loadShows();
+    } catch (err) {
+      console.error("Failed to delete show:", err);
+      setShows(prev => prev.filter(s => s.id !== id));
+    }
+  }
+
+  // Calculations
+  const completedOrders = orders.filter(o => o.status === "delivered");
+  const totalRevenue = completedOrders.reduce((sum, o) => sum + o.total, 0);
+  const activeOrdersCount = orders.filter(o => o.status !== "delivered").length;
+  
+  const activeWaiterCalls = dbTables.filter(t => t.waiter_called);
+
+  const tablesToRender = dbTables.length > 0 ? dbTables : STATIC_TABLE_IDS.map(id => ({
+    id,
+    area: id >= "T07" ? "Terrace Patio" : "Inside Lounge",
+    is_terrace: id >= "T07",
+    waiter_called: false
+  }));
+
   const REVENUE_DATA = [
     { day: "Mon", revenue: 1240 }, { day: "Tue", revenue: 980 }, { day: "Wed", revenue: 1650 },
     { day: "Thu", revenue: 1320 }, { day: "Fri", revenue: 2100 }, { day: "Sat", revenue: 2850 },
@@ -309,7 +567,7 @@ export function AdminDashboard() {
     pending: "#F59E0B", preparing: "#C8102E", ready: "#10B981", delivered: "#8E7E70"
   };
   const statusLabels: Record<Order["status"], string> = {
-    pending: "PENDING", preparing: "PREPARING", ready: "READY", delivered: "FULFILLED"
+    pending: "PENDING", preparing: "PREPARING", ready: "READY", delivered: "DELIVERED"
   };
 
   const navItems = [
@@ -317,6 +575,7 @@ export function AdminDashboard() {
     { id: "orders" as AdminSection, icon: <ShoppingBag size={16} />, label: "Live Orders Queue", badge: notifications },
     { id: "products" as AdminSection, icon: <Package size={16} />, label: "Menu Forge (CMS)" },
     { id: "tables" as AdminSection, icon: <QrCode size={16} />, label: "Table Registry & QR" },
+    { id: "shows" as AdminSection, icon: <Award size={16} />, label: "Shows Manager" },
     { id: "settings" as AdminSection, icon: <Settings size={16} />, label: "Preferences" },
   ];
 
@@ -347,7 +606,7 @@ export function AdminDashboard() {
             const active = section === item.id;
             return (
               <button key={item.id} onClick={() => setSection(item.id)}
-                className="w-full flex items-center gap-2.5 px-3 py-2 text-left rounded text-xs transition-all relative border"
+                className="w-full flex items-center gap-2.5 px-3 py-2 text-left rounded text-xs transition-all relative border cursor-pointer"
                 style={{
                   background: active ? "rgba(200,16,46,0.12)" : "transparent",
                   borderColor: active ? "rgba(200,16,46,0.2)" : "transparent",
@@ -363,79 +622,88 @@ export function AdminDashboard() {
             );
           })}
         </nav>
-        {dbError && (
-          <div className="p-3 mx-2 my-2 bg-[#1A130E] border border-dashed border-[#8E7E70]/30 rounded text-[9px] text-[#8E7E70]">
-            Database offline. Running in simulated fallback.
-          </div>
-        )}
       </div>
 
-      {/* Main Container */}
-      <div className="flex-1 flex flex-col overflow-hidden bg-[#0A0704]">
-        {/* Workspace Content */}
-        <div className="flex-1 overflow-y-auto p-5">
-          
+      {/* Main Panel Content */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Header */}
+        <header className="px-6 py-4 bg-[#120D09] border-b border-[#2A1E15] flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-[#8E7E70] font-mono text-xs uppercase tracking-widest">{section} console</span>
+          </div>
+          <div className="flex items-center gap-4 text-xs font-mono">
+            <span className="text-[#8E7E70]">SUPABASE STATUS:</span>
+            <span className="flex items-center gap-1.5 font-bold text-[#10B981]">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]" /> ONLINE
+            </span>
+          </div>
+        </header>
+
+        {/* Content Body */}
+        <div className="flex-1 p-6 overflow-y-auto">
+          {dbError && (
+            <div className="mb-6 p-4 bg-red-950/20 border border-[#C8102E]/30 rounded-lg text-xs text-[#8E7E70] flex items-center gap-2">
+              <AlertCircle size={14} className="text-[#C8102E]" />
+              <span>Warning: Could not sync from Supabase. Running in isolated fallback simulation.</span>
+            </div>
+          )}
+
           {/* 1. DASHBOARD OVERVIEW */}
           {section === "dashboard" && (
             <div className="flex flex-col gap-6">
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Stat Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {[
-                  { label: "Today's Gross Sales", value: `€${totalRevenue.toFixed(2)}`, icon: <DollarSign size={16} />, desc: "Live sum from orders" },
-                  { label: "Active Orders", value: orders.filter(o => o.status !== "delivered").length.toString(), icon: <ShoppingBag size={16} />, desc: "Queue size" },
-                  { label: "Occupied Tables", value: `${activeTablesCount} / 12`, icon: <Users size={16} />, desc: "Real-time occupancy" },
-                  { label: "Avg Ticket Size", value: `€${avgOrderVal.toFixed(2)}`, icon: <TrendingUp size={16} />, desc: "Total / Tickets count" },
+                  { label: "DELIVERED REVENUE (TODAY)", value: `€${totalRevenue.toFixed(2)}`, trend: "+12.4% vs yesterday", icon: <DollarSign size={18} className="text-[#10B981]" /> },
+                  { label: "ACTIVE TICKETS IN PIPELINE", value: String(activeOrdersCount), trend: "Live kitchen load", icon: <ShoppingBag size={18} className="text-[#C8102E]" /> },
+                  { label: "TABLE OCCUPANCY / COUNT", value: `${orders.filter(o => o.status !== "delivered").map(o => o.table_id).filter((v, i, a) => a.indexOf(v) === i).length} / 12`, trend: "Active guest sessions", icon: <Users size={18} className="text-[#8E7E70]" /> },
                 ].map(stat => (
-                  <div key={stat.label} className="p-4 bg-[#120D09] border border-[#2A1E15] rounded">
-                    <div className="flex items-center justify-between mb-3 text-[#8E7E70]">
-                      <span className="text-[10px] font-mono tracking-wider uppercase">{stat.label}</span>
-                      <div className="text-[#C8102E]">{stat.icon}</div>
+                  <div key={stat.label} className="p-4 bg-[#120D09] border border-[#2A1E15] rounded-xl flex items-center justify-between">
+                    <div>
+                      <div className="text-[9px] font-mono tracking-widest text-[#8E7E70] uppercase mb-1">{stat.label}</div>
+                      <div className="text-xl font-bold font-serif mb-1">{stat.value}</div>
+                      <div className="text-[9px] font-mono text-[#8E7E70]">{stat.trend}</div>
                     </div>
-                    <div className="font-serif text-2xl font-black text-white">{stat.value}</div>
-                    <div className="text-[9px] text-[#8E7E70] mt-1">{stat.desc}</div>
+                    <div className="w-10 h-10 rounded bg-[#1A130E] border border-[#2A1E15] flex items-center justify-center">{stat.icon}</div>
                   </div>
                 ))}
               </div>
 
-              <div className="grid lg:grid-cols-3 gap-5">
-                {/* Sales Chart */}
-                <div className="p-4 bg-[#120D09] border border-[#2A1E15] rounded lg:col-span-2">
-                  <h3 className="text-xs font-mono tracking-widest text-[#8E7E70] mb-4 uppercase">Weekly Revenues</h3>
-                  <div className="h-44">
+              {/* Chart & Queue summary */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2 p-5 bg-[#120D09] border border-[#2A1E15] rounded-xl">
+                  <h4 className="text-xs font-mono tracking-widest text-[#8E7E70] mb-4 uppercase">Weekly Revenue Projection</h4>
+                  <div className="h-64">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={REVENUE_DATA}>
-                        <XAxis dataKey="day" tick={{ fill: "#8E7E70", fontSize: 10 }} axisLine={false} tickLine={false} />
-                        <YAxis tick={{ fill: "#8E7E70", fontSize: 10 }} axisLine={false} tickLine={false} />
-                        <Tooltip contentStyle={{ background: "#120D09", border: "1px solid #2A1E15", borderRadius: "3px", color: "#fff", fontSize: 11 }} />
-                        <Bar dataKey="revenue" fill="#C8102E" radius={[2, 2, 0, 0]} />
+                        <XAxis dataKey="day" stroke="#8E7E70" fontSize={10} tickLine={false} />
+                        <YAxis stroke="#8E7E70" fontSize={10} tickLine={false} axisLine={false} />
+                        <Tooltip contentStyle={{ background: "#120D09", borderColor: "#2A1E15", fontSize: "11px", color: "#fff" }} />
+                        <Bar dataKey="revenue" fill="#C8102E" radius={[4, 4, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
                 </div>
 
-                {/* Queue Summary */}
-                <div className="p-4 bg-[#120D09] border border-[#2A1E15] rounded flex flex-col h-[230px]">
-                  <div className="flex items-center justify-between mb-3 border-b border-[#2A1E15] pb-2">
-                    <span className="text-xs font-mono tracking-widest text-[#8E7E70] uppercase">Live Queue</span>
-                    <span className="bg-[#C8102E]/20 text-[#C8102E] text-[8px] font-black px-1.5 py-0.5 rounded animate-pulse">ACTIVE SYNC</span>
-                  </div>
-                  <div className="flex-1 overflow-y-auto flex flex-col gap-2">
-                    {orders.filter(o => o.status !== "delivered").map(order => (
-                      <div key={order.id} className="p-2.5 bg-[#1A130E] border border-[#2A1E15] rounded flex items-center justify-between text-xs">
-                        <div>
-                          <div className="font-bold text-[#E5D5C5]">{order.table_id} · <span className="text-[10px] text-[#8E7E70] font-normal">{order.area}</span></div>
-                          <div className="text-[9px] font-mono text-[#8E7E70] mt-0.5">{order.id}</div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-[9px] font-bold" style={{ color: statusColors[order.status] }}>{statusLabels[order.status]}</span>
-                          <button onClick={() => advanceOrder(order.id, order.status)}
-                            className="bg-[#C8102E] hover:opacity-90 text-white font-bold px-1.5 py-0.5 rounded text-[10px]">
-                            →
-                          </button>
+                <div className="p-5 bg-[#120D09] border border-[#2A1E15] rounded-xl">
+                  <h4 className="text-xs font-mono tracking-widest text-[#8E7E70] mb-4 uppercase">Recent activity log</h4>
+                  <div className="flex flex-col gap-3.5 max-h-64 overflow-y-auto pr-1">
+                    {orders.slice(0, 5).map(o => (
+                      <div key={o.id} className="flex items-start gap-3 text-xs border-b border-[#2A1E15]/30 pb-3 last:border-0 last:pb-0">
+                        <div className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0" style={{ background: statusColors[o.status] }} />
+                        <div className="flex-1">
+                          <div className="flex justify-between font-bold text-white mb-0.5">
+                            <span>Ticket {o.id}</span>
+                            <span className="text-[9px] font-mono text-[#8E7E70]">{o.time}</span>
+                          </div>
+                          <div className="text-[10px] text-[#8E7E70] font-mono">
+                            Table {o.table_id} · {o.items.length} items · €{o.total.toFixed(2)}
+                          </div>
                         </div>
                       </div>
                     ))}
-                    {orders.filter(o => o.status !== "delivered").length === 0 && (
-                      <div className="flex-1 flex items-center justify-center text-[10px] text-[#8E7E70] border border-dashed border-[#2A1E15] rounded">No active orders</div>
+                    {orders.length === 0 && (
+                      <div className="text-center py-12 text-[#8E7E70] text-xs">No orders logged today.</div>
                     )}
                   </div>
                 </div>
@@ -443,139 +711,176 @@ export function AdminDashboard() {
             </div>
           )}
 
-          {/* 2. ORDERS QUEUE */}
+          {/* 2. LIVE ORDERS PIPELINE */}
           {section === "orders" && (
-            <div className="flex flex-col gap-4">
-              {/* Order Stats */}
-              <div className="grid grid-cols-4 gap-3">
-                {(["pending", "preparing", "ready", "delivered"] as Order["status"][]).map(s => (
-                  <div key={s} className="p-3 bg-[#120D09] border border-[#2A1E15] rounded text-center">
-                    <span className="text-[9px] font-mono font-bold tracking-wider" style={{ color: statusColors[s] }}>{statusLabels[s]}</span>
-                    <div className="font-serif text-xl font-black mt-1 text-white">{orders.filter(o => o.status === s).length}</div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Order Cards */}
-              <div className="flex flex-col gap-3">
-                {orders.map(order => (
-                  <div key={order.id} className="p-4 bg-[#120D09] border border-[#2A1E15] rounded-lg">
-                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#2A1E15] pb-3 mb-3">
-                      <div className="flex items-center gap-3">
-                        <span className="font-serif font-black text-base text-white">{order.table_id}</span>
-                        <span className="bg-[#1A130E] border border-[#2A1E15] px-2 py-0.5 rounded text-[10px] text-[#8E7E70] font-mono">{order.area}</span>
-                        <span className="text-[10px] text-[#8E7E70] font-mono">{order.id}</span>
-                        <span className="flex items-center gap-1 text-[10px] text-[#8E7E70] font-mono"><Clock size={11} /> {order.time}</span>
+            <div className="flex flex-col gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                {(["pending", "preparing", "ready", "delivered"] as const).map(stage => {
+                  const stageOrders = orders.filter(o => o.status === stage);
+                  return (
+                    <div key={stage} className="flex flex-col min-h-[500px] bg-[#120D09]/50 border border-[#2A1E15]/60 rounded-xl p-4">
+                      {/* Stage header */}
+                      <div className="flex items-center justify-between mb-4 pb-2 border-b border-[#2A1E15]">
+                        <span className="text-xs font-mono font-bold uppercase tracking-wider text-[#E5D5C5]">{stage === "delivered" ? "FULFILLED" : stage.toUpperCase()}</span>
+                        <span className="bg-[#1A130E] border border-[#2A1E15] px-2 py-0.5 rounded text-[10px] font-mono text-[#8E7E70]">{stageOrders.length}</span>
                       </div>
-                      
-                      <div className="flex items-center gap-3">
-                        <span className="font-mono text-xs font-bold" style={{ color: statusColors[order.status] }}>{statusLabels[order.status]}</span>
-                        <span className="font-mono text-xs font-bold text-[#E5D5C5]">€{order.total.toFixed(2)}</span>
-                        {order.status !== "delivered" && (
-                          <button onClick={() => advanceOrder(order.id, order.status)}
-                            className="bg-[#C8102E] hover:opacity-90 text-white font-bold py-1.5 px-3 rounded text-xs transition-all">
-                            {order.status === "pending" ? "ACCEPT ORDER" : order.status === "preparing" ? "MARK READY" : "FULFILL & CLEAR"}
-                          </button>
-                        )}
-                      </div>
-                    </div>
 
-                    <div className="flex flex-col gap-2 pl-1">
-                      {order.items.map((item, idx) => (
-                        <div key={idx} className="flex justify-between items-start text-xs">
-                          <div>
-                            <span className="font-bold text-[#E5D5C5]">{item.quantity}× {item.name}</span>
-                            {Object.entries(item.customizations).map(([k, v]) => v && (Array.isArray(v) ? v.length > 0 : true) && (
-                              <div key={k} className="text-[10px] text-[#8E7E70] ml-3 mt-0.5">
-                                • {Array.isArray(v) ? v.join(", ") : v}
+                      {/* Stage tickets list */}
+                      <div className="flex flex-col gap-3 flex-1 overflow-y-auto">
+                        {stageOrders.map(order => (
+                          <div key={order.id} className="p-4 bg-[#120D09] border border-[#2A1E15] rounded-xl flex flex-col justify-between transition-all hover:border-[#C8102E]/40">
+                            <div>
+                              <div className="flex justify-between items-start mb-2 pb-2 border-b border-[#2A1E15]/30">
+                                <div>
+                                  <div className="font-serif font-black text-xs text-white">{order.id}</div>
+                                  <div className="font-mono text-[8px] text-[#8E7E70] uppercase mt-0.5">Table {order.table_id} · {order.area}</div>
+                                </div>
+                                <span className="font-mono text-[9px] text-[#8E7E70]">{order.time}</span>
                               </div>
-                            ))}
+
+                              <div className="flex flex-col gap-1.5 mb-4">
+                                {order.items.map((item, idx) => (
+                                  <div key={idx} className="text-xs text-[#E5D5C5]">
+                                    <div className="flex justify-between">
+                                      <span className="font-bold">{item.quantity}x {item.name}</span>
+                                      <span className="font-mono text-[10px] text-[#8E7E70]">€{(item.price * item.quantity).toFixed(2)}</span>
+                                    </div>
+                                    {Object.entries(item.customizations).map(([k, v]) => v && (Array.isArray(v) ? v.length > 0 : true) && (
+                                      <div key={k} className="text-[10px] text-[#8E7E70] pl-3">
+                                        ↳ {Array.isArray(v) ? v.join(", ") : v}
+                                      </div>
+                                    ))}
+                                  </div>
+                                ))}
+                              </div>
+
+                              {order.note && (
+                                <div className="p-2 bg-[#1A130E] border border-dashed border-[#2A1E15] text-[10px] text-amber-500 rounded font-mono mb-4">
+                                  NOTE: {order.note}
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="pt-2 border-t border-[#2A1E15]/30 flex flex-col gap-2">
+                              <div className="flex justify-between items-center text-xs font-mono">
+                                <span className="text-[#8E7E70]">Total Bill:</span>
+                                <span className="font-bold text-white">€{order.total.toFixed(2)}</span>
+                              </div>
+                              
+                              <div className="flex justify-between items-center text-[10px] font-mono">
+                                <span className="text-[#8E7E70]">Payment:</span>
+                                <span className={`font-bold ${order.paid ? "text-green-500" : "text-amber-500"}`}>
+                                  {order.paid ? "PAID" : "UNPAID"}
+                                </span>
+                              </div>
+
+                              {/* Operations actions */}
+                              <div className="flex gap-2.5 mt-1">
+                                {stage !== "delivered" && (
+                                  <button onClick={() => advanceOrder(order.id, order.status)}
+                                    className="flex-1 py-1.5 bg-[#C8102E] hover:opacity-95 text-white font-bold rounded text-[10px] cursor-pointer">
+                                    {stage === "pending" ? "ACCEPT" : stage === "preparing" ? "READY" : "DELIVER"}
+                                  </button>
+                                )}
+                                
+                                {stage === "delivered" && !order.paid && (
+                                  <button onClick={() => markOrderPaid(order.id)}
+                                    className="flex-1 py-1.5 bg-green-700 hover:bg-green-600 text-white font-bold rounded text-[10px] cursor-pointer">
+                                    MARK AS PAID
+                                  </button>
+                                )}
+                              </div>
+                            </div>
                           </div>
-                          <span className="font-mono text-[#8E7E70]">€{(item.price * item.quantity).toFixed(2)}</span>
-                        </div>
-                      ))}
-                      {order.note && (
-                        <div className="mt-2 p-2.5 bg-[#1C130C] border border-[#2A1E15] rounded text-[10px] text-[#E5D5C5]">
-                          <span className="font-mono font-bold text-[#C8102E]">NOTE: </span>
-                          {order.note}
-                        </div>
-                      )}
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                ))}
-                {orders.length === 0 && (
-                  <div className="text-center py-12 text-xs text-[#8E7E70] border border-dashed border-[#2A1E15] rounded">No orders received yet</div>
-                )}
+                  );
+                })}
               </div>
             </div>
           )}
 
-          {/* 3. PRODUCT MATRIX CMS */}
+          {/* 3. MENU FORGE (CMS) */}
           {section === "products" && (
-            <div>
-              <div className="flex items-center justify-between mb-4 border-b border-[#2A1E15] pb-3">
-                <div className="text-xs font-mono tracking-widest text-[#8E7E70]">{products.length} PRODUCTS IN MATRIX</div>
-                <button onClick={() => {
-                  setEditingProduct({ id: `P${Date.now()}`, name: "", category: "Burgers", price: 0, desc: "", image: "", active: true, customFields: [] });
-                  setShowProductForm(true);
-                }}
-                  className="bg-[#C8102E] hover:opacity-90 text-white font-bold py-1.5 px-3 rounded text-xs flex items-center gap-1">
-                  <Plus size={14} /> ADD NEW ITEM
-                </button>
+            <div className="flex flex-col gap-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-serif font-black text-lg text-white">Product Catalog Matrix</h3>
+                  <p className="text-xs text-[#8E7E70] mt-1 font-mono">Add new products, adjust base prices, or customize option builders.</p>
+                </div>
+                {!showProductForm && (
+                  <button
+                    onClick={() => {
+                      setEditingProduct({ id: `P${Date.now()}`, name: "", category: "Burgers", price: 0, desc: "", image: "", active: true, customFields: [] });
+                      setShowProductForm(true);
+                    }}
+                    className="bg-[#C8102E] hover:opacity-90 text-white font-bold py-2 px-4 rounded text-xs flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Plus size={14} /> FORGE NEW ITEM
+                  </button>
+                )}
               </div>
 
-              {showProductForm && editingProduct ? (
-                <ProductForm
-                  product={editingProduct}
-                  onSave={handleSaveProduct}
-                  onCancel={() => setShowProductForm(false)}
-                />
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {products.map(product => (
-                    <div key={product.id} className="bg-[#120D09] border border-[#2A1E15] rounded overflow-hidden flex flex-col"
-                      style={{ opacity: product.active ? 1 : 0.5 }}>
-                      <div className="h-32 bg-[#1A130E] relative overflow-hidden">
-                        {product.image && <img src={product.image} alt={product.name} className="w-full h-full object-cover" />}
-                        <div className="absolute top-2 right-2">
-                          <span className="text-[9px] font-black px-1.5 py-0.5 rounded border bg-[#0D0A08]/90 font-mono tracking-wider"
-                            style={{ borderColor: product.active ? "#10B981" : "#8E7E70", color: product.active ? "#10B981" : "#8E7E70" }}>
-                            {product.active ? "ACTIVE" : "DRAFT"}
+              {showProductForm && editingProduct && (
+                <div className="max-w-3xl mb-6">
+                  <ProductForm
+                    product={editingProduct}
+                    onSave={handleSaveProduct}
+                    onCancel={() => {
+                      setShowProductForm(false);
+                      setEditingProduct(null);
+                    }}
+                  />
+                </div>
+              )}
+
+              {/* Products Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {products.map(p => (
+                  <div key={p.id} className="p-4 bg-[#120D09] border border-[#2A1E15] rounded-xl flex gap-3.5 items-start">
+                    <div className="w-16 h-16 rounded overflow-hidden bg-[#1A130E] border border-[#2A1E15] flex-shrink-0">
+                      {p.image && <img src={p.image} alt={p.name} className="w-full h-full object-cover" />}
+                    </div>
+                    <div className="flex-1 flex flex-col justify-between h-full">
+                      <div>
+                        <div className="flex justify-between items-start gap-1">
+                          <h4 className="font-serif font-bold text-sm text-white">{p.name}</h4>
+                          <span className="font-mono text-xs font-bold text-[#C8102E]">€{p.price.toFixed(2)}</span>
+                        </div>
+                        <p className="text-[10px] text-[#8E7E70] line-clamp-2 mt-1 leading-snug">{p.desc}</p>
+                        <div className="flex items-center gap-2 mt-2">
+                          <span className="bg-[#1A130E] border border-[#2A1E15] text-[#8E7E70] text-[9px] font-mono px-2 py-0.5 rounded uppercase">{p.category}</span>
+                          <span className="text-[9px] font-mono text-[#8E7E70]">
+                            {p.customFields.length} options
                           </span>
                         </div>
                       </div>
-                      <div className="p-3 flex-1 flex flex-col justify-between">
-                        <div>
-                          <div className="flex justify-between items-start mb-1.5">
-                            <h3 className="font-serif font-bold text-sm text-[#E5D5C5] truncate">{product.name}</h3>
-                            <span className="font-mono text-xs font-bold text-[#C8102E]">€{product.price.toFixed(2)}</span>
-                          </div>
-                          <p className="text-[10px] text-[#8E7E70] line-clamp-2 leading-relaxed mb-3">{product.desc}</p>
-                          <div className="text-[9px] text-[#8E7E70] font-mono border-t border-[#2A1E15]/30 pt-2 mb-3">
-                            MODIFIERS: {product.customFields.length} config fields
-                          </div>
-                        </div>
-
+                      <div className="flex items-center justify-between border-t border-[#2A1E15]/30 pt-2 mt-3.5">
+                        <button onClick={() => handleToggleActive(p)}
+                          className={`px-2 py-0.5 rounded text-[8px] font-mono font-bold tracking-wider cursor-pointer border ${
+                            p.active ? "bg-[#10B981]/10 text-[#10B981] border-[#10B981]/30" : "bg-[#1A130E] text-[#8E7E70] border-[#2A1E15]"
+                          }`}>
+                          {p.active ? "ACTIVE" : "DRAFT"}
+                        </button>
                         <div className="flex gap-2">
-                          <button onClick={() => { setEditingProduct(product); setShowProductForm(true); }}
-                            className="flex-1 bg-transparent border border-[#2A1E15] hover:bg-[#1A130E] text-[10px] font-bold text-[#E5D5C5] py-1.5 rounded flex items-center justify-center gap-1">
-                            <Edit2 size={11} /> EDIT
+                          <button onClick={() => {
+                            setEditingProduct(p);
+                            setShowProductForm(true);
+                          }}
+                            className="p-1 border border-[#2A1E15] hover:bg-[#1A130E] rounded text-white cursor-pointer">
+                            <Edit2 size={12} />
                           </button>
-                          <button onClick={() => handleToggleActive(product)}
-                            className="flex-1 bg-transparent border border-[#2A1E15] hover:bg-[#1A130E] text-[10px] font-bold py-1.5 rounded flex items-center justify-center gap-1"
-                            style={{ color: product.active ? "#F59E0B" : "#10B981" }}>
-                            <Eye size={11} /> {product.active ? "DRAFT" : "ACTIVE"}
-                          </button>
-                          <button onClick={() => handleDeleteProduct(product.id)}
-                            className="bg-transparent border border-[#2A1E15] hover:bg-red-950/20 text-[#C8102E] p-1.5 rounded">
+                          <button onClick={() => handleDeleteProduct(p.id)}
+                            className="p-1 border border-[#2A1E15] hover:bg-red-950/20 text-[#C8102E] rounded cursor-pointer">
                             <Trash2 size={12} />
                           </button>
                         </div>
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
@@ -586,36 +891,69 @@ export function AdminDashboard() {
                 Scan tabletop QR codes or click them to test guest ordering context in a new window. Active orders light up in red.
               </p>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {TABLES.map(table => {
-                  const activeOrder = orders.find(o => o.table_id === table && o.status !== "delivered");
-                  const tableUrl = `${window.location.origin}/?table=${table}`;
+                {tablesToRender.map(table => {
+                  const activeOrder = orders.find(o => o.table_id === table.id && o.status !== "delivered");
+                  const tableUrl = `${window.location.origin}/?table=${table.id}`;
                   const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(tableUrl)}`;
                   
                   return (
-                    <div key={table} className="p-4 bg-[#120D09] border rounded text-center transition-all"
-                      style={{ borderColor: activeOrder ? "#C8102E" : "#2A1E15" }}>
-                      <div className="font-serif font-black text-base text-white mb-2">{table}</div>
+                    <div key={table.id} className="p-4 bg-[#120D09] border rounded text-center transition-all flex flex-col justify-between"
+                      style={{ borderColor: activeOrder ? "#C8102E" : table.waiter_called ? "#F59E0B" : "#2A1E15" }}>
                       
-                      {/* Scannable & Clickable QR Code */}
-                      <a
-                        href={tableUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="block w-16 h-16 mx-auto mb-3 bg-white p-1 rounded overflow-hidden cursor-pointer hover:scale-105 transition-transform"
-                        title="Click to open menu for this table in a new tab"
-                      >
-                        <img
-                          src={qrImageUrl}
-                          alt={`QR Code for ${table}`}
-                          className="w-full h-full object-contain"
-                        />
-                      </a>
+                      <div>
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="font-serif font-black text-base text-white">{table.id}</span>
+                          <span className="text-[9px] text-[#8E7E70] font-mono uppercase">{table.area}</span>
+                        </div>
+                        
+                        {/* Scannable & Clickable QR Code */}
+                        <a
+                          href={tableUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block w-16 h-16 mx-auto mb-3 bg-white p-1 rounded overflow-hidden cursor-pointer hover:scale-105 transition-transform"
+                          title="Click to open menu for this table in a new tab"
+                        >
+                          <img
+                            src={qrImageUrl}
+                            alt={`QR Code for ${table.id}`}
+                            className="w-full h-full object-contain"
+                          />
+                        </a>
 
-                      <div className="font-mono text-[9px] font-bold" style={{ color: activeOrder ? statusColors[activeOrder.status] : "#8E7E70" }}>
-                        {activeOrder ? statusLabels[activeOrder.status] : "VACANT"}
+                        <div className="font-mono text-[9px] font-bold" style={{ color: activeOrder ? statusColors[activeOrder.status] : table.waiter_called ? "#F59E0B" : "#8E7E70" }}>
+                          {table.waiter_called ? "🛎️ WAITER CALLED" : activeOrder ? statusLabels[activeOrder.status] : "VACANT"}
+                        </div>
                       </div>
-                      <div className="font-mono text-[8.5px] text-[#8E7E70] mt-2 border-t border-[#2A1E15]/30 pt-1.5 select-all truncate" title={tableUrl}>
-                        {tableUrl}
+                      
+                      <div className="mt-3 pt-2.5 border-t border-[#2A1E15]/30">
+                        {/* La Terrasse Toggle button */}
+                        <div className="flex items-center justify-between text-[10px] mb-2 font-mono">
+                          <span className="text-[#8E7E70]">La Terrasse:</span>
+                          <button
+                            onClick={() => toggleTerrace(table.id, table.is_terrace)}
+                            className="w-7 h-4 relative rounded-full transition-all border cursor-pointer"
+                            style={{ background: table.is_terrace ? "#C8102E" : "#1A130E", borderColor: table.is_terrace ? "#C8102E" : "#2A1E15" }}
+                          >
+                            <div className="absolute top-[1px] w-2.5 h-2.5 rounded-full bg-white transition-all"
+                              style={{ left: table.is_terrace ? "13px" : "1px" }} />
+                          </button>
+                        </div>
+                        
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() => printQrCode(table.id, table.area)}
+                            className="flex-1 py-1 border border-[#2A1E15] hover:bg-[#1A130E] text-white rounded text-[8px] font-bold cursor-pointer"
+                          >
+                            PRINT
+                          </button>
+                          <button
+                            onClick={() => downloadQrCode(table.id)}
+                            className="flex-1 py-1 border border-[#2A1E15] hover:bg-[#1A130E] text-[#8E7E70] hover:text-white rounded text-[8px] font-bold cursor-pointer"
+                          >
+                            DL
+                          </button>
+                        </div>
                       </div>
                     </div>
                   );
@@ -624,7 +962,177 @@ export function AdminDashboard() {
             </div>
           )}
 
-          {/* 5. PREFERENCES */}
+          {/* 5. SHOWS MANAGER CMS */}
+          {section === "shows" && (
+            <div className="flex flex-col gap-6 animate-fade-in">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-serif font-black text-lg text-white">Live Show Matrix</h3>
+                  <p className="text-xs text-[#8E7E70] mt-1 font-mono">Create live performances, manage seating capacities, and track ticket bookings.</p>
+                </div>
+                {!showShowForm && (
+                  <button
+                    onClick={() => {
+                      setEditingShow({ id: "", title: "", description: "", price: 0, date: new Date().toISOString(), image: "", available_tickets: 50 });
+                      setShowShowForm(true);
+                    }}
+                    className="bg-[#C8102E] hover:opacity-90 text-white font-bold py-2 px-4 rounded text-xs flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Plus size={14} /> NEW PERFORMANCE
+                  </button>
+                )}
+              </div>
+
+              {showShowForm && editingShow && (
+                <div className="p-5 bg-[#120D09] border border-[#2A1E15] rounded-xl mb-4">
+                  <h4 className="font-serif font-black text-sm text-white mb-4 border-b border-[#2A1E15]/40 pb-2">
+                    {editingShow.id ? `EDIT PERFORMANCE: ${editingShow.title}` : "FORGE NEW SHOW"}
+                  </h4>
+                  <div className="grid md:grid-cols-2 gap-4 mb-5">
+                    <div>
+                      <label className="text-[10px] font-mono tracking-wider text-[#8E7E70] block mb-1">SHOW TITLE</label>
+                      <input
+                        type="text"
+                        value={editingShow.title}
+                        onChange={e => setEditingShow(p => p ? { ...p, title: e.target.value } : null)}
+                        placeholder="Live Concert Night"
+                        className="w-full px-3 py-2 text-xs bg-[#1A130E] border border-[#2A1E15] rounded text-white outline-none focus:border-[#C8102E]"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-mono tracking-wider text-[#8E7E70] block mb-1">TICKET PRICE (€)</label>
+                      <input
+                        type="number"
+                        value={editingShow.price}
+                        onChange={e => setEditingShow(p => p ? { ...p, price: Number(e.target.value) } : null)}
+                        placeholder="25.00"
+                        className="w-full px-3 py-2 text-xs bg-[#1A130E] border border-[#2A1E15] rounded text-white outline-none focus:border-[#C8102E]"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-mono tracking-wider text-[#8E7E70] block mb-1">DATE & TIME</label>
+                      <input
+                        type="datetime-local"
+                        value={editingShow.date ? new Date(editingShow.date).toISOString().slice(0, 16) : ""}
+                        onChange={e => setEditingShow(p => p ? { ...p, date: new Date(e.target.value).toISOString() } : null)}
+                        className="w-full px-3 py-2 text-xs bg-[#1A130E] border border-[#2A1E15] rounded text-white outline-none focus:border-[#C8102E]"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-mono tracking-wider text-[#8E7E70] block mb-1">CAPACITY SEATS</label>
+                      <input
+                        type="number"
+                        value={editingShow.available_tickets}
+                        onChange={e => setEditingShow(p => p ? { ...p, available_tickets: Number(e.target.value) } : null)}
+                        placeholder="50"
+                        className="w-full px-3 py-2 text-xs bg-[#1A130E] border border-[#2A1E15] rounded text-white outline-none focus:border-[#C8102E]"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="text-[10px] font-mono tracking-wider text-[#8E7E70] block mb-1">SHOW IMAGE LINK</label>
+                      <div className="flex flex-col gap-2">
+                        <input
+                          type="text"
+                          value={editingShow.image}
+                          onChange={e => setEditingShow(p => p ? { ...p, image: e.target.value } : null)}
+                          placeholder="Paste image link (https://...)"
+                          className="w-full px-3 py-2 text-xs bg-[#1A130E] border border-[#2A1E15] rounded text-white outline-none focus:border-[#C8102E]"
+                        />
+                        {editingShow.image && (
+                          <div className="h-16 w-28 rounded border border-[#2A1E15] overflow-hidden">
+                            <img src={editingShow.image} alt="Preview" className="w-full h-full object-cover" />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="md:col-span-2">
+                      <label className="text-[10px] font-mono tracking-wider text-[#8E7E70] block mb-1">DESCRIPTION DETAILS</label>
+                      <textarea
+                        value={editingShow.description}
+                        onChange={e => setEditingShow(p => p ? { ...p, description: e.target.value } : null)}
+                        rows={3}
+                        className="w-full px-3 py-2 text-xs bg-[#1A130E] border border-[#2A1E15] rounded text-white outline-none focus:border-[#C8102E] resize-none"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <button onClick={saveShow}
+                      className="bg-[#C8102E] hover:opacity-90 text-white font-bold py-2 px-4 rounded text-xs flex items-center gap-1.5 cursor-pointer">
+                      <Save size={13} /> COMMIT SHOW
+                    </button>
+                    <button onClick={() => setShowShowForm(false)}
+                      className="border border-[#2A1E15] hover:bg-[#1A130E] text-[#8E7E70] hover:text-white py-2 px-4 rounded text-xs cursor-pointer">
+                      CANCEL
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Shows List */}
+                <div className="lg:col-span-2 flex flex-col gap-3">
+                  <h4 className="font-mono text-[9px] text-[#8E7E70] tracking-widest uppercase">ACTIVE SHOWS ({shows.length})</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {shows.map(show => (
+                      <div key={show.id} className="p-4 bg-[#120D09] border border-[#2A1E15] rounded-xl flex gap-3 flex-col justify-between">
+                        <div className="flex gap-3">
+                          <div className="w-14 h-14 bg-[#1A130E] rounded overflow-hidden flex-shrink-0">
+                            <img src={show.image} alt={show.title} className="w-full h-full object-cover" />
+                          </div>
+                          <div className="flex-1 overflow-hidden">
+                            <h5 className="font-bold text-xs text-white truncate">{show.title}</h5>
+                            <p className="text-[10px] text-[#8E7E70] line-clamp-2 mt-1 leading-snug">{show.description}</p>
+                          </div>
+                        </div>
+                        <div className="mt-3 pt-2.5 border-t border-[#2A1E15]/30 flex justify-between items-center text-[10px] font-mono">
+                          <span className="text-[#C8102E] font-bold">€{show.price?.toFixed(2)}</span>
+                          <span className="text-[#8E7E70]">Cap: {show.available_tickets} seats</span>
+                        </div>
+                        <div className="flex justify-end gap-3 mt-2 border-t border-[#2A1E15]/10 pt-2.5">
+                          <button onClick={() => {
+                            setEditingShow(show);
+                            setShowShowForm(true);
+                          }} className="text-[#8E7E70] hover:text-white text-[10px] font-bold cursor-pointer">Edit</button>
+                          <button onClick={() => deleteShow(show.id)} className="text-[#C8102E] hover:text-red-500 text-[10px] font-bold cursor-pointer">Delete</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {shows.length === 0 && (
+                    <div className="text-center py-12 text-xs text-[#8E7E70] border border-[#2A1E15] border-dashed rounded">No active shows found.</div>
+                  )}
+                </div>
+
+                {/* Sold Tickets Registry */}
+                <div className="flex flex-col gap-3">
+                  <h4 className="font-mono text-[9px] text-[#8E7E70] tracking-widest uppercase">SOLD TICKETS ({tickets.length})</h4>
+                  <div className="flex flex-col gap-3 max-h-[500px] overflow-y-auto pr-1">
+                    {tickets.map(ticket => (
+                      <div key={ticket.id} className="p-3 bg-[#120D09] border border-[#2A1E15] rounded-xl">
+                        <div className="flex justify-between items-start mb-1">
+                          <span className="font-bold text-xs text-[#E5D5C5] truncate w-32">{ticket.customer_name}</span>
+                          <span className="bg-[#C8102E]/10 text-[#C8102E] font-mono text-[9px] font-bold px-1.5 py-0.5 rounded flex-shrink-0">
+                            {ticket.quantity} ticket{ticket.quantity > 1 ? "s" : ""}
+                          </span>
+                        </div>
+                        <div className="text-[10px] text-[#8E7E70] font-mono mb-1 truncate">{ticket.customer_email}</div>
+                        <div className="text-[10px] text-white/80 truncate">
+                          Show: <span className="font-serif italic font-bold text-[#E5D5C5]">{ticket.shows?.title || "Unknown Event"}</span>
+                        </div>
+                      </div>
+                    ))}
+                    {tickets.length === 0 && (
+                      <div className="text-center py-12 text-xs text-[#8E7E70] border border-[#2A1E15] border-dashed rounded">No tickets sold yet.</div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 6. PREFERENCES */}
           {section === "settings" && (
             <div className="max-w-md bg-[#120D09] border border-[#2A1E15] p-5 rounded-lg">
               <h3 className="text-xs font-mono tracking-widest text-[#C8102E] mb-5 uppercase">Restaurant Coordinates</h3>
@@ -643,7 +1151,7 @@ export function AdminDashboard() {
                     />
                   </div>
                 ))}
-                <button className="bg-[#C8102E] hover:opacity-90 text-white font-bold py-2 px-4 rounded text-xs self-start mt-2">
+                <button className="bg-[#C8102E] hover:opacity-90 text-white font-bold py-2 px-4 rounded text-xs self-start mt-2 cursor-pointer">
                   SAVE PREFERENCES
                 </button>
               </div>
@@ -652,6 +1160,29 @@ export function AdminDashboard() {
 
         </div>
       </div>
+
+      {/* Floating Waiter Calls warning notifications */}
+      {activeWaiterCalls.length > 0 && (
+        <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-3 max-w-sm">
+          {activeWaiterCalls.map(table => (
+            <div key={table.id} className="p-4 bg-red-950 border border-[#C8102E] rounded-xl flex items-center justify-between shadow-2xl animate-bounce">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">🛎️</span>
+                <div>
+                  <div className="text-xs font-mono font-bold text-white uppercase">WAITER CALLED</div>
+                  <div className="text-[10px] text-white/80 font-mono">Table {table.id} · {table.area}</div>
+                </div>
+              </div>
+              <button
+                onClick={() => dismissWaiterCall(table.id)}
+                className="ml-4 px-3 py-1 bg-white text-[#C8102E] hover:opacity-90 font-mono text-[9px] font-bold rounded cursor-pointer"
+              >
+                DISMISS
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
