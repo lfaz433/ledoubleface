@@ -263,7 +263,7 @@ export function LandingPage({ onNavigate }: { onNavigate: (view: string, tableId
               {t.servicesTitle}<br /><span style={{ fontStyle: "italic", color: "var(--primary)" }}>{t.servicesSubtitle}</span>
             </h2>
           </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {SERVICES.map((s, i) => (
               <div key={i} className="p-6 group transition-all duration-300 hover:-translate-y-1 bg-card border border-border rounded"
                 style={{ borderRadius: "var(--radius)" }}>
@@ -319,9 +319,11 @@ export function LandingPage({ onNavigate }: { onNavigate: (view: string, tableId
             </div>
           ) : (
             <>
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filtered.map(item => (
-                  <div key={item.id} className="group overflow-hidden transition-all duration-300 hover:-translate-y-1"
+                  <div key={item.id} 
+                    onClick={() => onNavigate("client", "T01", item.id)}
+                    className="group overflow-hidden transition-all duration-300 hover:-translate-y-1 cursor-pointer select-none"
                     style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "var(--radius)" }}>
                     <div className="relative h-48 overflow-hidden">
                       <ImageWithFallback
@@ -345,8 +347,11 @@ export function LandingPage({ onNavigate }: { onNavigate: (view: string, tableId
                       </div>
                       <p style={{ fontSize: "13px", color: "var(--muted-foreground)", lineHeight: 1.6, marginBottom: "16px" }}>{item.desc}</p>
                       <button
-                        onClick={() => onNavigate("client", "T01", item.id)}
-                        className="w-full py-2 text-sm transition-all hover:opacity-90 active:scale-95 cursor-pointer"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onNavigate("client", "T01", item.id);
+                        }}
+                        className="w-full py-3.5 text-sm transition-all hover:opacity-90 active:scale-95 cursor-pointer"
                         style={{ background: "var(--primary)", color: "#fff", borderRadius: "var(--radius)", fontWeight: 700, letterSpacing: "0.05em" }}>
                         {t.orderNow}
                       </button>
@@ -379,9 +384,13 @@ export function LandingPage({ onNavigate }: { onNavigate: (view: string, tableId
             </h2>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {shows.map(show => (
-              <div key={show.id} className="group overflow-hidden bg-card border border-border rounded flex flex-col sm:flex-row transition-all duration-300 hover:-translate-y-1">
+              <div 
+                key={show.id} 
+                onClick={() => setSelectedShow(show)}
+                className="group overflow-hidden bg-card border border-border rounded flex flex-col sm:flex-row transition-all duration-300 hover:-translate-y-1 cursor-pointer select-none hover:border-[#C8102E]/30"
+              >
                 <div className="sm:w-48 h-48 sm:h-auto overflow-hidden bg-[#1A130E] flex-shrink-0">
                   <ImageWithFallback src={show.image} alt={show.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
                 </div>
@@ -398,8 +407,11 @@ export function LandingPage({ onNavigate }: { onNavigate: (view: string, tableId
                   <div className="flex items-center justify-between mt-6 pt-4 border-t border-border/40">
                     <span className="font-mono text-base font-bold text-accent">€{show.price?.toFixed(2)}</span>
                     <button
-                      onClick={() => setSelectedShow(show)}
-                      className="px-5 py-2.5 text-xs font-bold bg-[#C8102E] hover:opacity-90 text-white rounded transition-all cursor-pointer"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedShow(show);
+                      }}
+                      className="px-5.5 py-3 text-xs font-bold bg-[#C8102E] hover:opacity-90 text-white rounded transition-all cursor-pointer shadow-sm shadow-[#C8102E]/20"
                     >
                       {t.showsBuyTickets}
                     </button>

@@ -563,18 +563,18 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
                         {Array.isArray(v) ? v.join(", ") : v}
                       </div>
                     ))}
-                    <div className="flex items-center gap-3 mt-3 pt-3 border-t border-[#2A1E15]/50">
+                    <div className="flex items-center gap-3 mt-3 pt-3 border-t border-[#2A1E15]/50 select-none">
                       <button onClick={() => adjustQty(item.itemKey, -1)}
-                        className="w-7 h-7 flex items-center justify-center border border-[#2A1E15] rounded text-white hover:bg-[#1A130E] transition-all cursor-pointer">
-                        <Minus size={12} />
+                        className="w-10 h-10 flex items-center justify-center border border-[#2A1E15] rounded text-white hover:bg-[#1A130E] transition-all cursor-pointer">
+                        <Minus size={14} />
                       </button>
-                      <span className="font-mono text-sm font-bold text-[#E5D5C5] w-5 text-center">{item.quantity}</span>
+                      <span className="font-mono text-sm font-bold text-[#E5D5C5] w-6 text-center">{item.quantity}</span>
                       <button onClick={() => adjustQty(item.itemKey, 1)}
-                        className="w-7 h-7 flex items-center justify-center bg-[#C8102E] text-white rounded hover:opacity-90 transition-all cursor-pointer">
-                        <Plus size={12} />
+                        className="w-10 h-10 flex items-center justify-center bg-[#C8102E] text-white rounded hover:opacity-90 transition-all cursor-pointer">
+                        <Plus size={14} />
                       </button>
-                      <button onClick={() => adjustQty(item.itemKey, -item.quantity)} className="ml-auto text-[#8E7E70] hover:text-white cursor-pointer" title="Remove">
-                        <X size={14} />
+                      <button onClick={() => adjustQty(item.itemKey, -item.quantity)} className="ml-auto text-[#8E7E70] hover:text-white cursor-pointer p-2" title="Remove">
+                        <X size={16} />
                       </button>
                     </div>
                   </div>
@@ -729,10 +729,10 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
               className="w-full pl-9 pr-4 py-2 text-xs bg-[#120D09] border border-[#2A1E15] rounded text-white outline-none focus:border-[#C8102E] transition-colors"
             />
           </div>
-          <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none" style={{ scrollbarWidth: "none" }}>
+          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none" style={{ scrollbarWidth: "none" }}>
             {categories.map(cat => (
               <button key={cat} onClick={() => setActiveCategory(cat)}
-                className="whitespace-nowrap px-3 py-1.5 text-[10px] font-bold tracking-wider rounded transition-all uppercase border cursor-pointer"
+                className="whitespace-nowrap px-4 py-2.5 text-xs font-bold tracking-wider rounded transition-all uppercase border cursor-pointer"
                 style={{
                   background: activeCategory === cat ? "#C8102E" : "#120D09",
                   borderColor: activeCategory === cat ? "#C8102E" : "#2A1E15",
@@ -809,51 +809,65 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
       )}
 
       {/* Main Grid/List */}
-      <div className="px-4 pt-4 flex flex-col gap-3">
-        <div className="flex items-center gap-1.5 mb-1">
+      <div className="px-4 pt-4">
+        <div className="flex items-center gap-1.5 mb-3">
           <span className="font-mono text-[9px] text-[#8E7E70] tracking-widest uppercase">{t.navMenu}</span>
         </div>
         
-        {filtered.map(item => (
-          <motion.div 
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            key={item.id} 
-            className="flex gap-3 glass-panel rounded-xl overflow-hidden mb-3"
-          >
-            <div className="w-24 h-24 bg-black/40 flex-shrink-0">
-              <ImageWithFallback src={item.image} alt={item.name} className="w-full h-full object-cover" />
-            </div>
-            
-            <div className="flex-1 p-3 flex flex-col justify-between overflow-hidden">
-              <div>
-                <div className="flex items-start justify-between gap-1.5">
-                  <h3 className="font-serif font-bold text-sm text-[#E5D5C5] truncate">{item.name}</h3>
-                  {item.popular && <Star size={11} className="text-[#C8102E] fill-[#C8102E] flex-shrink-0 mt-0.5" />}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filtered.map(item => {
+            const handleSelect = () => {
+              if (Array.isArray(item.customFields) && item.customFields.length > 0) {
+                openCustomize(item);
+              } else {
+                const k = `${item.id}-{}`;
+                setCart(p => {
+                  const ex = p.find(i => i.itemKey === k);
+                  return ex ? p.map(i => i.itemKey === k ? { ...i, quantity: i.quantity + 1 } : i) : [...p, { id: item.id, name: item.name, price: item.price, quantity: 1, customizations: {}, itemKey: k }];
+                });
+              }
+            };
+
+            return (
+              <motion.div 
+                whileHover={{ scale: 1.015 }}
+                whileTap={{ scale: 0.985 }}
+                key={item.id} 
+                onClick={handleSelect}
+                className="flex gap-3 glass-panel rounded-xl overflow-hidden cursor-pointer select-none transition-colors duration-200 hover:bg-white/[0.03] active:bg-white/[0.05]"
+              >
+                <div className="w-24 h-24 bg-black/40 flex-shrink-0">
+                  <ImageWithFallback src={item.image} alt={item.name} className="w-full h-full object-cover" />
                 </div>
-                <p className="text-[10px] text-[#8E7E70] leading-snug line-clamp-2 mt-1">{item.desc}</p>
-              </div>
-              
-              <div className="flex items-center justify-between mt-2 pt-2 border-t border-[#2A1E15]/30">
-                <span className="font-mono text-xs font-bold text-[#C8102E]">€{item.price.toFixed(2)}</span>
-                <button
-                  onClick={() => Array.isArray(item.customFields) && item.customFields.length > 0 ? openCustomize(item) : (() => {
-                    const k = `${item.id}-{}`;
-                    setCart(p => {
-                      const ex = p.find(i => i.itemKey === k);
-                      return ex ? p.map(i => i.itemKey === k ? { ...i, quantity: i.quantity + 1 } : i) : [...p, { id: item.id, name: item.name, price: item.price, quantity: 1, customizations: {}, itemKey: k }];
-                    });
-                  })()}
-                  className="flex items-center gap-1 px-3 py-1 bg-[#C8102E] hover:opacity-90 text-[10px] font-bold text-white rounded transition-all cursor-pointer">
-                  <Plus size={10} /> {t.addToCart.split(" ")[0]}
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        ))}
+                
+                <div className="flex-1 p-3 flex flex-col justify-between overflow-hidden">
+                  <div>
+                    <div className="flex items-start justify-between gap-1.5">
+                      <h3 className="font-serif font-bold text-sm text-[#E5D5C5] truncate">{item.name}</h3>
+                      {item.popular && <Star size={11} className="text-[#C8102E] fill-[#C8102E] flex-shrink-0 mt-0.5" />}
+                    </div>
+                    <p className="text-[10px] text-[#8E7E70] leading-snug line-clamp-2 mt-1">{item.desc}</p>
+                  </div>
+                  
+                  <div className="flex items-center justify-between mt-2 pt-2 border-t border-[#2A1E15]/30">
+                    <span className="font-mono text-xs font-bold text-[#C8102E]">€{item.price.toFixed(2)}</span>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation(); // prevent card double tap trigger
+                        handleSelect();
+                      }}
+                      className="flex items-center gap-1.5 px-3.5 py-2 bg-[#C8102E] hover:opacity-90 text-[11px] font-bold text-white rounded transition-all cursor-pointer shadow-sm shadow-[#C8102E]/20">
+                      <Plus size={11} /> {t.addToCart.split(" ")[0]}
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
 
         {filtered.length === 0 && (
-          <div className="text-center py-12 text-xs text-[#8E7E70] border border-[#2A1E15] border-dashed rounded">{t.emptyMenu}</div>
+          <div className="text-center py-12 text-xs text-[#8E7E70] border border-[#2A1E15] border-dashed rounded mt-4">{t.emptyMenu}</div>
         )}
       </div>
 
@@ -864,9 +878,13 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
             <Star size={14} className="fill-[#C8102E]" />
             <span className="font-mono text-[9px] tracking-widest font-black uppercase">{t.showsHeader}</span>
           </div>
-          <div className="flex flex-col gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {shows.map(show => (
-              <div key={show.id} className="p-4 bg-[#120D09] border border-[#2A1E15] rounded-xl flex gap-3">
+              <div 
+                key={show.id} 
+                onClick={() => setBookingShow(show)}
+                className="p-4 bg-[#120D09] border border-[#2A1E15] rounded-xl flex gap-3.5 cursor-pointer select-none transition-colors duration-200 hover:bg-[#1A130E] active:bg-[#1C1510] hover:border-[#C8102E]/30"
+              >
                 <div className="w-20 h-20 rounded overflow-hidden flex-shrink-0 bg-black/40">
                   <ImageWithFallback src={show.image} alt={show.title} className="w-full h-full object-cover" />
                 </div>
@@ -878,8 +896,11 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
                   <div className="flex items-center justify-between mt-2 pt-2 border-t border-[#2A1E15]/30">
                     <span className="font-mono text-xs font-bold text-[#C8102E]">€{show.price?.toFixed(2)}</span>
                     <button
-                      onClick={() => setBookingShow(show)}
-                      className="px-3 py-1 bg-[#C8102E] hover:opacity-90 text-[10px] font-bold text-white rounded cursor-pointer"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setBookingShow(show);
+                      }}
+                      className="px-3.5 py-1.5 bg-[#C8102E] hover:opacity-90 text-[10px] font-bold text-white rounded cursor-pointer transition-all shadow-sm shadow-[#C8102E]/20"
                     >
                       {t.showsBuyTickets}
                     </button>
@@ -954,11 +975,11 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
                   </div>
                   <div>
                     <label className="text-[9px] font-mono tracking-wider text-[#8E7E70] block mb-1">{t.showsQuantity.toUpperCase()}</label>
-                    <div className="flex items-center gap-3">
-                      <button onClick={() => setBookingQty(q => Math.max(1, q - 1))} className="px-3 py-1 border border-[#2A1E15] rounded text-white cursor-pointer">-</button>
-                      <span className="font-mono text-sm w-4 text-center">{bookingQty}</span>
-                      <button onClick={() => setBookingQty(q => q + 1)} className="px-3 py-1 border border-[#2A1E15] rounded text-white cursor-pointer">+</button>
-                      <span className="text-[10px] text-[#8E7E70] ml-auto">€{(bookingShow.price * bookingQty).toFixed(2)}</span>
+                    <div className="flex items-center gap-3 select-none">
+                      <button onClick={() => setBookingQty(q => Math.max(1, q - 1))} className="w-10 h-10 flex items-center justify-center border border-[#2A1E15] rounded text-white hover:bg-[#1A130E] transition-all cursor-pointer font-bold">-</button>
+                      <span className="font-mono text-sm w-6 text-center">{bookingQty}</span>
+                      <button onClick={() => setBookingQty(q => q + 1)} className="w-10 h-10 flex items-center justify-center border border-[#2A1E15] rounded text-white hover:bg-[#1A130E] transition-all cursor-pointer font-bold">+</button>
+                      <span className="text-xs text-[#E5D5C5] ml-auto font-mono">€{(bookingShow.price * bookingQty).toFixed(2)}</span>
                     </div>
                   </div>
                   
