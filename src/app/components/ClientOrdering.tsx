@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { ShoppingCart, Plus, Minus, X, ChevronLeft, Check, Clock, Flame, Star, Search, AlertCircle, RefreshCw } from "lucide-react";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { supabase } from "../../lib/supabase";
+import { motion, AnimatePresence } from "framer-motion";
 
 // local fallback in case database connection is not ready or configured yet
 const FALLBACK_MENU_DATA = [
@@ -250,7 +251,10 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
 
   if (status === "customizing" && selectedItem) {
     return (
-      <div className="min-h-screen bg-[#0A0704] text-white flex flex-col">
+      <motion.div 
+        initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", damping: 25, stiffness: 200 }}
+        className="min-h-screen bg-black/60 backdrop-blur-2xl text-white flex flex-col absolute inset-0 z-50"
+      >
         {/* Customization Header */}
         <div className="sticky top-0 z-10 px-4 py-4 flex items-center gap-3 bg-[#0A0704]/95 border-b border-[#2A1E15] backdrop-blur-md">
           <button onClick={() => setStatus("browsing")} className="text-[#8E7E70] hover:text-white transition-colors">
@@ -334,14 +338,17 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
             ADD TO TAB BILL — €{getItemPriceWithModifiers().toFixed(2)}
           </button>
         </div>
-      </div>
+      </motion.div>
     );
   }
 
   if (status === "cart") {
     return (
-      <div className="min-h-screen bg-[#0A0704] text-white flex flex-col">
-        <div className="sticky top-0 z-10 px-4 py-4 flex items-center gap-3 bg-[#0A0704]/95 border-b border-[#2A1E15] backdrop-blur-md">
+      <motion.div 
+        initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} transition={{ type: "spring", damping: 25, stiffness: 200 }}
+        className="min-h-screen bg-black/80 backdrop-blur-xl text-white flex flex-col absolute inset-0 z-50"
+      >
+        <div className="sticky top-0 z-10 px-4 py-4 flex items-center gap-3 bg-white/5 border-b border-white/10 backdrop-blur-md">
           <button onClick={() => setStatus("browsing")} className="text-[#8E7E70] hover:text-white transition-colors">
             <ChevronLeft size={22} />
           </button>
@@ -420,14 +427,17 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
             </>
           )}
         </div>
-      </div>
+      </motion.div>
     );
   }
 
   return (
-    <div className="min-h-screen pb-24 bg-[#0A0704] text-white">
+    <motion.div 
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      className="min-h-screen pb-24 bg-transparent text-white"
+    >
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-[#0A0704]/95 border-b border-[#2A1E15] backdrop-blur-md">
+      <div className="sticky top-0 z-10 bg-white/5 border-b border-white/10 backdrop-blur-xl shadow-lg">
         <div className="px-4 py-4 flex items-center justify-between">
           <div className="flex flex-col">
             <span className="font-serif font-black text-lg text-white">Le Double Face</span>
@@ -513,8 +523,13 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
         </div>
         
         {filtered.map(item => (
-          <div key={item.id} className="flex gap-3 bg-[#120D09] border border-[#2A1E15] rounded overflow-hidden">
-            <div className="w-24 h-24 bg-[#1A130E] flex-shrink-0">
+          <motion.div 
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            key={item.id} 
+            className="flex gap-3 glass-panel rounded-xl overflow-hidden mb-3"
+          >
+            <div className="w-24 h-24 bg-black/40 flex-shrink-0">
               <ImageWithFallback src={item.image} alt={item.name} className="w-full h-full object-cover" />
             </div>
             
@@ -542,7 +557,7 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
                 </button>
               </div>
             </div>
-          </div>
+          </motion.div>
         ))}
 
         {filtered.length === 0 && (
@@ -551,16 +566,21 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
       </div>
 
       {/* Floating cart bar */}
-      {cartCount > 0 && status === "browsing" && (
-        <div className="fixed bottom-6 left-4 right-4 z-20">
-          <button onClick={() => setStatus("cart")}
-            className="w-full py-3.5 flex items-center justify-between px-5 bg-[#C8102E] text-white rounded font-bold shadow-lg shadow-[#C8102E]/20 transition-all hover:opacity-95 active:scale-99">
-            <span className="w-6 h-6 flex items-center justify-center text-[10px] font-black rounded bg-white/20">{cartCount}</span>
-            <span className="text-xs font-extrabold tracking-widest">VIEW ORDER</span>
-            <span className="font-mono text-sm">€{cartTotal.toFixed(2)}</span>
-          </button>
-        </div>
-      )}
-    </div>
+      <AnimatePresence>
+        {cartCount > 0 && status === "browsing" && (
+          <motion.div 
+            initial={{ y: 100, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 100, opacity: 0 }}
+            className="fixed bottom-6 left-4 right-4 z-20"
+          >
+            <button onClick={() => setStatus("cart")}
+              className="w-full py-3.5 flex items-center justify-between px-5 bg-[#C8102E] text-white rounded-xl font-bold shadow-lg shadow-[#C8102E]/40 transition-all hover:opacity-95 active:scale-95">
+              <span className="w-6 h-6 flex items-center justify-center text-[10px] font-black rounded bg-white/20">{cartCount}</span>
+              <span className="text-xs font-extrabold tracking-widest">VIEW ORDER</span>
+              <span className="font-mono text-sm">€{cartTotal.toFixed(2)}</span>
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 }

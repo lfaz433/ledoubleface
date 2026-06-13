@@ -33,16 +33,16 @@ export default function App() {
   };
 
   return (
-    <div className="flex flex-col h-screen w-screen overflow-hidden bg-[#0A0704] text-white">
+    <div className="flex flex-col h-screen w-screen overflow-hidden bg-radial-gradient text-white">
       {/* Simulator Control Panel */}
-      <div className="bg-[#120D09]/95 border-b border-[#2A1E15] px-4 py-3 flex flex-wrap items-center justify-between gap-3 z-50 backdrop-blur-md">
+      <div className="glass-panel px-4 py-3 flex flex-wrap items-center justify-between gap-3 z-50 rounded-b-xl border-t-0 mx-2 mb-2">
         <div className="flex items-center gap-2">
-          <div className="w-2.5 h-2.5 rounded-full bg-[#C8102E] animate-pulse" />
-          <span className="font-mono text-xs font-bold tracking-widest text-[#E5D5C5]">ZERO-FRICTION PWA SIMULATOR</span>
+          <div className="w-2.5 h-2.5 rounded-full bg-[#C8102E] animate-pulse shadow-[0_0_8px_rgba(200,16,46,0.8)]" />
+          <span className="font-mono text-xs font-bold tracking-widest text-[#E5D5C5]">ZERO-FRICTION SIMULATOR</span>
         </div>
 
         {/* Environment Selector variables */}
-        <div className="flex items-center gap-3 bg-[#1A130E] border border-[#2A1E15] px-3 py-1 rounded-md text-xs">
+        <div className="flex items-center gap-3 bg-white/5 border border-white/10 px-3 py-1 rounded-md text-xs backdrop-blur-md">
           <div className="flex items-center gap-1.5">
             <span className="text-[#8E7E70] font-mono">TABLE:</span>
             <select
@@ -56,7 +56,7 @@ export default function App() {
               })}
             </select>
           </div>
-          <div className="w-px h-3 bg-[#2A1E15]" />
+          <div className="w-px h-3 bg-white/20" />
           <div className="flex items-center gap-1.5">
             <span className="text-[#8E7E70] font-mono">ZONE:</span>
             <select
@@ -72,11 +72,11 @@ export default function App() {
         </div>
 
         {/* Mode Switcher */}
-        <div className="flex items-center gap-1 bg-[#1A130E] border border-[#2A1E15] p-1 rounded-md">
+        <div className="flex items-center gap-1 bg-white/5 border border-white/10 p-1 rounded-md backdrop-blur-md">
           <button
             onClick={() => setMode("guest")}
             className={`flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded transition-all ${
-              mode === "guest" ? "bg-[#C8102E] text-white" : "text-[#8E7E70] hover:text-white"
+              mode === "guest" ? "bg-[#C8102E] text-white shadow-lg shadow-[#C8102E]/20" : "text-[#8E7E70] hover:text-white"
             }`}
           >
             <Smartphone size={14} />
@@ -85,7 +85,7 @@ export default function App() {
           <button
             onClick={() => setMode("admin")}
             className={`flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded transition-all ${
-              mode === "admin" ? "bg-[#C8102E] text-white" : "text-[#8E7E70] hover:text-white"
+              mode === "admin" ? "bg-[#C8102E] text-white shadow-lg shadow-[#C8102E]/20" : "text-[#8E7E70] hover:text-white"
             }`}
           >
             <Monitor size={14} />
@@ -94,7 +94,7 @@ export default function App() {
           <button
             onClick={() => setMode("split")}
             className={`flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded transition-all ${
-              mode === "split" ? "bg-[#C8102E] text-white" : "text-[#8E7E70] hover:text-white"
+              mode === "split" ? "bg-[#C8102E] text-white shadow-lg shadow-[#C8102E]/20" : "text-[#8E7E70] hover:text-white"
             }`}
           >
             <Columns size={14} />
@@ -104,9 +104,9 @@ export default function App() {
       </div>
 
       {/* Simulator Workspace Area */}
-      <div className="flex-1 w-full overflow-hidden bg-[#0F0A07] flex justify-center items-center">
+      <div className="flex-1 w-full overflow-hidden flex justify-center items-center">
         {mode === "guest" && (
-          <div className="h-full w-full max-w-[430px] border-x border-[#2A1E15] bg-[#0A0704] relative flex flex-col shadow-2xl">
+          <div className="h-[95%] w-full max-w-[430px] rounded-3xl border border-white/10 bg-radial-gradient relative flex flex-col shadow-2xl overflow-hidden glass-panel">
             <div className="flex-1 overflow-y-auto">
               <ClientOrdering tableId={tableId} area={area} />
             </div>
@@ -114,16 +114,16 @@ export default function App() {
         )}
 
         {mode === "admin" && (
-          <div className="h-full w-full bg-[#0A0704]">
+          <div className="h-full w-full bg-radial-gradient">
             <AdminDashboard />
           </div>
         )}
 
         {mode === "split" && (
-          <div className="h-full w-full flex">
+          <div className="h-[98%] w-full max-w-[1400px] flex gap-4 px-4 pb-4">
             {/* Guest side (phone size) */}
-            <div className="w-[430px] flex-shrink-0 border-r border-[#2A1E15] bg-[#0A0704] flex flex-col relative h-full">
-              <div className="bg-[#1C130C] px-3 py-1 text-[10px] text-center font-mono text-[#E5D5C5] border-b border-[#2A1E15]">
+            <div className="w-[430px] flex-shrink-0 rounded-3xl border border-white/10 bg-radial-gradient flex flex-col relative h-full glass-panel overflow-hidden">
+              <div className="bg-white/5 px-3 py-2 text-[10px] text-center font-mono text-[#E5D5C5] border-b border-white/10 backdrop-blur-md">
                 📱 GUEST VIEW (SIMULATOR FRAME)
               </div>
               <div className="flex-1 overflow-y-auto">
@@ -131,8 +131,8 @@ export default function App() {
               </div>
             </div>
             {/* Admin side (full desk size) */}
-            <div className="flex-1 bg-[#0A0704] flex flex-col h-full overflow-hidden">
-              <div className="bg-[#1C130C] px-3 py-1 text-[10px] text-center font-mono text-[#E5D5C5] border-b border-[#2A1E15]">
+            <div className="flex-1 rounded-3xl border border-white/10 bg-radial-gradient flex flex-col h-full overflow-hidden glass-panel">
+              <div className="bg-white/5 px-3 py-2 text-[10px] text-center font-mono text-[#E5D5C5] border-b border-white/10 backdrop-blur-md">
                 💻 KITCHEN WORKSPACE / CMS
               </div>
               <div className="flex-1 overflow-hidden">

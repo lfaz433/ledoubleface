@@ -1,3 +1,13 @@
 @import './fonts.css';
 @import './tailwind.css';
 @import './theme.css';
+
+@layer utilities {
+  .bg-radial-gradient {
+    background: radial-gradient(circle at 50% 50%, rgba(20, 15, 10, 1) 0%, rgba(10, 7, 4, 1) 100%);
+  }
+  
+  .glass-panel {
+    @apply bg-white/5 backdrop-blur-lg border border-white/10 shadow-xl;
+  }
+}
