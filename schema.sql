@@ -229,13 +229,14 @@ create table if not exists public.hero_config (
     title2_en text not null,
     subtitle_en text,
     image text not null,
+    front_image text,
     show_in_menu boolean default false,
     created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
 -- Seed Initial Hero Config
-insert into public.hero_config (id, title1_fr, title2_fr, subtitle_fr, title1_en, title2_en, subtitle_en, image, show_in_menu) values
-('current', 'Deux Visages.', 'Une Légende.', 'Saveurs audacieuses rencontrent l''élégance parisienne. Chaque bouchée est un double voyage — l''âme de la rue alliée au savoir-faire gastronomique.', 'Two Faces.', 'One Legend.', 'Bold flavors meet Parisian elegance. Every bite is a double experience — street soul with fine dining craft.', 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=1600&h=900&fit=crop&auto=format', false)
+insert into public.hero_config (id, title1_fr, title2_fr, subtitle_fr, title1_en, title2_en, subtitle_en, image, front_image, show_in_menu) values
+('current', 'Deux Visages.', 'Une Légende.', 'Saveurs audacieuses rencontrent l''élégance parisienne. Chaque bouchée est un double voyage — l''âme de la rue alliée au savoir-faire gastronomique.', 'Two Faces.', 'One Legend.', 'Bold flavors meet Parisian elegance. Every bite is a double experience — street soul with fine dining craft.', 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=1600&h=900&fit=crop&auto=format', 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600&h=750&fit=crop&auto=format', false)
 on conflict (id) do nothing;
 
 -- Enable RLS for hero_config

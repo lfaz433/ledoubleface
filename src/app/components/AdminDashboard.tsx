@@ -67,7 +67,7 @@ interface Show {
 
 const STATIC_TABLE_IDS = ["T01", "T02", "T03", "T04", "T05", "T06", "T07", "T08", "T09", "T10", "T11", "T12"];
 
-type AdminSection = "dashboard" | "products" | "orders" | "tables" | "settings" | "shows";
+type AdminSection = "dashboard" | "products" | "orders" | "tables" | "settings" | "shows" | "counter";
 
 export function AdminDashboard() {
   const [section, setSection] = useState<AdminSection>("dashboard");
@@ -88,6 +88,11 @@ export function AdminDashboard() {
   const [tickets, setTickets] = useState<any[]>([]);
   const [showShowForm, setShowShowForm] = useState(false);
   const [editingShow, setEditingShow] = useState<Show | null>(null);
+
+  // Counter Sale Cart States
+  const [counterCart, setCounterCart] = useState<OrderItem[]>([]);
+  const [counterNote, setCounterNote] = useState("");
+  const [activeCategory, setActiveCategory] = useState("");
 
   // Hero CMS settings states
   const [heroConfig, setHeroConfig] = useState<any>({
@@ -134,7 +139,7 @@ export function AdminDashboard() {
     }
   }
 
-  const handleHeroImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleHeroImageUpload = (field: "image" | "front_image") => async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -143,7 +148,7 @@ export function AdminDashboard() {
       const isMock = !supabase || !supabase.storage || typeof supabase.storage.from !== "function";
       if (isMock) {
         const mockUrl = URL.createObjectURL(file);
-        setHeroConfig((p: any) => ({ ...p, image: mockUrl }));
+        setHeroConfig((p: any) => ({ ...p, [field]: mockUrl }));
         return;
       }
 
@@ -156,7 +161,7 @@ export function AdminDashboard() {
       } catch (_) {}
 
       const fileExt = file.name.split('.').pop();
-      const fileName = `hero-${Date.now()}.${fileExt}`;
+      const fileName = `hero-${field}-${Date.now()}.${fileExt}`;
       const { error: uploadError } = await supabase.storage
         .from('menu-images')
         .upload(fileName, file);
@@ -165,7 +170,7 @@ export function AdminDashboard() {
 
       const { data } = supabase.storage.from('menu-images').getPublicUrl(fileName);
       if (data?.publicUrl) {
-        setHeroConfig((p: any) => ({ ...p, image: data.publicUrl }));
+        setHeroConfig((p: any) => ({ ...p, [field]: data.publicUrl }));
       }
     } catch (err: any) {
       console.error("Hero Image upload failed:", err);
@@ -424,6 +429,187 @@ export function AdminDashboard() {
     }
   }
 
+  // Turn off all terrace tables at once
+  async function turnOffAllTerrace() {
+    const terraceTableIds = dbTables.filter(t => t.is_terrace).map(t => t.id);
+    if (terraceTableIds.length === 0) return;
+
+    setDbTables(prev => prev.map(t => t.is_terrace ? { ...t, is_terrace: false, area: "Inside Lounge" } : t));
+    try {
+      const { error } = await supabase
+        .from("restaurant_tables")
+        .update({ is_terrace: false, area: "Inside Lounge" })
+        .in("id", terraceTableIds);
+      if (error) throw error;
+    } catch (err) {
+      console.warn("Could not toggle off all terrace tables in DB:", err);
+    }
+  }
+
+  // Print counter sale invoice/receipt
+  const printCounterInvoice = (orderId: string, total: number, items: any[], note: string) => {
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+
+    const itemsHtml = items.map(item => `
+      <tr>
+        <td style="padding: 6px 0; font-family: monospace; font-size: 11px;">${item.name} x${item.quantity}</td>
+        <td style="padding: 6px 0; text-align: right; font-family: monospace; font-size: 11px;">€${(item.price * item.quantity).toFixed(2)}</td>
+      </tr>
+    `).join("");
+
+    const dateStr = new Date().toLocaleString("fr-FR");
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Facture #${orderId}</title>
+          <style>
+            @media print {
+              body { margin: 0; padding: 5mm; }
+            }
+            body {
+              font-family: 'Courier New', Courier, monospace;
+              color: #000;
+              background-color: #fff;
+              width: 76mm;
+              margin: 0 auto;
+              padding: 15px;
+              box-sizing: border-box;
+            }
+            .header {
+              text-align: center;
+              margin-bottom: 12px;
+            }
+            .divider {
+              border-top: 1px dashed #000;
+              margin: 8px 0;
+            }
+            .total {
+              font-size: 14px;
+              font-weight: bold;
+              display: flex;
+              justify-content: space-between;
+              margin-top: 8px;
+            }
+            .item-table {
+              width: 100%;
+              border-collapse: collapse;
+            }
+            .footer {
+              text-align: center;
+              font-size: 9px;
+              margin-top: 20px;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h3 style="margin: 0 0 4px 0; font-family: sans-serif; font-weight: 900; letter-spacing: 0.5px;">LE DOUBLE FACE</h3>
+            <div style="font-size: 9px;">14 RUE DU FAUBOURG SAINT-ANTOINE</div>
+            <div style="font-size: 9px;">75011 PARIS · TÉL: 01 43 24 56 78</div>
+          </div>
+          <div class="divider"></div>
+          <div style="font-size: 10px; margin-bottom: 8px;">
+            <div>DATE: ${dateStr}</div>
+            <div>TICKET: ${orderId}</div>
+            <div>CAISSIER: Admin</div>
+            <div>MODE: Au Comptoir</div>
+          </div>
+          <div class="divider"></div>
+          <table class="item-table">
+            <tbody>
+              ${itemsHtml}
+            </tbody>
+          </table>
+          <div class="divider"></div>
+          ${note ? `<div style="font-size: 9px; font-style: italic; margin-bottom: 8px;">Note: ${note}</div><div class="divider"></div>` : ""}
+          <div class="total">
+            <span>TOTAL:</span>
+            <span>€${total.toFixed(2)}</span>
+          </div>
+          <div style="font-size: 10px; font-weight: bold; text-align: center; margin-top: 12px; border: 1px solid #000; padding: 4px;">
+            RÈGLEMENT COMPTOIR - PAYÉ
+          </div>
+          <div class="footer">
+            <p style="margin: 3px 0;">MERCI DE VOTRE VISITE !</p>
+            <p style="margin: 3px 0; font-family: sans-serif; font-size: 7px; letter-spacing: 0.5px;">EST. 2019 · PARIS</p>
+          </div>
+          <script>
+            window.onload = function() {
+              window.print();
+              setTimeout(function() { window.close(); }, 500);
+            }
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
+  // Process counter checkout sale
+  async function handleCounterCheckout() {
+    if (counterCart.length === 0) {
+      alert("Votre panier est vide.");
+      return;
+    }
+
+    const orderId = `ORD-CPT-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+    const cartTotal = counterCart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+
+    try {
+      const { error: orderError } = await supabase
+        .from("orders")
+        .insert({
+          id: orderId,
+          table_id: "Comptoir",
+          area: "Counter",
+          status: "delivered",
+          total: cartTotal,
+          note: counterNote || null,
+          paid: true,
+          invoice_no: orderId
+        });
+
+      if (orderError) throw orderError;
+
+      const lineItems = counterCart.map(item => ({
+        order_id: orderId,
+        product_id: item.product_id,
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity,
+        customizations: item.customizations || {}
+      }));
+
+      const { error: itemsError } = await supabase
+        .from("order_items")
+        .insert(lineItems);
+
+      if (itemsError) throw itemsError;
+
+      printCounterInvoice(orderId, cartTotal, lineItems, counterNote);
+      alert("Vente enregistrée avec succès !");
+      setCounterCart([]);
+      setCounterNote("");
+      loadOrders();
+    } catch (err) {
+      console.error("Counter checkout failed:", err);
+      const simulatedItems = counterCart.map(item => ({
+        order_id: orderId,
+        product_id: item.product_id,
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity,
+        customizations: item.customizations || {}
+      }));
+      printCounterInvoice(orderId, cartTotal, simulatedItems, counterNote);
+      alert("Ticket imprimé en mode simulation hors-ligne.");
+      setCounterCart([]);
+      setCounterNote("");
+    }
+  }
+
   // Print QR Template
   const printQrCode = (tableId: string, area: string) => {
     const tableUrl = `${window.location.origin}/?table=${tableId}`;
@@ -673,6 +859,7 @@ export function AdminDashboard() {
   const navItems = [
     { id: "dashboard" as AdminSection, icon: <LayoutDashboard size={16} />, label: "Dashboard" },
     { id: "orders" as AdminSection, icon: <ShoppingBag size={16} />, label: "Live Orders Queue", badge: notifications },
+    { id: "counter" as AdminSection, icon: <DollarSign size={16} />, label: "Vente au Comptoir" },
     { id: "products" as AdminSection, icon: <Package size={16} />, label: "Menu Forge (CMS)" },
     { id: "tables" as AdminSection, icon: <QrCode size={16} />, label: "Table Registry & QR" },
     { id: "shows" as AdminSection, icon: <Award size={16} />, label: "Shows Manager" },
@@ -985,79 +1172,388 @@ export function AdminDashboard() {
           )}
 
           {/* 4. TABLES AND QR MATRIX */}
+          {/* 4. TABLES AND QR MATRIX */}
           {section === "tables" && (
             <div>
               <p className="text-xs text-[#8E7E70] mb-5 font-mono leading-relaxed">
                 Scan tabletop QR codes or click them to test guest ordering context in a new window. Active orders light up in red.
               </p>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {tablesToRender.map(table => {
-                  const activeOrder = orders.find(o => o.table_id === table.id && o.status !== "delivered");
-                  const tableUrl = `${window.location.origin}/?table=${table.id}`;
-                  const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(tableUrl)}`;
-                  
-                  return (
-                    <div key={table.id} className="p-4 bg-[#120D09] border rounded text-center transition-all flex flex-col justify-between"
-                      style={{ borderColor: activeOrder ? "#C8102E" : table.waiter_called ? "#F59E0B" : "#2A1E15" }}>
-                      
-                      <div>
-                        <div className="flex justify-between items-center mb-2">
-                          <span className="font-serif font-black text-base text-white">{table.id}</span>
-                          <span className="text-[9px] text-[#8E7E70] font-mono uppercase">{table.area}</span>
-                        </div>
-                        
-                        {/* Scannable & Clickable QR Code */}
-                        <a
-                          href={tableUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="block w-16 h-16 mx-auto mb-3 bg-white p-1 rounded overflow-hidden cursor-pointer hover:scale-105 transition-transform"
-                          title="Click to open menu for this table in a new tab"
-                        >
-                          <img
-                            src={qrImageUrl}
-                            alt={`QR Code for ${table.id}`}
-                            className="w-full h-full object-contain"
-                          />
-                        </a>
 
-                        <div className="font-mono text-[9px] font-bold" style={{ color: activeOrder ? statusColors[activeOrder.status] : table.waiter_called ? "#F59E0B" : "#8E7E70" }}>
-                          {table.waiter_called ? "🛎️ WAITER CALLED" : activeOrder ? statusLabels[activeOrder.status] : "VACANT"}
-                        </div>
-                      </div>
-                      
-                      <div className="mt-3 pt-2.5 border-t border-[#2A1E15]/30">
-                        {/* La Terrasse Toggle button */}
-                        <div className="flex items-center justify-between text-[10px] mb-2 font-mono">
-                          <span className="text-[#8E7E70]">La Terrasse:</span>
-                          <button
-                            onClick={() => toggleTerrace(table.id, table.is_terrace)}
-                            className="w-7 h-4 relative rounded-full transition-all border cursor-pointer"
-                            style={{ background: table.is_terrace ? "#C8102E" : "#1A130E", borderColor: table.is_terrace ? "#C8102E" : "#2A1E15" }}
+              {/* Le Salon Intérieur */}
+              <div className="mb-8">
+                <div className="flex justify-between items-center mb-4 pb-2 border-b border-[#2A1E15]/30">
+                  <h3 className="text-xs font-mono tracking-widest text-[#C8102E] uppercase font-bold flex items-center gap-2">
+                    🛋️ Le Salon Intérieur ({tablesToRender.filter(t => !t.is_terrace).length})
+                  </h3>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {tablesToRender.filter(t => !t.is_terrace).map(table => {
+                    const activeOrder = orders.find(o => o.table_id === table.id && o.status !== "delivered");
+                    const tableUrl = `${window.location.origin}/?table=${table.id}`;
+                    const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(tableUrl)}`;
+                    
+                    return (
+                      <div key={table.id} className="p-4 bg-[#120D09] border rounded text-center transition-all flex flex-col justify-between"
+                        style={{ borderColor: activeOrder ? "#C8102E" : table.waiter_called ? "#F59E0B" : "#2A1E15" }}>
+                        
+                        <div>
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="font-serif font-black text-base text-white">{table.id}</span>
+                            <span className="text-[9px] text-[#8E7E70] font-mono uppercase">{table.area}</span>
+                          </div>
+                          
+                          {/* Scannable & Clickable QR Code */}
+                          <a
+                            href={tableUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block w-16 h-16 mx-auto mb-3 bg-white p-1 rounded overflow-hidden cursor-pointer hover:scale-105 transition-transform"
+                            title="Click to open menu for this table in a new tab"
                           >
-                            <div className="absolute top-[1px] w-2.5 h-2.5 rounded-full bg-white transition-all"
-                              style={{ left: table.is_terrace ? "13px" : "1px" }} />
-                          </button>
+                            <img
+                              src={qrImageUrl}
+                              alt={`QR Code for ${table.id}`}
+                              className="w-full h-full object-contain"
+                            />
+                          </a>
+
+                          <div className="font-mono text-[9px] font-bold" style={{ color: activeOrder ? statusColors[activeOrder.status] : table.waiter_called ? "#F59E0B" : "#8E7E70" }}>
+                            {table.waiter_called ? "🛎️ WAITER CALLED" : activeOrder ? statusLabels[activeOrder.status] : "VACANT"}
+                          </div>
                         </div>
                         
-                        <div className="flex gap-1">
-                          <button
-                            onClick={() => printQrCode(table.id, table.area)}
-                            className="flex-1 py-1 border border-[#2A1E15] hover:bg-[#1A130E] text-white rounded text-[8px] font-bold cursor-pointer"
-                          >
-                            PRINT
-                          </button>
-                          <button
-                            onClick={() => downloadQrCode(table.id)}
-                            className="flex-1 py-1 border border-[#2A1E15] hover:bg-[#1A130E] text-[#8E7E70] hover:text-white rounded text-[8px] font-bold cursor-pointer"
-                          >
-                            DL
-                          </button>
+                        <div className="mt-3 pt-2.5 border-t border-[#2A1E15]/30">
+                          {/* La Terrasse Toggle button */}
+                          <div className="flex items-center justify-between text-[10px] mb-2 font-mono">
+                            <span className="text-[#8E7E70]">La Terrasse:</span>
+                            <button
+                              onClick={() => toggleTerrace(table.id, table.is_terrace)}
+                              className="w-7 h-4 relative rounded-full transition-all border cursor-pointer"
+                              style={{ background: table.is_terrace ? "#C8102E" : "#1A130E", borderColor: table.is_terrace ? "#C8102E" : "#2A1E15" }}
+                            >
+                              <div className="absolute top-[1px] w-2.5 h-2.5 rounded-full bg-white transition-all"
+                                style={{ left: table.is_terrace ? "13px" : "1px" }} />
+                            </button>
+                          </div>
+                          
+                          <div className="flex gap-1">
+                            <button
+                              onClick={() => printQrCode(table.id, table.area)}
+                              className="flex-1 py-1 border border-[#2A1E15] hover:bg-[#1A130E] text-white rounded text-[8px] font-bold cursor-pointer"
+                            >
+                              PRINT
+                            </button>
+                            <button
+                              onClick={() => downloadQrCode(table.id)}
+                              className="flex-1 py-1 border border-[#2A1E15] hover:bg-[#1A130E] text-[#8E7E70] hover:text-white rounded text-[8px] font-bold cursor-pointer"
+                            >
+                              DL
+                            </button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* La Terrasse */}
+              <div>
+                <div className="flex justify-between items-center mb-4 pb-2 border-b border-[#2A1E15]/30">
+                  <h3 className="text-xs font-mono tracking-widest text-[#C8102E] uppercase font-bold flex items-center gap-2">
+                    ☀️ La Terrasse ({tablesToRender.filter(t => t.is_terrace).length})
+                  </h3>
+                  {tablesToRender.filter(t => t.is_terrace).length > 0 && (
+                    <button
+                      onClick={turnOffAllTerrace}
+                      className="px-2.5 py-1 bg-[#C8102E]/10 hover:bg-[#C8102E]/20 text-[#C8102E] border border-[#C8102E]/30 rounded text-[9px] font-mono font-bold tracking-wider transition-all uppercase flex items-center gap-1 cursor-pointer"
+                    >
+                      <X size={10} /> Désactiver la Terrasse
+                    </button>
+                  )}
+                </div>
+
+                {tablesToRender.filter(t => t.is_terrace).length === 0 ? (
+                  <div className="p-8 text-center bg-[#120D09]/50 border border-dashed border-[#2A1E15] rounded-xl text-xs text-[#8E7E70] font-mono">
+                    Aucune table n'est actuellement assignée à la terrasse.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {tablesToRender.filter(t => t.is_terrace).map(table => {
+                      const activeOrder = orders.find(o => o.table_id === table.id && o.status !== "delivered");
+                      const tableUrl = `${window.location.origin}/?table=${table.id}`;
+                      const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(tableUrl)}`;
+                      
+                      return (
+                        <div key={table.id} className="p-4 bg-[#120D09] border rounded text-center transition-all flex flex-col justify-between"
+                          style={{ borderColor: activeOrder ? "#C8102E" : table.waiter_called ? "#F59E0B" : "#2A1E15" }}>
+                          
+                          <div>
+                            <div className="flex justify-between items-center mb-2">
+                              <span className="font-serif font-black text-base text-white">{table.id}</span>
+                              <span className="text-[9px] text-[#8E7E70] font-mono uppercase">{table.area}</span>
+                            </div>
+                            
+                            {/* Scannable & Clickable QR Code */}
+                            <a
+                              href={tableUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="block w-16 h-16 mx-auto mb-3 bg-white p-1 rounded overflow-hidden cursor-pointer hover:scale-105 transition-transform"
+                              title="Click to open menu for this table in a new tab"
+                            >
+                              <img
+                                src={qrImageUrl}
+                                alt={`QR Code for ${table.id}`}
+                                className="w-full h-full object-contain"
+                              />
+                            </a>
+
+                            <div className="font-mono text-[9px] font-bold" style={{ color: activeOrder ? statusColors[activeOrder.status] : table.waiter_called ? "#F59E0B" : "#8E7E70" }}>
+                              {table.waiter_called ? "🛎️ WAITER CALLED" : activeOrder ? statusLabels[activeOrder.status] : "VACANT"}
+                            </div>
+                          </div>
+                          
+                          <div className="mt-3 pt-2.5 border-t border-[#2A1E15]/30">
+                            {/* La Terrasse Toggle button */}
+                            <div className="flex items-center justify-between text-[10px] mb-2 font-mono">
+                              <span className="text-[#8E7E70]">La Terrasse:</span>
+                              <button
+                                onClick={() => toggleTerrace(table.id, table.is_terrace)}
+                                className="w-7 h-4 relative rounded-full transition-all border cursor-pointer"
+                                style={{ background: table.is_terrace ? "#C8102E" : "#1A130E", borderColor: table.is_terrace ? "#C8102E" : "#2A1E15" }}
+                              >
+                                <div className="absolute top-[1px] w-2.5 h-2.5 rounded-full bg-white transition-all"
+                                  style={{ left: table.is_terrace ? "13px" : "1px" }} />
+                              </button>
+                            </div>
+                            
+                            <div className="flex gap-1">
+                              <button
+                                onClick={() => printQrCode(table.id, table.area)}
+                                className="flex-1 py-1 border border-[#2A1E15] hover:bg-[#1A130E] text-white rounded text-[8px] font-bold cursor-pointer"
+                              >
+                                PRINT
+                              </button>
+                              <button
+                                onClick={() => downloadQrCode(table.id)}
+                                className="flex-1 py-1 border border-[#2A1E15] hover:bg-[#1A130E] text-[#8E7E70] hover:text-white rounded text-[8px] font-bold cursor-pointer"
+                              >
+                                DL
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* COUNTER DIRECT SALE TAB */}
+          {section === "counter" && (
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 animate-fade-in">
+              {/* Product Catalog */}
+              <div className="xl:col-span-2 flex flex-col gap-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-serif font-black text-lg text-white">Vente au Comptoir</h3>
+                    <p className="text-xs text-[#8E7E70] mt-1 font-mono">Enregistrez des ventes directes et générez des factures tickets de caisse imprimables.</p>
+                  </div>
+                </div>
+
+                {/* Category Selector */}
+                <div className="flex flex-wrap gap-1.5 py-2 border-b border-[#2A1E15]/30">
+                  {["All", "Burgers", "Chicken", "Sides", "Drinks", "Vegan"].map((cat) => {
+                    const active = (cat === "All" && !activeCategory) || activeCategory === cat;
+                    return (
+                      <button
+                        key={cat}
+                        onClick={() => setActiveCategory(cat === "All" ? "" : cat)}
+                        className="px-3 py-1.5 text-[10px] font-mono font-bold tracking-wider rounded transition-all cursor-pointer border uppercase"
+                        style={{
+                          background: active ? "#C8102E" : "#120D09",
+                          borderColor: active ? "#C8102E" : "#2A1E15",
+                          color: active ? "#white" : "#8E7E70",
+                        }}
+                      >
+                        {cat === "All" ? "TOUT" : cat}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Products Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 overflow-y-auto max-h-[60vh] pr-1">
+                  {products
+                    .filter((p) => p.active && (!activeCategory || p.category === activeCategory))
+                    .map((product) => (
+                      <div
+                        key={product.id}
+                        onClick={() => {
+                          setCounterCart((prev) => {
+                            const existing = prev.find((item) => item.product_id === product.id);
+                            if (existing) {
+                              return prev.map((item) =>
+                                item.product_id === product.id
+                                  ? { ...item, quantity: item.quantity + 1 }
+                                  : item
+                              );
+                            }
+                            return [
+                              ...prev,
+                              {
+                                product_id: product.id,
+                                name: product.name,
+                                price: product.price,
+                                quantity: 1,
+                                customizations: {},
+                              },
+                            ];
+                          });
+                        }}
+                        className="p-3 bg-[#120D09] border border-[#2A1E15] hover:border-[#C8102E]/60 rounded-xl transition-all flex flex-col justify-between cursor-pointer group"
+                      >
+                        <div className="relative h-28 rounded-lg overflow-hidden mb-2.5">
+                          <img
+                            src={product.image}
+                            alt={product.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                          <div className="absolute top-1.5 right-1.5 px-2 py-0.5 bg-[#0A0704]/80 border border-[#2A1E15] rounded text-[9px] font-mono font-bold text-[#C8102E]">
+                            €{product.price.toFixed(2)}
+                          </div>
+                        </div>
+                        <div>
+                          <span className="text-[8px] font-mono tracking-widest text-[#8E7E70] uppercase">{product.category}</span>
+                          <h4 className="font-serif font-black text-sm text-white mt-0.5 line-clamp-1">{product.name}</h4>
+                          <p className="text-[9px] text-[#8E7E70] font-mono mt-1 line-clamp-2 leading-relaxed">{product.desc}</p>
+                        </div>
+                        <button
+                          type="button"
+                          className="mt-3 w-full py-1.5 bg-[#2A1E15] hover:bg-[#C8102E] text-white rounded text-[10px] font-mono font-bold uppercase tracking-wider transition-all cursor-pointer"
+                        >
+                          Ajouter +
+                        </button>
+                      </div>
+                    ))}
+                </div>
+              </div>
+
+              {/* Cash Cart Register */}
+              <div className="bg-[#120D09] border border-[#2A1E15] p-5 rounded-xl flex flex-col justify-between min-h-[500px]">
+                <div>
+                  <div className="flex items-center justify-between pb-3 border-b border-[#2A1E15]/30 mb-4">
+                    <span className="font-mono text-xs font-black text-[#C8102E] tracking-wider uppercase">Panier Comptoir</span>
+                    <span className="bg-[#C8102E] text-white font-mono font-bold text-[10px] px-2 py-0.5 rounded-full">
+                      {counterCart.reduce((sum, item) => sum + item.quantity, 0)} articles
+                    </span>
+                  </div>
+
+                  {/* Cart Items list */}
+                  <div className="flex flex-col gap-3 overflow-y-auto max-h-[300px] pr-1 mb-4">
+                    {counterCart.length === 0 ? (
+                      <div className="text-center py-12 text-[#8E7E70] font-mono text-xs leading-relaxed">
+                        Le panier est vide.<br />Cliquez sur des articles pour les ajouter.
+                      </div>
+                    ) : (
+                      counterCart.map((item) => (
+                        <div key={item.product_id} className="flex justify-between items-center bg-[#1A130E]/30 p-2 border border-[#2A1E15]/50 rounded-lg">
+                          <div className="flex-1 min-w-0 pr-2">
+                            <h5 className="font-serif font-bold text-xs text-white truncate">{item.name}</h5>
+                            <span className="font-mono text-[9px] text-[#8E7E70]">€{item.price.toFixed(2)}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 flex-shrink-0">
+                            {/* Decrement */}
+                            <button
+                              onClick={() => {
+                                setCounterCart((prev) =>
+                                  prev
+                                    .map((i) =>
+                                      i.product_id === item.product_id
+                                        ? { ...i, quantity: i.quantity - 1 }
+                                        : i
+                                    )
+                                    .filter((i) => i.quantity > 0)
+                                );
+                              }}
+                              className="w-5 h-5 bg-[#2A1E15] hover:bg-[#C8102E] rounded flex items-center justify-center text-xs font-bold transition-colors cursor-pointer"
+                            >
+                              -
+                            </button>
+                            <span className="w-5 text-center font-mono text-xs text-white font-bold">{item.quantity}</span>
+                            {/* Increment */}
+                            <button
+                              onClick={() => {
+                                setCounterCart((prev) =>
+                                  prev.map((i) =>
+                                    i.product_id === item.product_id
+                                      ? { ...i, quantity: i.quantity + 1 }
+                                      : i
+                                  )
+                                );
+                              }}
+                              className="w-5 h-5 bg-[#2A1E15] hover:bg-[#C8102E] rounded flex items-center justify-center text-xs font-bold transition-colors cursor-pointer"
+                            >
+                              +
+                            </button>
+                            {/* Remove */}
+                            <button
+                              onClick={() => {
+                                setCounterCart((prev) => prev.filter((i) => i.product_id !== item.product_id));
+                              }}
+                              className="ml-1 w-5 h-5 bg-red-950/20 hover:bg-red-900/50 text-[#C8102E] border border-red-950/40 rounded flex items-center justify-center transition-colors cursor-pointer"
+                              title="Retirer"
+                            >
+                              <Trash2 size={10} />
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  {/* Notes Field */}
+                  <div className="mt-4 pt-4 border-t border-[#2A1E15]/30">
+                    <label className="text-[9px] font-mono text-[#8E7E70] block mb-1 uppercase">Notes pour la cuisine</label>
+                    <textarea
+                      value={counterNote}
+                      onChange={(e) => setCounterNote(e.target.value)}
+                      placeholder="ex: Bien cuit, sans sel, etc."
+                      rows={2}
+                      className="w-full px-2.5 py-1.5 text-xs bg-[#1A130E] border border-[#2A1E15] rounded text-white outline-none focus:border-[#C8102E] resize-none"
+                    />
+                  </div>
+                </div>
+
+                {/* Subtotals & Pay Action */}
+                <div className="mt-5 pt-4 border-t border-[#2A1E15]/40 flex flex-col gap-3">
+                  <div className="flex justify-between items-center text-xs font-mono">
+                    <span className="text-[#8E7E70]">Total Hors Taxes:</span>
+                    <span>€{(counterCart.reduce((sum, item) => sum + item.price * item.quantity, 0) * 0.909).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs font-mono border-b border-[#2A1E15]/20 pb-2">
+                    <span className="text-[#8E7E70]">TVA (10% incluse):</span>
+                    <span>€{(counterCart.reduce((sum, item) => sum + item.price * item.quantity, 0) * 0.091).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-base font-serif font-black">
+                    <span className="text-white">TOTAL À PAYER:</span>
+                    <span className="text-[#C8102E]">
+                      €{counterCart.reduce((sum, item) => sum + item.price * item.quantity, 0).toFixed(2)}
+                    </span>
+                  </div>
+
+                  <button
+                    onClick={handleCounterCheckout}
+                    disabled={counterCart.length === 0}
+                    className="w-full py-3 bg-[#C8102E] hover:opacity-90 disabled:opacity-40 text-white font-bold rounded-xl text-xs mt-2 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-[#C8102E]/10 font-mono tracking-wider font-bold"
+                  >
+                    <DollarSign size={14} /> VALIDER & IMPRIMER TICKET
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -1268,49 +1764,100 @@ export function AdminDashboard() {
 
                 <div className="flex flex-col gap-4 mt-2">
                   {/* Image Uploader */}
-                  <div>
-                    <label className="text-[10px] font-mono tracking-wider text-[#8E7E70] block mb-1.5 uppercase">Hero Background Image</label>
-                    {heroConfig.image ? (
-                      <div className="relative h-28 w-full rounded-xl border border-[#2A1E15] overflow-hidden group">
-                        <img src={heroConfig.image} alt="Hero Preview" className="w-full h-full object-cover" />
-                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                          <label className="cursor-pointer bg-[#C8102E] hover:opacity-90 text-white font-mono text-[9px] font-bold px-2.5 py-1.5 rounded">
-                            {uploadingHero ? "UPLOADING..." : "REPLACE IMAGE"}
-                            <input type="file" accept="image/*" onChange={handleHeroImageUpload} disabled={uploadingHero} className="hidden" />
-                          </label>
-                          <button 
-                            type="button"
-                            onClick={() => setHeroConfig((p: any) => ({ ...p, image: "" }))} 
-                            className="bg-zinc-850 hover:bg-zinc-750 text-white font-mono text-[9px] font-bold px-2.5 py-1.5 rounded cursor-pointer"
-                          >
-                            REMOVE
-                          </button>
+                  {/* Image Uploader */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Background Image */}
+                    <div>
+                      <label className="text-[10px] font-mono tracking-wider text-[#8E7E70] block mb-1.5 uppercase">Hero Background Image</label>
+                      {heroConfig.image ? (
+                        <div className="relative h-28 w-full rounded-xl border border-[#2A1E15] overflow-hidden group">
+                          <img src={heroConfig.image} alt="Hero Preview" className="w-full h-full object-cover" />
+                          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                            <label className="cursor-pointer bg-[#C8102E] hover:opacity-90 text-white font-mono text-[9px] font-bold px-2.5 py-1.5 rounded">
+                              {uploadingHero ? "UPLOADING..." : "REPLACE IMAGE"}
+                              <input type="file" accept="image/*" onChange={handleHeroImageUpload("image")} disabled={uploadingHero} className="hidden" />
+                            </label>
+                            <button 
+                              type="button"
+                              onClick={() => setHeroConfig((p: any) => ({ ...p, image: "" }))} 
+                              className="bg-zinc-850 hover:bg-zinc-750 text-white font-mono text-[9px] font-bold px-2.5 py-1.5 rounded cursor-pointer"
+                            >
+                              REMOVE
+                            </button>
+                          </div>
                         </div>
+                      ) : (
+                        <label className="flex flex-col items-center justify-center h-28 w-full rounded-xl border border-dashed border-[#2A1E15] hover:border-[#C8102E]/50 transition-colors cursor-pointer bg-[#1A130E]/30">
+                          {uploadingHero ? (
+                            <div className="flex flex-col items-center gap-1">
+                              <div className="w-4 h-4 border-2 border-t-[#C8102E] border-r-transparent animate-spin rounded-full" />
+                              <span className="text-[9px] font-mono text-[#8E7E70]">Uploading...</span>
+                            </div>
+                          ) : (
+                            <div className="flex flex-col items-center gap-1">
+                              <Upload size={16} className="text-[#8E7E70]" />
+                              <span className="text-[9px] font-mono text-[#8E7E70]">Upload banner image</span>
+                            </div>
+                          )}
+                          <input type="file" accept="image/*" onChange={handleHeroImageUpload("image")} disabled={uploadingHero} className="hidden" />
+                        </label>
+                      )}
+                      <div className="mt-1.5">
+                        <input
+                          type="text"
+                          value={heroConfig.image || ""}
+                          onChange={e => setHeroConfig((p: any) => ({ ...p, image: e.target.value }))}
+                          placeholder="Or paste external image URL (https://...)"
+                          className="w-full px-2 py-1.5 text-[9px] bg-[#1A130E] border border-[#2A1E15] rounded text-white outline-none focus:border-[#C8102E]"
+                        />
                       </div>
-                    ) : (
-                      <label className="flex flex-col items-center justify-center h-28 w-full rounded-xl border border-dashed border-[#2A1E15] hover:border-[#C8102E]/50 transition-colors cursor-pointer bg-[#1A130E]/30">
-                        {uploadingHero ? (
-                          <div className="flex flex-col items-center gap-1">
-                            <div className="w-4 h-4 border-2 border-t-[#C8102E] border-r-transparent animate-spin rounded-full" />
-                            <span className="text-[9px] font-mono text-[#8E7E70]">Uploading...</span>
+                    </div>
+
+                    {/* Front Image */}
+                    <div>
+                      <label className="text-[10px] font-mono tracking-wider text-[#8E7E70] block mb-1.5 uppercase">Hero Front Image</label>
+                      {heroConfig.front_image ? (
+                        <div className="relative h-28 w-full rounded-xl border border-[#2A1E15] overflow-hidden group">
+                          <img src={heroConfig.front_image} alt="Hero Front Preview" className="w-full h-full object-cover" />
+                          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                            <label className="cursor-pointer bg-[#C8102E] hover:opacity-90 text-white font-mono text-[9px] font-bold px-2.5 py-1.5 rounded">
+                              {uploadingHero ? "UPLOADING..." : "REPLACE IMAGE"}
+                              <input type="file" accept="image/*" onChange={handleHeroImageUpload("front_image")} disabled={uploadingHero} className="hidden" />
+                            </label>
+                            <button 
+                              type="button"
+                              onClick={() => setHeroConfig((p: any) => ({ ...p, front_image: "" }))} 
+                              className="bg-zinc-850 hover:bg-zinc-750 text-white font-mono text-[9px] font-bold px-2.5 py-1.5 rounded cursor-pointer"
+                            >
+                              REMOVE
+                            </button>
                           </div>
-                        ) : (
-                          <div className="flex flex-col items-center gap-1">
-                            <Upload size={16} className="text-[#8E7E70]" />
-                            <span className="text-[9px] font-mono text-[#8E7E70]">Upload banner image</span>
-                          </div>
-                        )}
-                        <input type="file" accept="image/*" onChange={handleHeroImageUpload} disabled={uploadingHero} className="hidden" />
-                      </label>
-                    )}
-                    <div className="mt-1.5">
-                      <input
-                        type="text"
-                        value={heroConfig.image}
-                        onChange={e => setHeroConfig((p: any) => ({ ...p, image: e.target.value }))}
-                        placeholder="Or paste external image URL (https://...)"
-                        className="w-full px-2 py-1.5 text-[9px] bg-[#1A130E] border border-[#2A1E15] rounded text-white outline-none focus:border-[#C8102E]"
-                      />
+                        </div>
+                      ) : (
+                        <label className="flex flex-col items-center justify-center h-28 w-full rounded-xl border border-dashed border-[#2A1E15] hover:border-[#C8102E]/50 transition-colors cursor-pointer bg-[#1A130E]/30">
+                          {uploadingHero ? (
+                            <div className="flex flex-col items-center gap-1">
+                              <div className="w-4 h-4 border-2 border-t-[#C8102E] border-r-transparent animate-spin rounded-full" />
+                              <span className="text-[9px] font-mono text-[#8E7E70]">Uploading...</span>
+                            </div>
+                          ) : (
+                            <div className="flex flex-col items-center gap-1">
+                              <Upload size={16} className="text-[#8E7E70]" />
+                              <span className="text-[9px] font-mono text-[#8E7E70]">Upload front image</span>
+                            </div>
+                          )}
+                          <input type="file" accept="image/*" onChange={handleHeroImageUpload("front_image")} disabled={uploadingHero} className="hidden" />
+                        </label>
+                      )}
+                      <div className="mt-1.5">
+                        <input
+                          type="text"
+                          value={heroConfig.front_image || ""}
+                          onChange={e => setHeroConfig((p: any) => ({ ...p, front_image: e.target.value }))}
+                          placeholder="Or paste external front image URL (https://...)"
+                          className="w-full px-2 py-1.5 text-[9px] bg-[#1A130E] border border-[#2A1E15] rounded text-white outline-none focus:border-[#C8102E]"
+                        />
+                      </div>
                     </div>
                   </div>
 

@@ -277,7 +277,7 @@ export function LandingPage({ onNavigate }: { onNavigate: (view: string, tableId
           <div className="hidden md:block relative">
             <div className="relative w-full aspect-[4/5] max-w-md ml-auto">
               <ImageWithFallback
-                src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600&h=750&fit=crop&auto=format"
+                src={heroConfig.front_image || "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600&h=750&fit=crop&auto=format"}
                 alt="Signature Le Double Face burger"
                 className="w-full h-full object-cover"
                 style={{ borderRadius: "4px", border: "1px solid rgba(212,160,23,0.2)" }}
