@@ -83,6 +83,24 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
   const [bookingQty, setBookingQty] = useState(1);
   const [bookingSuccess, setBookingSuccess] = useState(false);
 
+  // Hero Config State
+  const [heroConfig, setHeroConfig] = useState<any>(null);
+
+  const loadHeroConfig = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("hero_config")
+        .select("*")
+        .eq("id", "current")
+        .limit(1);
+      if (!error && data && data.length > 0) {
+        setHeroConfig(data[0]);
+      }
+    } catch (err) {
+      console.warn("ClientOrdering: could not load hero configuration:", err);
+    }
+  };
+
   // Fetch Menu from Supabase
   const loadMenu = async () => {
     try {
@@ -224,6 +242,7 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
     loadMenu();
     loadShows();
     checkActiveOrder();
+    loadHeroConfig();
 
     // Subscribe to menu updates in real-time
     const menuChannel = supabase
@@ -263,6 +282,18 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
       )
       .subscribe();
 
+    // Subscribe to hero banner config updates
+    const heroChannel = supabase
+      .channel("hero-client-sync")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "hero_config" },
+        () => {
+          loadHeroConfig();
+        }
+      )
+      .subscribe();
+
     // Initialize order ID
     setOrderId(`ORD-${Math.random().toString(36).substr(2, 6).toUpperCase()}`);
 
@@ -270,6 +301,7 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
       supabase.removeChannel(menuChannel);
       supabase.removeChannel(ordersChannel);
       supabase.removeChannel(tablesChannel);
+      supabase.removeChannel(heroChannel);
     };
   }, []);
 
@@ -760,6 +792,23 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
           </div>
         </div>
       </div>
+
+      {/* Hero Banner CMS Display */}
+      {heroConfig?.show_in_menu && (
+        <div className="relative h-48 sm:h-56 overflow-hidden border-b border-[#2A1E15] mb-4 select-none">
+          <ImageWithFallback src={heroConfig.image} alt="Hero Banner" className="w-full h-full object-cover" style={{ opacity: 0.35 }} />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0A0704] via-[#0A0704]/40 to-transparent" />
+          <div className="absolute inset-x-4 bottom-4 flex flex-col justify-end">
+            <span className="font-mono text-[9px] text-[#C8102E] tracking-widest font-black uppercase mb-1">🛎️ LE DOUBLE FACE</span>
+            <h1 className="font-serif font-black text-xl sm:text-2xl text-white leading-tight">
+              {lang === "fr" ? heroConfig.title1_fr : heroConfig.title1_en} <span className="text-[#C8102E] italic">{lang === "fr" ? heroConfig.title2_fr : heroConfig.title2_en}</span>
+            </h1>
+            <p className="text-[10px] sm:text-xs text-[#8E7E70] mt-1 line-clamp-2 max-w-md">
+              {lang === "fr" ? heroConfig.subtitle_fr : heroConfig.subtitle_en}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Database Warning indicator */}
       {dbError && (

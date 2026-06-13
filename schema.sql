@@ -218,3 +218,40 @@ exception when others then
   raise notice 'Could not add additions to publication';
 end;
 commit;
+
+-- 9. Hero Config Banner CMS Table
+create table if not exists public.hero_config (
+    id text primary key default 'current',
+    title1_fr text not null,
+    title2_fr text not null,
+    subtitle_fr text,
+    title1_en text not null,
+    title2_en text not null,
+    subtitle_en text,
+    image text not null,
+    show_in_menu boolean default false,
+    created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- Seed Initial Hero Config
+insert into public.hero_config (id, title1_fr, title2_fr, subtitle_fr, title1_en, title2_en, subtitle_en, image, show_in_menu) values
+('current', 'Deux Visages.', 'Une Légende.', 'Saveurs audacieuses rencontrent l''élégance parisienne. Chaque bouchée est un double voyage — l''âme de la rue alliée au savoir-faire gastronomique.', 'Two Faces.', 'One Legend.', 'Bold flavors meet Parisian elegance. Every bite is a double experience — street soul with fine dining craft.', 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=1600&h=900&fit=crop&auto=format', false)
+on conflict (id) do nothing;
+
+-- Enable RLS for hero_config
+alter table public.hero_config enable row level security;
+
+-- Policies for hero_config
+create policy "Allow public read access to hero_config" on public.hero_config for select using (true);
+create policy "Allow public insert access to hero_config" on public.hero_config for insert with check (true);
+create policy "Allow public update access to hero_config" on public.hero_config for update using (true);
+create policy "Allow public delete access to hero_config" on public.hero_config for delete using (true);
+
+-- Enable Realtime for hero_config
+begin;
+  alter publication supabase_realtime add table public.hero_config;
+exception when others then
+  raise notice 'Could not add hero_config to publication';
+end;
+commit;
+

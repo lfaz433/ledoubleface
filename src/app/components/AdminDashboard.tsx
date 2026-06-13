@@ -89,6 +89,92 @@ export function AdminDashboard() {
   const [showShowForm, setShowShowForm] = useState(false);
   const [editingShow, setEditingShow] = useState<Show | null>(null);
 
+  // Hero CMS settings states
+  const [heroConfig, setHeroConfig] = useState<any>({
+    title1_fr: "Deux Visages.",
+    title2_fr: "Une Légende.",
+    subtitle_fr: "Saveurs audacieuses rencontrent l'élégance parisienne. Chaque bouchée est un double voyage — l'âme de la rue alliée au savoir-faire gastronomique.",
+    title1_en: "Two Faces.",
+    title2_en: "One Legend.",
+    subtitle_en: "Bold flavors meet Parisian elegance. Every bite is a double experience — street soul with fine dining craft.",
+    image: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=1600&h=900&fit=crop&auto=format",
+    show_in_menu: false
+  });
+  const [uploadingHero, setUploadingHero] = useState(false);
+
+  const loadHeroConfig = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("hero_config")
+        .select("*")
+        .eq("id", "current")
+        .limit(1);
+      if (!error && data && data.length > 0) {
+        setHeroConfig(data[0]);
+      }
+    } catch (err) {
+      console.warn("AdminDashboard: could not load hero configuration:", err);
+    }
+  };
+
+  async function handleSaveHero() {
+    try {
+      const { error } = await supabase
+        .from("hero_config")
+        .upsert({
+          id: "current",
+          ...heroConfig
+        });
+      if (error) throw error;
+      alert("Hero settings saved successfully!");
+      loadHeroConfig();
+    } catch (err) {
+      console.error("Failed to save hero config:", err);
+      alert("Failed to save hero config, operating on local simulation.");
+    }
+  }
+
+  const handleHeroImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingHero(true);
+    try {
+      const isMock = !supabase || !supabase.storage || typeof supabase.storage.from !== "function";
+      if (isMock) {
+        const mockUrl = URL.createObjectURL(file);
+        setHeroConfig((p: any) => ({ ...p, image: mockUrl }));
+        return;
+      }
+
+      try {
+        const { data: buckets } = await supabase.storage.listBuckets();
+        const exists = buckets?.some((b: any) => b.name === 'menu-images');
+        if (!exists) {
+          await supabase.storage.createBucket('menu-images', { public: true, allowedMimeTypes: ['image/*'] });
+        }
+      } catch (_) {}
+
+      const fileExt = file.name.split('.').pop();
+      const fileName = `hero-${Date.now()}.${fileExt}`;
+      const { error: uploadError } = await supabase.storage
+        .from('menu-images')
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage.from('menu-images').getPublicUrl(fileName);
+      if (data?.publicUrl) {
+        setHeroConfig((p: any) => ({ ...p, image: data.publicUrl }));
+      }
+    } catch (err: any) {
+      console.error("Hero Image upload failed:", err);
+      alert(`Hero Image upload failed: ${err.message || err}`);
+    } finally {
+      setUploadingHero(false);
+    }
+  };
+
   // 1. Fetch Orders from Database (Real-time Joined Query)
   const loadOrders = async () => {
     try {
@@ -224,6 +310,7 @@ export function AdminDashboard() {
     loadTables();
     loadShows();
     loadTickets();
+    loadHeroConfig();
 
     // Subscribe to orders changes in real-time
     const ordersChannel = supabase
@@ -249,9 +336,22 @@ export function AdminDashboard() {
       )
       .subscribe();
 
+    // Subscribe to hero configuration changes
+    const heroChannel = supabase
+      .channel("hero-admin-sync")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "hero_config" },
+        () => {
+          loadHeroConfig();
+        }
+      )
+      .subscribe();
+
     return () => {
       supabase.removeChannel(ordersChannel);
       supabase.removeChannel(tablesChannel);
+      supabase.removeChannel(heroChannel);
     };
   }, []);
 
@@ -1134,26 +1234,183 @@ export function AdminDashboard() {
 
           {/* 6. PREFERENCES */}
           {section === "settings" && (
-            <div className="max-w-md bg-[#120D09] border border-[#2A1E15] p-5 rounded-lg">
-              <h3 className="text-xs font-mono tracking-widest text-[#C8102E] mb-5 uppercase">Restaurant Coordinates</h3>
-              <div className="flex flex-col gap-4">
-                {[
-                  { label: "Vessel Name", value: "Le Double Face Lounge" },
-                  { label: "Coordinates/Address", value: "14 Rue du Faubourg Saint-Antoine, Paris" },
-                  { label: "Hotline", value: "+33 1 42 74 31 00" },
-                  { label: "Operation Slots", value: "Mon–Sun 11:30–23:30" },
-                ].map(f => (
-                  <div key={f.label}>
-                    <label className="text-[10px] font-mono tracking-wider text-[#8E7E70] block mb-1.5 uppercase">{f.label}</label>
-                    <input
-                      defaultValue={f.value}
-                      className="w-full px-3 py-2 text-xs bg-[#1A130E] border border-[#2A1E15] rounded text-white outline-none focus:border-[#C8102E]"
-                    />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-6xl">
+              {/* Coordinates Card */}
+              <div className="bg-[#120D09] border border-[#2A1E15] p-5 rounded-xl self-start">
+                <h3 className="text-xs font-mono tracking-widest text-[#C8102E] mb-5 uppercase">Restaurant Coordinates</h3>
+                <div className="flex flex-col gap-4">
+                  {[
+                    { label: "Vessel Name", value: "Le Double Face Lounge" },
+                    { label: "Coordinates/Address", value: "14 Rue du Faubourg Saint-Antoine, Paris" },
+                    { label: "Hotline", value: "+33 1 42 74 31 00" },
+                    { label: "Operation Slots", value: "Mon–Sun 11:30–23:30" },
+                  ].map(f => (
+                    <div key={f.label}>
+                      <label className="text-[10px] font-mono tracking-wider text-[#8E7E70] block mb-1.5 uppercase">{f.label}</label>
+                      <input
+                        defaultValue={f.value}
+                        className="w-full px-3 py-2 text-xs bg-[#1A130E] border border-[#2A1E15] rounded text-white outline-none focus:border-[#C8102E]"
+                      />
+                    </div>
+                  ))}
+                  <button className="bg-[#C8102E] hover:opacity-90 text-white font-bold py-2 px-4 rounded text-xs self-start mt-2 cursor-pointer">
+                    SAVE PREFERENCES
+                  </button>
+                </div>
+              </div>
+
+              {/* Hero Banner CMS Card */}
+              <div className="bg-[#120D09] border border-[#2A1E15] p-5 rounded-xl flex flex-col gap-4">
+                <h3 className="text-xs font-mono tracking-widest text-[#C8102E] mb-1 uppercase">Hero Banner CMS Matrix</h3>
+                <p className="text-[10px] text-[#8E7E70] font-mono leading-relaxed">
+                  Configure the landing page hero background, customizable bilingual text slogans, and client menu toggle status.
+                </p>
+
+                <div className="flex flex-col gap-4 mt-2">
+                  {/* Image Uploader */}
+                  <div>
+                    <label className="text-[10px] font-mono tracking-wider text-[#8E7E70] block mb-1.5 uppercase">Hero Background Image</label>
+                    {heroConfig.image ? (
+                      <div className="relative h-28 w-full rounded-xl border border-[#2A1E15] overflow-hidden group">
+                        <img src={heroConfig.image} alt="Hero Preview" className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                          <label className="cursor-pointer bg-[#C8102E] hover:opacity-90 text-white font-mono text-[9px] font-bold px-2.5 py-1.5 rounded">
+                            {uploadingHero ? "UPLOADING..." : "REPLACE IMAGE"}
+                            <input type="file" accept="image/*" onChange={handleHeroImageUpload} disabled={uploadingHero} className="hidden" />
+                          </label>
+                          <button 
+                            type="button"
+                            onClick={() => setHeroConfig((p: any) => ({ ...p, image: "" }))} 
+                            className="bg-zinc-850 hover:bg-zinc-750 text-white font-mono text-[9px] font-bold px-2.5 py-1.5 rounded cursor-pointer"
+                          >
+                            REMOVE
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <label className="flex flex-col items-center justify-center h-28 w-full rounded-xl border border-dashed border-[#2A1E15] hover:border-[#C8102E]/50 transition-colors cursor-pointer bg-[#1A130E]/30">
+                        {uploadingHero ? (
+                          <div className="flex flex-col items-center gap-1">
+                            <div className="w-4 h-4 border-2 border-t-[#C8102E] border-r-transparent animate-spin rounded-full" />
+                            <span className="text-[9px] font-mono text-[#8E7E70]">Uploading...</span>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col items-center gap-1">
+                            <Upload size={16} className="text-[#8E7E70]" />
+                            <span className="text-[9px] font-mono text-[#8E7E70]">Upload banner image</span>
+                          </div>
+                        )}
+                        <input type="file" accept="image/*" onChange={handleHeroImageUpload} disabled={uploadingHero} className="hidden" />
+                      </label>
+                    )}
+                    <div className="mt-1.5">
+                      <input
+                        type="text"
+                        value={heroConfig.image}
+                        onChange={e => setHeroConfig((p: any) => ({ ...p, image: e.target.value }))}
+                        placeholder="Or paste external image URL (https://...)"
+                        className="w-full px-2 py-1.5 text-[9px] bg-[#1A130E] border border-[#2A1E15] rounded text-white outline-none focus:border-[#C8102E]"
+                      />
+                    </div>
                   </div>
-                ))}
-                <button className="bg-[#C8102E] hover:opacity-90 text-white font-bold py-2 px-4 rounded text-xs self-start mt-2 cursor-pointer">
-                  SAVE PREFERENCES
-                </button>
+
+                  {/* Menu Visibility Toggle */}
+                  <div className="flex items-center justify-between p-3.5 bg-[#1A130E]/55 border border-[#2A1E15] rounded-xl select-none">
+                    <div>
+                      <span className="text-[10px] font-mono tracking-wider text-[#8E7E70] block uppercase">Show Hero in Client Menu</span>
+                      <span className="text-[9px] text-[#8E7E70] leading-snug">Toggle banner display at the top of guest table menus.</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => setHeroConfig((p: any) => ({ ...p, show_in_menu: !p.show_in_menu }))}
+                        className="w-10 h-5 relative rounded-full transition-all border cursor-pointer"
+                        style={{ background: heroConfig.show_in_menu ? "#C8102E" : "#1A130E", borderColor: heroConfig.show_in_menu ? "#C8102E" : "#2A1E15" }}>
+                        <div className="absolute top-[2px] w-3 h-3 rounded-full bg-white transition-all"
+                          style={{ left: heroConfig.show_in_menu ? "23px" : "3px" }} />
+                      </button>
+                      <span className="font-mono text-[9px] font-bold min-w-[20px] text-center">{heroConfig.show_in_menu ? "YES" : "NO"}</span>
+                    </div>
+                  </div>
+
+                  {/* French Slogans */}
+                  <div className="border-t border-[#2A1E15]/30 pt-3">
+                    <span className="text-[10px] font-mono font-black text-[#C8102E] tracking-wider block mb-2">FRENCH TRANSLATIONS (FR)</span>
+                    <div className="flex flex-col gap-2">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-[9px] font-mono text-[#8E7E70] block mb-1">TITLE LINE 1</label>
+                          <input
+                            type="text"
+                            value={heroConfig.title1_fr}
+                            onChange={e => setHeroConfig((p: any) => ({ ...p, title1_fr: e.target.value }))}
+                            className="w-full px-2.5 py-1.5 text-xs bg-[#1A130E] border border-[#2A1E15] rounded text-white outline-none focus:border-[#C8102E]"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[9px] font-mono text-[#8E7E70] block mb-1">TITLE LINE 2 (ITALIC)</label>
+                          <input
+                            type="text"
+                            value={heroConfig.title2_fr}
+                            onChange={e => setHeroConfig((p: any) => ({ ...p, title2_fr: e.target.value }))}
+                            className="w-full px-2.5 py-1.5 text-xs bg-[#1A130E] border border-[#2A1E15] rounded text-white outline-none focus:border-[#C8102E]"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-[9px] font-mono text-[#8E7E70] block mb-1">HERO SUBTITLE DESCRIPTION</label>
+                        <textarea
+                          value={heroConfig.subtitle_fr}
+                          onChange={e => setHeroConfig((p: any) => ({ ...p, subtitle_fr: e.target.value }))}
+                          rows={2}
+                          className="w-full px-2.5 py-1.5 text-xs bg-[#1A130E] border border-[#2A1E15] rounded text-white outline-none focus:border-[#C8102E] resize-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* English Slogans */}
+                  <div className="border-t border-[#2A1E15]/30 pt-3">
+                    <span className="text-[10px] font-mono font-black text-[#C8102E] tracking-wider block mb-2">ENGLISH TRANSLATIONS (EN)</span>
+                    <div className="flex flex-col gap-2">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-[9px] font-mono text-[#8E7E70] block mb-1">TITLE LINE 1</label>
+                          <input
+                            type="text"
+                            value={heroConfig.title1_en}
+                            onChange={e => setHeroConfig((p: any) => ({ ...p, title1_en: e.target.value }))}
+                            className="w-full px-2.5 py-1.5 text-xs bg-[#1A130E] border border-[#2A1E15] rounded text-white outline-none focus:border-[#C8102E]"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[9px] font-mono text-[#8E7E70] block mb-1">TITLE LINE 2 (ITALIC)</label>
+                          <input
+                            type="text"
+                            value={heroConfig.title2_en}
+                            onChange={e => setHeroConfig((p: any) => ({ ...p, title2_en: e.target.value }))}
+                            className="w-full px-2.5 py-1.5 text-xs bg-[#1A130E] border border-[#2A1E15] rounded text-white outline-none focus:border-[#C8102E]"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-[9px] font-mono text-[#8E7E70] block mb-1">HERO SUBTITLE DESCRIPTION</label>
+                        <textarea
+                          value={heroConfig.subtitle_en}
+                          onChange={e => setHeroConfig((p: any) => ({ ...p, subtitle_en: e.target.value }))}
+                          rows={2}
+                          className="w-full px-2.5 py-1.5 text-xs bg-[#1A130E] border border-[#2A1E15] rounded text-white outline-none focus:border-[#C8102E] resize-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <button 
+                    onClick={handleSaveHero}
+                    disabled={uploadingHero}
+                    className="bg-[#C8102E] hover:opacity-90 disabled:opacity-50 text-white font-bold py-2.5 px-4 rounded-xl text-xs mt-2 cursor-pointer shadow-md shadow-[#C8102E]/20"
+                  >
+                    {uploadingHero ? "UPLOADING IMAGE..." : "SAVE HERO BANNER CONFIG"}
+                  </button>
+                </div>
               </div>
             </div>
           )}

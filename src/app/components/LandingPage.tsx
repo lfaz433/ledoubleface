@@ -39,6 +39,18 @@ export function LandingPage({ onNavigate }: { onNavigate: (view: string, tableId
   const [bookingQty, setBookingQty] = useState(1);
   const [bookingSuccess, setBookingSuccess] = useState(false);
 
+  // Hero Config State
+  const [heroConfig, setHeroConfig] = useState<any>({
+    title1_fr: "Deux Visages.",
+    title2_fr: "Une Légende.",
+    subtitle_fr: "Saveurs audacieuses rencontrent l'élégance parisienne. Chaque bouchée est un double voyage — l'âme de la rue alliée au savoir-faire gastronomique.",
+    title1_en: "Two Faces.",
+    title2_en: "One Legend.",
+    subtitle_en: "Bold flavors meet Parisian elegance. Every bite is a double experience — street soul with fine dining craft.",
+    image: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=1600&h=900&fit=crop&auto=format",
+    show_in_menu: false
+  });
+
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 60);
     window.addEventListener("scroll", handler);
@@ -81,9 +93,41 @@ export function LandingPage({ onNavigate }: { onNavigate: (view: string, tableId
     }
   };
 
+  const fetchHeroConfig = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("hero_config")
+        .select("*")
+        .eq("id", "current")
+        .limit(1);
+      
+      if (!error && data && data.length > 0) {
+        setHeroConfig(data[0]);
+      }
+    } catch (err) {
+      console.warn("LandingPage: could not fetch hero config:", err);
+    }
+  };
+
   useEffect(() => {
     fetchMenu();
     fetchShows();
+    fetchHeroConfig();
+
+    const heroChannel = supabase
+      .channel("hero-landing-sync")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "hero_config" },
+        () => {
+          fetchHeroConfig();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(heroChannel);
+    };
   }, []);
 
   const bookTicket = async () => {
@@ -189,7 +233,7 @@ export function LandingPage({ onNavigate }: { onNavigate: (view: string, tableId
       <section id="hero" className="relative min-h-screen flex items-center overflow-hidden">
         <div className="absolute inset-0">
           <ImageWithFallback
-            src="https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=1600&h=900&fit=crop&auto=format"
+            src={heroConfig.image}
             alt="Le Double Face restaurant interior"
             className="w-full h-full object-cover"
             style={{ opacity: 0.35 }}
@@ -203,11 +247,11 @@ export function LandingPage({ onNavigate }: { onNavigate: (view: string, tableId
               <span style={{ fontFamily: "'DM Mono', monospace", fontSize: "11px", color: "var(--accent)", letterSpacing: "0.12em" }}>PARIS · EST. 2019</span>
             </div>
             <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(3rem, 6vw, 5.5rem)", fontWeight: 900, lineHeight: 1.0, letterSpacing: "-0.02em", color: "#f5f0e8" }}>
-              {t.heroTitle1}<br />
-              <span style={{ color: "var(--primary)", fontStyle: "italic" }}>{t.heroTitle2}</span>
+              {lang === "fr" ? heroConfig.title1_fr : heroConfig.title1_en}<br />
+              <span style={{ color: "var(--primary)", fontStyle: "italic" }}>{lang === "fr" ? heroConfig.title2_fr : heroConfig.title2_en}</span>
             </h1>
             <p className="mt-6 text-lg leading-relaxed max-w-md" style={{ color: "var(--muted-foreground)" }}>
-              {t.heroSubtitle}
+              {lang === "fr" ? heroConfig.subtitle_fr : heroConfig.subtitle_en}
             </p>
             <div className="mt-10 flex flex-wrap gap-4">
               <button onClick={() => onNavigate("client", "T01")}

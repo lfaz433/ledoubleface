@@ -70,6 +70,18 @@ if (!client) {
     { id: 'T12', area: 'Terrace Patio', is_terrace: true, waiter_called: false }
   ];
 
+  const INITIAL_HERO = {
+    id: "current",
+    title1_fr: "Deux Visages.",
+    title2_fr: "Une Légende.",
+    subtitle_fr: "Saveurs audacieuses rencontrent l'élégance parisienne. Chaque bouchée est un double voyage — l'âme de la rue alliée au savoir-faire gastronomique.",
+    title1_en: "Two Faces.",
+    title2_en: "One Legend.",
+    subtitle_en: "Bold flavors meet Parisian elegance. Every bite is a double experience — street soul with fine dining craft.",
+    image: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=1600&h=900&fit=crop&auto=format",
+    show_in_menu: false
+  };
+
   const getCollection = (key: string, defaultData: any) => {
     if (typeof window === "undefined") return defaultData;
     const raw = localStorage.getItem(`ldf_${key}`);
@@ -123,6 +135,7 @@ if (!client) {
       else if (tableName === "orders") data = getCollection("orders", []);
       else if (tableName === "order_items") data = getCollection("order_items", []);
       else if (tableName === "tickets") data = getCollection("tickets", []);
+      else if (tableName === "hero_config") data = getCollection("hero_config", [INITIAL_HERO]);
 
       const api = {
         select: (selectQuery = "*") => {
