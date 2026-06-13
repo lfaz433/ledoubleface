@@ -103,6 +103,7 @@ export function AdminDashboard() {
     title2_en: "One Legend.",
     subtitle_en: "Bold flavors meet Parisian elegance. Every bite is a double experience — street soul with fine dining craft.",
     image: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=1600&h=900&fit=crop&auto=format",
+    front_image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600&h=750&fit=crop&auto=format",
     show_in_menu: false
   });
   const [uploadingHero, setUploadingHero] = useState(false);
@@ -147,8 +148,13 @@ export function AdminDashboard() {
     try {
       const isMock = !supabase || !supabase.storage || typeof supabase.storage.from !== "function";
       if (isMock) {
-        const mockUrl = URL.createObjectURL(file);
-        setHeroConfig((p: any) => ({ ...p, [field]: mockUrl }));
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64String = reader.result as string;
+          setHeroConfig((p: any) => ({ ...p, [field]: base64String }));
+          setUploadingHero(false);
+        };
+        reader.readAsDataURL(file);
         return;
       }
 
@@ -588,7 +594,10 @@ export function AdminDashboard() {
 
       if (itemsError) throw itemsError;
 
-      printCounterInvoice(orderId, cartTotal, lineItems, counterNote);
+      const shouldPrint = confirm("Voulez-vous imprimer le ticket de caisse pour cette vente ?");
+      if (shouldPrint) {
+        printCounterInvoice(orderId, cartTotal, lineItems, counterNote);
+      }
       alert("Vente enregistrée avec succès !");
       setCounterCart([]);
       setCounterNote("");
@@ -603,8 +612,11 @@ export function AdminDashboard() {
         quantity: item.quantity,
         customizations: item.customizations || {}
       }));
-      printCounterInvoice(orderId, cartTotal, simulatedItems, counterNote);
-      alert("Ticket imprimé en mode simulation hors-ligne.");
+      const shouldPrint = confirm("Voulez-vous imprimer le ticket de caisse (mode simulation) ?");
+      if (shouldPrint) {
+        printCounterInvoice(orderId, cartTotal, simulatedItems, counterNote);
+      }
+      alert("Ticket enregistré en mode simulation hors-ligne.");
       setCounterCart([]);
       setCounterNote("");
     }
@@ -2033,8 +2045,13 @@ function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
       // Offline/local mock support if Supabase keys are missing
       const isMock = !supabase || !supabase.storage || typeof supabase.storage.from !== "function";
       if (isMock) {
-        const mockUrl = URL.createObjectURL(file);
-        setForm(p => ({ ...p, image: mockUrl }));
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64String = reader.result as string;
+          setForm(p => ({ ...p, image: base64String }));
+          setUploading(false);
+        };
+        reader.readAsDataURL(file);
         return;
       }
 

@@ -136,7 +136,7 @@ if (!client) {
       else if (tableName === "orders") data = getCollection("orders", []);
       else if (tableName === "order_items") data = getCollection("order_items", []);
       else if (tableName === "tickets") data = getCollection("tickets", []);
-      else if (tableName === "hero_config") data = getCollection("hero_config", [INITIAL_HERO]);
+      else if (tableName === "hero_config") data = getCollection("hero_config", [INITIAL_HERO]).map((item: any) => ({ ...INITIAL_HERO, ...item }));
 
       const api = {
         select: (selectQuery = "*") => {

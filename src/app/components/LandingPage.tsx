@@ -48,6 +48,7 @@ export function LandingPage({ onNavigate }: { onNavigate: (view: string, tableId
     title2_en: "One Legend.",
     subtitle_en: "Bold flavors meet Parisian elegance. Every bite is a double experience — street soul with fine dining craft.",
     image: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=1600&h=900&fit=crop&auto=format",
+    front_image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600&h=750&fit=crop&auto=format",
     show_in_menu: false
   });
 
