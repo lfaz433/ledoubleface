@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Package, ShoppingBag, Tv, QrCode, Settings,
   Plus, Trash2, Edit2, Check, X, Bell, TrendingUp, Users, DollarSign,
   Eye, MoreVertical, ChevronDown, AlertCircle, Clock, CheckCircle2,
-  GripVertical, ChevronRight, Save, ArrowLeft, RefreshCw
+  GripVertical, ChevronRight, Save, ArrowLeft, RefreshCw, Upload
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { supabase } from "../../lib/supabase";
@@ -583,23 +583,39 @@ export function AdminDashboard() {
           {section === "tables" && (
             <div>
               <p className="text-xs text-[#8E7E70] mb-5 font-mono leading-relaxed">
-                Scan tabletop QR codes to test guest binding context. Active orders light up in red.
+                Scan tabletop QR codes or click them to test guest ordering context in a new window. Active orders light up in red.
               </p>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {TABLES.map(table => {
                   const activeOrder = orders.find(o => o.table_id === table && o.status !== "delivered");
+                  const tableUrl = `${window.location.origin}/?table=${table}`;
+                  const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(tableUrl)}`;
+                  
                   return (
                     <div key={table} className="p-4 bg-[#120D09] border rounded text-center transition-all"
                       style={{ borderColor: activeOrder ? "#C8102E" : "#2A1E15" }}>
                       <div className="font-serif font-black text-base text-white mb-2">{table}</div>
-                      <div className="w-16 h-16 mx-auto mb-3 bg-[#1A130E] border border-[#2A1E15] rounded flex items-center justify-center">
-                        <QrCode size={28} className={activeOrder ? "text-[#C8102E]" : "text-[#8E7E70]"} />
-                      </div>
+                      
+                      {/* Scannable & Clickable QR Code */}
+                      <a
+                        href={tableUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block w-16 h-16 mx-auto mb-3 bg-white p-1 rounded overflow-hidden cursor-pointer hover:scale-105 transition-transform"
+                        title="Click to open menu for this table in a new tab"
+                      >
+                        <img
+                          src={qrImageUrl}
+                          alt={`QR Code for ${table}`}
+                          className="w-full h-full object-contain"
+                        />
+                      </a>
+
                       <div className="font-mono text-[9px] font-bold" style={{ color: activeOrder ? statusColors[activeOrder.status] : "#8E7E70" }}>
                         {activeOrder ? statusLabels[activeOrder.status] : "VACANT"}
                       </div>
-                      <div className="font-mono text-[8px] text-[#8E7E70] mt-2 border-t border-[#2A1E15]/30 pt-1.5 select-all">
-                        ?table={table}&area=Inside
+                      <div className="font-mono text-[8.5px] text-[#8E7E70] mt-2 border-t border-[#2A1E15]/30 pt-1.5 select-all truncate" title={tableUrl}>
+                        {tableUrl}
                       </div>
                     </div>
                   );
@@ -652,6 +668,67 @@ function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
   const [newFieldName, setNewFieldName] = useState("");
   const [newFieldType, setNewFieldType] = useState<"radio" | "checkbox" | "text">("radio");
   const [newOption, setNewOption] = useState<Record<string, string>>({});
+  const [uploading, setUploading] = useState(false);
+
+  async function ensureBucketExists() {
+    try {
+      const { data: buckets, error } = await supabase.storage.listBuckets();
+      if (error) throw error;
+      const exists = buckets?.some((b: any) => b.name === 'menu-images');
+      if (!exists) {
+        const { error: createError } = await supabase.storage.createBucket('menu-images', {
+          public: true,
+          allowedMimeTypes: ['image/*']
+        });
+        if (createError) {
+          console.warn("Could not create bucket programmatically. Make sure it exists in the Supabase Dashboard.", createError);
+        }
+      }
+    } catch (err) {
+      console.warn("Bucket existence check failed:", err);
+    }
+  }
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    try {
+      // Offline/local mock support if Supabase keys are missing
+      const isMock = !supabase || !supabase.storage || typeof supabase.storage.from !== "function";
+      if (isMock) {
+        const mockUrl = URL.createObjectURL(file);
+        setForm(p => ({ ...p, image: mockUrl }));
+        return;
+      }
+
+      await ensureBucketExists();
+
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('menu-images')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage
+        .from('menu-images')
+        .getPublicUrl(filePath);
+
+      if (data?.publicUrl) {
+        setForm(p => ({ ...p, image: data.publicUrl }));
+      }
+    } catch (err: any) {
+      console.error("Image upload failed:", err);
+      alert(`Image upload failed: ${err.message || err}. You can still paste an image link or continue offline.`);
+    } finally {
+      setUploading(false);
+    }
+  };
 
   function addField() {
     if (!newFieldName) return;
@@ -678,7 +755,6 @@ function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
           { key: "name", label: "Product Name", placeholder: "Le Cocktail Double Face" },
           { key: "category", label: "Category Group", placeholder: "Drinks / Burgers / Sides" },
           { key: "price", label: "Base Pricing (€)", placeholder: "14.90", type: "number" },
-          { key: "image", label: "Asset Image URL", placeholder: "https://..." },
         ].map(f => (
           <div key={f.key}>
             <label className="text-[10px] font-mono tracking-wider text-[#8E7E70] block mb-1">{f.label}</label>
@@ -691,6 +767,54 @@ function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
             />
           </div>
         ))}
+        
+        {/* Custom Image Uploader field */}
+        <div>
+          <label className="text-[10px] font-mono tracking-wider text-[#8E7E70] block mb-1">Product Image</label>
+          {form.image ? (
+            <div className="relative h-20 w-full rounded border border-[#2A1E15] overflow-hidden group">
+              <img src={form.image} alt="Upload Preview" className="w-full h-full object-cover" />
+              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                <label className="cursor-pointer bg-[#C8102E] hover:opacity-90 text-white font-mono text-[9px] font-bold px-2 py-1 rounded">
+                  {uploading ? "UPLOADING..." : "REPLACE"}
+                  <input type="file" accept="image/*" onChange={handleImageUpload} disabled={uploading} className="hidden" />
+                </label>
+                <button 
+                  type="button"
+                  onClick={() => setForm(p => ({ ...p, image: "" }))} 
+                  className="bg-zinc-800 hover:bg-zinc-700 text-white font-mono text-[9px] font-bold px-2 py-1 rounded cursor-pointer"
+                >
+                  REMOVE
+                </button>
+              </div>
+            </div>
+          ) : (
+            <label className="flex flex-col items-center justify-center h-20 w-full rounded border border-dashed border-[#2A1E15] hover:border-[#C8102E]/50 transition-colors cursor-pointer bg-[#1A130E]/30">
+              {uploading ? (
+                <div className="flex flex-col items-center gap-1">
+                  <div className="w-4 h-4 border-2 border-t-[#C8102E] border-r-transparent animate-spin rounded-full" />
+                  <span className="text-[9px] font-mono text-[#8E7E70]">Uploading...</span>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-1">
+                  <Upload size={16} className="text-[#8E7E70]" />
+                  <span className="text-[9px] font-mono text-[#8E7E70]">Upload image file</span>
+                </div>
+              )}
+              <input type="file" accept="image/*" onChange={handleImageUpload} disabled={uploading} className="hidden" />
+            </label>
+          )}
+          {/* Manual URL entry field */}
+          <div className="mt-1.5">
+            <input
+              type="text"
+              value={form.image}
+              onChange={e => setForm(p => ({ ...p, image: e.target.value }))}
+              placeholder="Or paste external image URL (https://...)"
+              className="w-full px-2 py-1 text-[9px] bg-[#1A130E] border border-[#2A1E15] rounded text-white outline-none focus:border-[#C8102E]"
+            />
+          </div>
+        </div>
         
         <div className="md:col-span-2">
           <label className="text-[10px] font-mono tracking-wider text-[#8E7E70] block mb-1">Description Copy</label>
@@ -705,7 +829,7 @@ function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
         <div className="flex items-center gap-3">
           <span className="text-[10px] font-mono tracking-wider text-[#8E7E70]">Inventory Status:</span>
           <button onClick={() => setForm(p => ({ ...p, active: !p.active }))}
-            className="w-10 h-5 relative rounded-full transition-all border"
+            className="w-10 h-5 relative rounded-full transition-all border cursor-pointer"
             style={{ background: form.active ? "#C8102E" : "#1A130E", borderColor: form.active ? "#C8102E" : "#2A1E15" }}>
             <div className="absolute top-[2px] w-3 h-3 rounded-full bg-white transition-all"
               style={{ left: form.active ? "23px" : "3px" }} />
@@ -728,12 +852,12 @@ function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
                 </div>
                 <div className="flex items-center gap-2">
                   <button onClick={() => setForm(p => ({ ...p, customFields: p.customFields.map(f => f.id === field.id ? { ...f, required: !f.required } : f) }))}
-                    className="px-2 py-0.5 text-[9px] font-bold rounded-sm transition-all border"
+                    className="px-2 py-0.5 text-[9px] font-bold rounded-sm transition-all border cursor-pointer"
                     style={{ borderColor: field.required ? "#C8102E" : "#2A1E15", color: field.required ? "#C8102E" : "#8E7E70" }}>
                     {field.required ? "REQUIRED" : "OPTIONAL"}
                   </button>
                   <button onClick={() => setForm(p => ({ ...p, customFields: p.customFields.filter(f => f.id !== field.id) }))}
-                    className="text-[#8E7E70] hover:text-white" title="Remove Field">
+                    className="text-[#8E7E70] hover:text-white cursor-pointer" title="Remove Field">
                     <X size={12} />
                   </button>
                 </div>
@@ -746,7 +870,7 @@ function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
                       <div key={i} className="flex items-center gap-1.5 px-2 py-1 text-[10px] bg-[#120D09] border border-[#2A1E15] rounded text-[#E5D5C5]">
                         <span>{opt}</span>
                         <button onClick={() => setForm(p => ({ ...p, customFields: p.customFields.map(f => f.id === field.id ? { ...f, options: f.options.filter((_, idx) => idx !== i) } : f) }))}
-                          className="text-[#8E7E70] hover:text-white">
+                          className="text-[#8E7E70] hover:text-white cursor-pointer">
                           <X size={9} />
                         </button>
                       </div>
@@ -761,7 +885,7 @@ function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
                       className="flex-1 px-3 py-1.5 text-xs bg-[#120D09] border border-[#2A1E15] rounded text-white outline-none focus:border-[#C8102E]"
                     />
                     <button onClick={() => addOption(field.id)}
-                      className="bg-[#C8102E] hover:opacity-90 text-white font-bold px-3 py-1.5 rounded text-xs">
+                      className="bg-[#C8102E] hover:opacity-90 text-white font-bold px-3 py-1.5 rounded text-xs cursor-pointer">
                       ADD
                     </button>
                   </div>
@@ -786,19 +910,22 @@ function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
             <option value="text">Text Input (custom comment)</option>
           </select>
           <button onClick={addField}
-            className="bg-[#C8102E] hover:opacity-90 text-white font-bold px-3 py-2 rounded text-xs flex items-center gap-1">
+            className="bg-[#C8102E] hover:opacity-90 text-white font-bold px-3 py-2 rounded text-xs flex items-center gap-1 cursor-pointer">
             <Plus size={13} /> ADD FIELD
           </button>
         </div>
       </div>
 
       <div className="flex gap-3 pt-3 border-t border-[#2A1E15]">
-        <button onClick={() => onSave(form)}
-          className="bg-[#C8102E] hover:opacity-90 text-white font-bold py-2 px-4 rounded text-xs flex items-center gap-1.5">
-          <Save size={13} /> COMMIT CHANGES
+        <button onClick={() => !uploading && onSave(form)}
+          disabled={uploading}
+          className={`font-bold py-2 px-4 rounded text-xs flex items-center gap-1.5 text-white transition-all ${
+            uploading ? "bg-[#C8102E]/50 cursor-not-allowed opacity-60" : "bg-[#C8102E] hover:opacity-90 cursor-pointer"
+          }`}>
+          <Save size={13} /> {uploading ? "UPLOADING..." : "COMMIT CHANGES"}
         </button>
         <button onClick={onCancel}
-          className="border border-[#2A1E15] hover:bg-[#1A130E] text-[#8E7E70] hover:text-white py-2 px-4 rounded text-xs">
+          className="border border-[#2A1E15] hover:bg-[#1A130E] text-[#8E7E70] hover:text-white py-2 px-4 rounded text-xs cursor-pointer">
           CANCEL
         </button>
       </div>

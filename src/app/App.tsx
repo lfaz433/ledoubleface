@@ -1,29 +1,106 @@
 import { useState, useEffect } from "react";
 import { ClientOrdering } from "./components/ClientOrdering";
 import { AdminDashboard } from "./components/AdminDashboard";
-import { Monitor, Smartphone, Columns, Settings, HelpCircle } from "lucide-react";
+import { LandingPage } from "./components/LandingPage";
+import { Monitor, Smartphone, Columns, ArrowLeft } from "lucide-react";
 
-type SimulatorMode = "guest" | "admin" | "split";
+type RouteView = "landing" | "menu" | "admin" | "simulator";
 
 export default function App() {
-  const [mode, setMode] = useState<SimulatorMode>("split");
-  
-  // Read initial params from URL if present, else default
+  const [view, setView] = useState<RouteView>("landing");
   const [tableId, setTableId] = useState("T07");
   const [area, setArea] = useState("Terrace Patio");
+  const [simulatorMode, setSimulatorMode] = useState<"guest" | "admin" | "split">("split");
 
   useEffect(() => {
-    // Sync URL search parameters with simulator state
-    const params = new URLSearchParams(window.location.search);
-    const urlTable = params.get("table");
-    const urlArea = params.get("area");
-    
-    if (urlTable) setTableId(urlTable);
-    if (urlArea) setArea(urlArea);
+    // Sync URL parameters with app routing state
+    const handleUrlRouting = () => {
+      const params = new URLSearchParams(window.location.search);
+      const path = window.location.pathname;
+      
+      const isSimulator = params.get("simulator") === "true" || path === "/simulator";
+      const isAdmin = params.get("view") === "admin" || path === "/admin";
+      const isMenu = params.get("view") === "menu" || path === "/menu" || params.has("table");
+      
+      const urlTable = params.get("table");
+      const urlArea = params.get("area");
+      
+      if (urlTable) setTableId(urlTable);
+      if (urlArea) setArea(urlArea);
+      
+      if (isSimulator) {
+        setView("simulator");
+      } else if (isAdmin) {
+        setView("admin");
+      } else if (isMenu) {
+        setView("menu");
+      } else {
+        setView("landing");
+      }
+    };
+
+    handleUrlRouting();
+    window.addEventListener("popstate", handleUrlRouting);
+    return () => window.removeEventListener("popstate", handleUrlRouting);
   }, []);
 
-  // Update URL parameters helper
-  const updateUrlContext = (newTable: string, newArea: string) => {
+  const navigateTo = (newView: RouteView, targetTableId?: string, targetArea?: string) => {
+    const url = new URL(window.location.href);
+    
+    // Clear view and simulator params
+    url.searchParams.delete("view");
+    url.searchParams.delete("simulator");
+    
+    if (newView === "landing") {
+      url.pathname = "/";
+      url.searchParams.delete("table");
+      url.searchParams.delete("area");
+      url.searchParams.delete("product");
+    } else if (newView === "admin") {
+      url.searchParams.set("view", "admin");
+    } else if (newView === "menu") {
+      url.searchParams.set("view", "menu");
+      if (targetTableId) {
+        url.searchParams.set("table", targetTableId);
+        setTableId(targetTableId);
+      } else {
+        url.searchParams.set("table", tableId);
+      }
+      if (targetArea) {
+        url.searchParams.set("area", targetArea);
+        setArea(targetArea);
+      } else {
+        url.searchParams.set("area", area);
+      }
+    } else if (newView === "simulator") {
+      url.searchParams.set("simulator", "true");
+    }
+    
+    window.history.pushState({}, "", url.toString());
+    setView(newView);
+  };
+
+  const handleNavigate = (viewStr: string, targetTableId?: string, productId?: string) => {
+    if (viewStr === "admin") {
+      navigateTo("admin");
+    } else if (viewStr === "client" || viewStr === "menu") {
+      if (productId) {
+        const url = new URL(window.location.href);
+        url.searchParams.set("view", "menu");
+        url.searchParams.set("table", targetTableId || "T01");
+        url.searchParams.set("product", productId);
+        window.history.pushState({}, "", url.toString());
+        setView("menu");
+        if (targetTableId) setTableId(targetTableId);
+      } else {
+        navigateTo("menu", targetTableId || "T01");
+      }
+    } else {
+      navigateTo("landing");
+    }
+  };
+
+  const updateSimulatorUrlContext = (newTable: string, newArea: string) => {
     setTableId(newTable);
     setArea(newArea);
     const url = new URL(window.location.href);
@@ -32,6 +109,42 @@ export default function App() {
     window.history.pushState({}, "", url.toString());
   };
 
+  // Render Standalone Landing Page View
+  if (view === "landing") {
+    return <LandingPage onNavigate={handleNavigate} />;
+  }
+
+  // Render Standalone Guest Menu View
+  if (view === "menu") {
+    return (
+      <div className="min-h-screen bg-[#0A0704] text-white relative">
+        <button
+          onClick={() => navigateTo("landing")}
+          className="fixed top-4 left-4 z-50 flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono tracking-widest text-[#E5D5C5] bg-black/40 border border-white/10 hover:bg-black/60 rounded backdrop-blur-md transition-all cursor-pointer"
+        >
+          <ArrowLeft size={14} /> HOME
+        </button>
+        <ClientOrdering tableId={tableId} area={area} />
+      </div>
+    );
+  }
+
+  // Render Standalone Kitchen Dashboard View
+  if (view === "admin") {
+    return (
+      <div className="min-h-screen bg-[#0A0704] text-white relative">
+        <button
+          onClick={() => navigateTo("landing")}
+          className="fixed top-4 left-4 z-50 flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono tracking-widest text-[#E5D5C5] bg-black/40 border border-white/10 hover:bg-black/60 rounded-lg backdrop-blur-md transition-all cursor-pointer"
+        >
+          <ArrowLeft size={14} /> HOME
+        </button>
+        <AdminDashboard />
+      </div>
+    );
+  }
+
+  // Render Simulator View (Split / Guest / Admin Testing)
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden bg-radial-gradient text-white">
       {/* Simulator Control Panel */}
@@ -47,7 +160,7 @@ export default function App() {
             <span className="text-[#8E7E70] font-mono">TABLE:</span>
             <select
               value={tableId}
-              onChange={(e) => updateUrlContext(e.target.value, area)}
+              onChange={(e) => updateSimulatorUrlContext(e.target.value, area)}
               className="bg-transparent text-white font-bold outline-none cursor-pointer"
             >
               {Array.from({ length: 12 }, (_, i) => {
@@ -61,7 +174,7 @@ export default function App() {
             <span className="text-[#8E7E70] font-mono">ZONE:</span>
             <select
               value={area}
-              onChange={(e) => updateUrlContext(tableId, e.target.value)}
+              onChange={(e) => updateSimulatorUrlContext(tableId, e.target.value)}
               className="bg-transparent text-white font-bold outline-none cursor-pointer"
             >
               <option value="Terrace Patio" className="bg-[#120D09]">Terrace Patio</option>
@@ -71,41 +184,50 @@ export default function App() {
           </div>
         </div>
 
-        {/* Mode Switcher */}
-        <div className="flex items-center gap-1 bg-white/5 border border-white/10 p-1 rounded-md backdrop-blur-md">
+        {/* Mode Switcher & Navigation */}
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 bg-white/5 border border-white/10 p-1 rounded-md backdrop-blur-md">
+            <button
+              onClick={() => setSimulatorMode("guest")}
+              className={`flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded transition-all ${
+                simulatorMode === "guest" ? "bg-[#C8102E] text-white shadow-lg shadow-[#C8102E]/20" : "text-[#8E7E70] hover:text-white"
+              }`}
+            >
+              <Smartphone size={14} />
+              <span>Guest Frame</span>
+            </button>
+            <button
+              onClick={() => setSimulatorMode("admin")}
+              className={`flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded transition-all ${
+                simulatorMode === "admin" ? "bg-[#C8102E] text-white shadow-lg shadow-[#C8102E]/20" : "text-[#8E7E70] hover:text-white"
+              }`}
+            >
+              <Monitor size={14} />
+              <span>Admin Desk</span>
+            </button>
+            <button
+              onClick={() => setSimulatorMode("split")}
+              className={`flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded transition-all ${
+                simulatorMode === "split" ? "bg-[#C8102E] text-white shadow-lg shadow-[#C8102E]/20" : "text-[#8E7E70] hover:text-white"
+              }`}
+            >
+              <Columns size={14} />
+              <span>Split View</span>
+            </button>
+          </div>
+
           <button
-            onClick={() => setMode("guest")}
-            className={`flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded transition-all ${
-              mode === "guest" ? "bg-[#C8102E] text-white shadow-lg shadow-[#C8102E]/20" : "text-[#8E7E70] hover:text-white"
-            }`}
+            onClick={() => navigateTo("landing")}
+            className="flex items-center gap-1.5 px-3 py-2 text-xs font-mono tracking-widest text-[#E5D5C5] bg-black/40 border border-white/10 hover:bg-black/60 rounded backdrop-blur-md transition-all cursor-pointer"
           >
-            <Smartphone size={14} />
-            <span>Guest Frame</span>
-          </button>
-          <button
-            onClick={() => setMode("admin")}
-            className={`flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded transition-all ${
-              mode === "admin" ? "bg-[#C8102E] text-white shadow-lg shadow-[#C8102E]/20" : "text-[#8E7E70] hover:text-white"
-            }`}
-          >
-            <Monitor size={14} />
-            <span>Admin Desk</span>
-          </button>
-          <button
-            onClick={() => setMode("split")}
-            className={`flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded transition-all ${
-              mode === "split" ? "bg-[#C8102E] text-white shadow-lg shadow-[#C8102E]/20" : "text-[#8E7E70] hover:text-white"
-            }`}
-          >
-            <Columns size={14} />
-            <span>Split View</span>
+            <ArrowLeft size={12} /> EXIT SIMULATOR
           </button>
         </div>
       </div>
 
       {/* Simulator Workspace Area */}
       <div className="flex-1 w-full overflow-hidden flex justify-center items-center">
-        {mode === "guest" && (
+        {simulatorMode === "guest" && (
           <div className="h-[95%] w-full max-w-[430px] rounded-3xl border border-white/10 bg-radial-gradient relative flex flex-col shadow-2xl overflow-hidden glass-panel">
             <div className="flex-1 overflow-y-auto">
               <ClientOrdering tableId={tableId} area={area} />
@@ -113,13 +235,13 @@ export default function App() {
           </div>
         )}
 
-        {mode === "admin" && (
+        {simulatorMode === "admin" && (
           <div className="h-full w-full bg-radial-gradient">
             <AdminDashboard />
           </div>
         )}
 
-        {mode === "split" && (
+        {simulatorMode === "split" && (
           <div className="h-[98%] w-full max-w-[1400px] flex gap-4 px-4 pb-4">
             {/* Guest side (phone size) */}
             <div className="w-[430px] flex-shrink-0 rounded-3xl border border-white/10 bg-radial-gradient flex flex-col relative h-full glass-panel overflow-hidden">

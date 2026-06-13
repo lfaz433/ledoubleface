@@ -112,6 +112,24 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
     };
   }, []);
 
+  useEffect(() => {
+    if (menuItems.length > 0) {
+      const params = new URLSearchParams(window.location.search);
+      const targetProdId = params.get("product");
+      if (targetProdId) {
+        const item = menuItems.find(i => i.id === targetProdId);
+        if (item) {
+          openCustomize(item);
+          // Clean the product URL parameter after opening the customize modal
+          // so it doesn't reopen if the user closes it.
+          const url = new URL(window.location.href);
+          url.searchParams.delete("product");
+          window.history.replaceState({}, "", url.toString());
+        }
+      }
+    }
+  }, [menuItems]);
+
   // Compute categories dynamically based on menuItems
   const categories = ["All", ...Array.from(new Set(menuItems.map(item => item.category)))];
 

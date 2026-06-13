@@ -1,14 +1,15 @@
 import { useState, useEffect } from "react";
 import { ChevronDown, Star, MapPin, Phone, Clock, Instagram, Facebook, Twitter, ArrowRight, Flame, Award, Utensils, Users } from "lucide-react";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
+import { supabase } from "../../lib/supabase";
 
-const MENU_ITEMS = [
-  { id: 1, name: "Le Double Face Burger", price: "14.90", category: "Signature", desc: "Double wagyu patty, truffle mayo, aged cheddar, brioche bun", image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400&h=300&fit=crop&auto=format", badge: "BEST SELLER" },
-  { id: 2, name: "Crispy Royal Chicken", price: "12.50", category: "Chicken", desc: "Crispy buttermilk chicken, pickled jalapeños, garlic aioli", image: "https://images.unsplash.com/photo-1562967914-608f82629710?w=400&h=300&fit=crop&auto=format", badge: "NEW" },
-  { id: 3, name: "Smash & Burn", price: "13.90", category: "Signature", desc: "Smash patty, caramelized onion, smoky BBQ, crispy bacon", image: "https://images.unsplash.com/photo-1550547660-d9450f859349?w=400&h=300&fit=crop&auto=format", badge: "" },
-  { id: 4, name: "La Truffe Fries", price: "6.90", category: "Sides", desc: "Belgian fries, black truffle oil, parmesan, fresh herbs", image: "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=400&h=300&fit=crop&auto=format", badge: "" },
-  { id: 5, name: "Double Shake Vanille", price: "7.50", category: "Drinks", desc: "Thick premium vanilla milkshake, Madagascar vanilla", image: "https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=400&h=300&fit=crop&auto=format", badge: "" },
-  { id: 6, name: "Le Vegan Face", price: "11.90", category: "Vegan", desc: "Plant-based patty, avocado cream, sun-dried tomatoes", image: "https://images.unsplash.com/photo-1520072959219-c595dc870360?w=400&h=300&fit=crop&auto=format", badge: "" },
+const FALLBACK_MENU_ITEMS = [
+  { id: "B1", name: "Le Double Face Burger", price: 14.90, category: "Signature", desc: "Double wagyu patty, truffle mayo, aged cheddar, brioche bun", image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400&h=300&fit=crop&auto=format", popular: true },
+  { id: "C1", name: "Crispy Royal Chicken", price: 12.50, category: "Chicken", desc: "Crispy buttermilk chicken, pickled jalapeños, garlic aioli", image: "https://images.unsplash.com/photo-1562967914-608f82629710?w=400&h=300&fit=crop&auto=format", popular: false },
+  { id: "B2", name: "Smash & Burn", price: 13.90, category: "Signature", desc: "Smash patty, caramelized onion, smoky BBQ, crispy bacon", image: "https://images.unsplash.com/photo-1550547660-d9450f859349?w=400&h=300&fit=crop&auto=format", popular: true },
+  { id: "S1", name: "La Truffe Fries", price: 6.90, category: "Sides", desc: "Belgian fries, black truffle oil, parmesan, fresh herbs", image: "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=400&h=300&fit=crop&auto=format", popular: true },
+  { id: "D1", name: "Double Shake Vanille", price: 7.50, category: "Drinks", desc: "Thick premium vanilla milkshake, Madagascar vanilla", image: "https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=400&h=300&fit=crop&auto=format", popular: false },
+  { id: "V1", name: "Le Vegan Face", price: 11.90, category: "Vegan", desc: "Plant-based patty, avocado cream, sun-dried tomatoes", image: "https://images.unsplash.com/photo-1520072959219-c595dc870360?w=400&h=300&fit=crop&auto=format", popular: false },
 ];
 
 const SERVICES = [
@@ -18,9 +19,11 @@ const SERVICES = [
   { icon: <Users size={28} />, title: "Private Events", desc: "Reserve the full restaurant for private events, corporate dinners, and exclusive gatherings." },
 ];
 
-export function LandingPage({ onNavigate }: { onNavigate: (view: string, tableId?: string) => void }) {
+export function LandingPage({ onNavigate }: { onNavigate: (view: string, tableId?: string, productId?: string) => void }) {
   const [scrolled, setScrolled] = useState(false);
   const [activeCategory, setActiveCategory] = useState("All");
+  const [menuItems, setMenuItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 60);
@@ -28,8 +31,32 @@ export function LandingPage({ onNavigate }: { onNavigate: (view: string, tableId
     return () => window.removeEventListener("scroll", handler);
   }, []);
 
-  const categories = ["All", "Signature", "Chicken", "Sides", "Drinks", "Vegan"];
-  const filtered = activeCategory === "All" ? MENU_ITEMS : MENU_ITEMS.filter(i => i.category === activeCategory);
+  useEffect(() => {
+    const fetchMenu = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("menu_items")
+          .eq("active", true)
+          .order("created_at", { ascending: true });
+        
+        if (error) throw error;
+        if (data && data.length > 0) {
+          setMenuItems(data);
+        } else {
+          setMenuItems(FALLBACK_MENU_ITEMS);
+        }
+      } catch (err) {
+        console.warn("LandingPage: could not fetch menu from Supabase. Using fallbacks.", err);
+        setMenuItems(FALLBACK_MENU_ITEMS);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchMenu();
+  }, []);
+
+  const categories = ["All", ...Array.from(new Set(menuItems.map(item => item.category)))];
+  const filtered = activeCategory === "All" ? menuItems : menuItems.filter(i => i.category === activeCategory);
 
   return (
     <div style={{ fontFamily: "'Inter', sans-serif" }} className="min-h-screen bg-background text-foreground">
@@ -95,12 +122,12 @@ export function LandingPage({ onNavigate }: { onNavigate: (view: string, tableId
             </p>
             <div className="mt-10 flex flex-wrap gap-4">
               <button onClick={() => onNavigate("client", "T01")}
-                className="flex items-center gap-2 px-8 py-4 text-base transition-all hover:opacity-90 active:scale-95"
+                className="flex items-center gap-2 px-8 py-4 text-base transition-all hover:opacity-90 active:scale-95 cursor-pointer"
                 style={{ background: "var(--primary)", color: "#fff", borderRadius: "var(--radius)", fontWeight: 700, letterSpacing: "0.06em" }}>
                 ORDER AT TABLE <ArrowRight size={18} />
               </button>
-              <button
-                className="flex items-center gap-2 px-8 py-4 text-base transition-all hover:bg-white/5"
+              <button onClick={() => onNavigate("client", "T01")}
+                className="flex items-center gap-2 px-8 py-4 text-base transition-all hover:bg-white/5 cursor-pointer"
                 style={{ border: "1px solid rgba(245,240,232,0.2)", color: "var(--foreground)", borderRadius: "var(--radius)", fontWeight: 600 }}>
                 VIEW MENU
               </button>
@@ -191,39 +218,60 @@ export function LandingPage({ onNavigate }: { onNavigate: (view: string, tableId
               ))}
             </div>
           </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filtered.map(item => (
-              <div key={item.id} className="group overflow-hidden transition-all duration-300 hover:-translate-y-1"
-                style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "var(--radius)" }}>
-                <div className="relative h-48 overflow-hidden">
-                  <ImageWithFallback
-                    src={item.image}
-                    alt={item.name}
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  />
-                  {item.badge && (
-                    <div className="absolute top-3 left-3 px-2 py-1"
-                      style={{ background: item.badge === "NEW" ? "var(--accent)" : "var(--primary)", borderRadius: "2px" }}>
-                      <span style={{ fontSize: "10px", fontWeight: 800, letterSpacing: "0.1em", color: item.badge === "NEW" ? "#000" : "#fff" }}>{item.badge}</span>
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-20">
+              <div className="w-10 h-10 border-2 border-t-[#C8102E] border-r-transparent rounded-full animate-spin mb-4" />
+              <p className="text-xs font-mono text-[#8E7E70] tracking-widest uppercase">Forging menu items...</p>
+            </div>
+          ) : (
+            <>
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filtered.map(item => (
+                  <div key={item.id} className="group overflow-hidden transition-all duration-300 hover:-translate-y-1"
+                    style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "var(--radius)" }}>
+                    <div className="relative h-48 overflow-hidden">
+                      <ImageWithFallback
+                        src={item.image}
+                        alt={item.name}
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      />
+                      {item.popular && (
+                        <div className="absolute top-3 left-3 px-2 py-1"
+                          style={{ background: "var(--primary)", borderRadius: "2px" }}>
+                          <span style={{ fontSize: "10px", fontWeight: 800, letterSpacing: "0.1em", color: "#fff" }}>POPULAR</span>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-                <div className="p-5">
-                  <div className="flex items-start justify-between mb-2">
-                    <h3 style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: "1.05rem", color: "var(--foreground)" }}>{item.name}</h3>
-                    <span style={{ fontFamily: "'DM Mono', monospace", fontWeight: 600, fontSize: "1rem", color: "var(--accent)", whiteSpace: "nowrap", marginLeft: "8px" }}>€{item.price}</span>
+                    <div className="p-5">
+                      <div className="flex items-start justify-between mb-2">
+                        <h3 style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: "1.05rem", color: "var(--foreground)" }}>{item.name}</h3>
+                        <span style={{ fontFamily: "'DM Mono', monospace", fontWeight: 600, fontSize: "1rem", color: "var(--accent)", whiteSpace: "nowrap", marginLeft: "8px" }}>
+                          €{typeof item.price === "number" ? item.price.toFixed(2) : item.price}
+                        </span>
+                      </div>
+                      <p style={{ fontSize: "13px", color: "var(--muted-foreground)", lineHeight: 1.6, marginBottom: "16px" }}>{item.desc}</p>
+                      <button
+                        onClick={() => onNavigate("client", "T01", item.id)}
+                        className="w-full py-2 text-sm transition-all hover:opacity-90 active:scale-95 cursor-pointer"
+                        style={{ background: "var(--primary)", color: "#fff", borderRadius: "var(--radius)", fontWeight: 700, letterSpacing: "0.05em" }}>
+                        ORDER NOW
+                      </button>
+                    </div>
                   </div>
-                  <p style={{ fontSize: "13px", color: "var(--muted-foreground)", lineHeight: 1.6, marginBottom: "16px" }}>{item.desc}</p>
-                  <button
-                    onClick={() => onNavigate("client", "T01")}
-                    className="w-full py-2 text-sm transition-all hover:opacity-90 active:scale-95"
-                    style={{ background: "var(--primary)", color: "#fff", borderRadius: "var(--radius)", fontWeight: 700, letterSpacing: "0.05em" }}>
-                    ORDER NOW
-                  </button>
-                </div>
+                ))}
               </div>
-            ))}
-          </div>
+              
+              <div className="mt-12 text-center">
+                <button
+                  onClick={() => onNavigate("client", "T01")}
+                  className="inline-flex items-center gap-2 px-8 py-4 text-base transition-all hover:opacity-90 active:scale-95 shadow-lg shadow-[#C8102E]/20 cursor-pointer"
+                  style={{ background: "var(--primary)", color: "#fff", borderRadius: "var(--radius)", fontWeight: 700, letterSpacing: "0.06em" }}
+                >
+                  VIEW ALL PRODUCTS <ArrowRight size={18} />
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </section>
 
