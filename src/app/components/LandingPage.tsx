@@ -278,6 +278,11 @@ export function LandingPage({ onNavigate }: { onNavigate: (view: string, tableId
                 style={{ background: "var(--primary)", color: "#fff", borderRadius: "var(--radius)", fontWeight: 700, letterSpacing: "0.06em" }}>
                 {t.orderAtTable} <ArrowRight size={18} />
               </button>
+              <button onClick={() => onNavigate("client", "DELIVERY")}
+                className="flex items-center gap-2 px-8 py-4 text-base transition-all hover:bg-white/5 cursor-pointer"
+                style={{ border: "1px solid rgba(245,240,232,0.2)", color: "var(--foreground)", borderRadius: "var(--radius)", fontWeight: 600 }}>
+                {lang === "fr" ? "Livraison" : "Delivery"} <ArrowRight size={18} />
+              </button>
               <button onClick={() => onNavigate("client", "T01")}
                 className="flex items-center gap-2 px-8 py-4 text-base transition-all hover:bg-white/5 cursor-pointer"
                 style={{ border: "1px solid rgba(245,240,232,0.2)", color: "var(--foreground)", borderRadius: "var(--radius)", fontWeight: 600 }}>

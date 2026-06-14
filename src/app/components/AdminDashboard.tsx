@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Package, ShoppingBag, Tv, QrCode, Settings,
   Plus, Trash2, Edit2, Check, X, Bell, TrendingUp, Users, DollarSign,
   Eye, MoreVertical, ChevronDown, AlertCircle, Clock, CheckCircle2,
-  GripVertical, ChevronRight, Save, ArrowLeft, RefreshCw, Upload, Award
+  GripVertical, ChevronRight, Save, ArrowLeft, RefreshCw, Upload, Award, Bike
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { supabase } from "../../lib/supabase";
@@ -65,9 +65,9 @@ interface Show {
   available_tickets: number;
 }
 
-const STATIC_TABLE_IDS = ["T01", "T02", "T03", "T04", "T05", "T06", "T07", "T08", "T09", "T10", "T11", "T12"];
+const STATIC_TABLE_IDS = ["T01", "T02", "T03", "T04", "T05", "T06", "T07", "T08", "T09", "T10", "T11", "T12", "T13", "T14", "T15"];
 
-type AdminSection = "dashboard" | "products" | "orders" | "tables" | "settings" | "shows" | "counter";
+type AdminSection = "dashboard" | "products" | "orders" | "tables" | "settings" | "shows" | "counter" | "delivery";
 
 export function AdminDashboard() {
   const [section, setSection] = useState<AdminSection>("dashboard");
@@ -195,8 +195,19 @@ export function AdminDashboard() {
         setHeroConfig((p: any) => ({ ...p, [field]: data.publicUrl }));
       }
     } catch (err: any) {
-      console.error("Hero Image upload failed:", err);
-      alert(`Hero Image upload failed: ${err.message || err}`);
+      console.warn("Hero Image upload to Supabase failed, falling back to local base64:", err);
+      try {
+        const base64String = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+        setHeroConfig((p: any) => ({ ...p, [field]: base64String }));
+      } catch (fallbackErr) {
+        console.error("Local image fallback failed:", fallbackErr);
+        alert(`Failed to load image locally: ${err.message || err}`);
+      }
     } finally {
       setUploadingHero(false);
     }
@@ -408,11 +419,11 @@ export function AdminDashboard() {
     };
   }, []);
 
-  // Pipeline advance actions (Pending -> Preparing -> Ready -> Delivered)
+  // Pipeline advance actions (Pending -> Ready -> Delivered)
   async function advanceOrder(id: string, currentStatus: Order["status"]) {
-    const statusSequence: Order["status"][] = ["pending", "preparing", "ready", "delivered"];
+    const statusSequence: Order["status"][] = ["pending", "ready", "delivered"];
     const currentIndex = statusSequence.indexOf(currentStatus);
-    if (currentIndex === -1 || currentIndex === 3) return;
+    if (currentIndex === -1 || currentIndex === 2) return;
     
     const nextStatus = statusSequence[currentIndex + 1];
 
@@ -830,6 +841,54 @@ export function AdminDashboard() {
     }
   }
 
+  async function addTable(isTerrace: boolean) {
+    const nextNum = tablesToRender.length + 1;
+    const newId = `T${nextNum.toString().padStart(2, "0")}`;
+    const newTable = {
+      id: newId,
+      area: isTerrace ? "La Terrasse" : "Le Salon Intérieur",
+      is_terrace: isTerrace,
+      waiter_called: false
+    };
+
+    try {
+      const { error } = await supabase.from("restaurant_tables").insert(newTable);
+      if (error) throw error;
+      setDbTables(prev => {
+        const next = [...prev, newTable];
+        if (typeof window !== "undefined") localStorage.setItem("ldf_restaurant_tables", JSON.stringify(next));
+        return next;
+      });
+    } catch (err) {
+      console.warn("Offline: adding table to local storage", err);
+      setDbTables(prev => {
+        const next = [...prev, newTable];
+        if (typeof window !== "undefined") localStorage.setItem("ldf_restaurant_tables", JSON.stringify(next));
+        return next;
+      });
+    }
+  }
+
+  async function deleteTable(id: string) {
+    if (!confirm(`Are you sure you want to remove table ${id}?`)) return;
+    try {
+      const { error } = await supabase.from("restaurant_tables").delete().eq("id", id);
+      if (error) throw error;
+      setDbTables(prev => {
+        const next = prev.filter(t => t.id !== id);
+        if (typeof window !== "undefined") localStorage.setItem("ldf_restaurant_tables", JSON.stringify(next));
+        return next;
+      });
+    } catch (err) {
+      console.warn("Offline: deleting table from local storage", err);
+      setDbTables(prev => {
+        const next = prev.filter(t => t.id !== id);
+        if (typeof window !== "undefined") localStorage.setItem("ldf_restaurant_tables", JSON.stringify(next));
+        return next;
+      });
+    }
+  }
+
   // Shows manager actions
   async function saveShow() {
     if (!editingShow) return;
@@ -892,8 +951,8 @@ export function AdminDashboard() {
 
   const tablesToRender = dbTables.length > 0 ? dbTables : STATIC_TABLE_IDS.map(id => ({
     id,
-    area: id >= "T07" ? "Terrace Patio" : "Inside Lounge",
-    is_terrace: id >= "T07",
+    area: id >= "T11" ? "Terrace Patio" : "Inside Lounge",
+    is_terrace: id >= "T11",
     waiter_called: false
   }));
 
@@ -913,6 +972,7 @@ export function AdminDashboard() {
   const navItems = [
     { id: "dashboard" as AdminSection, icon: <LayoutDashboard size={16} />, label: "Dashboard" },
     { id: "orders" as AdminSection, icon: <ShoppingBag size={16} />, label: "Live Orders Queue", badge: notifications },
+    { id: "delivery" as AdminSection, icon: <Bike size={16} />, label: "Delivery" },
     { id: "counter" as AdminSection, icon: <DollarSign size={16} />, label: "Vente au Comptoir" },
     { id: "products" as AdminSection, icon: <Package size={16} />, label: "Menu Forge (CMS)" },
     { id: "tables" as AdminSection, icon: <QrCode size={16} />, label: "Table Registry & QR" },
@@ -1055,9 +1115,9 @@ export function AdminDashboard() {
           {/* 2. LIVE ORDERS PIPELINE */}
           {section === "orders" && (
             <div className="flex flex-col gap-6">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                {(["pending", "preparing", "ready", "delivered"] as const).map(stage => {
-                  const stageOrders = orders.filter(o => o.status === stage);
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {(["pending", "ready", "delivered"] as const).map(stage => {
+                  const stageOrders = orders.filter(o => o.status === stage && o.table_id !== "DELIVERY");
                   return (
                     <div key={stage} className="flex flex-col min-h-[500px] bg-[#120D09]/50 border border-[#2A1E15]/60 rounded-xl p-4">
                       {/* Stage header */}
@@ -1120,7 +1180,7 @@ export function AdminDashboard() {
                                 {stage !== "delivered" && (
                                   <button onClick={() => advanceOrder(order.id, order.status)}
                                     className="flex-1 py-1.5 bg-[#C8102E] hover:opacity-95 text-white font-bold rounded text-[10px] cursor-pointer">
-                                    {stage === "pending" ? "ACCEPT" : stage === "preparing" ? "READY" : "DELIVER"}
+                                    {stage === "pending" ? "READY" : "DELIVER"}
                                   </button>
                                 )}
                                 
@@ -1131,6 +1191,72 @@ export function AdminDashboard() {
                                   </button>
                                 )}
                               </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* 2.5 DELIVERY PIPELINE */}
+          {section === "delivery" && (
+            <div className="flex flex-col gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {(["pending", "ready", "delivered"] as const).map(stage => {
+                  const stageOrders = orders.filter(o => o.status === stage && o.table_id === "DELIVERY");
+                  return (
+                    <div key={stage} className="flex flex-col min-h-[500px] bg-[#120D09]/50 border border-[#2A1E15]/60 rounded-xl p-4">
+                      <div className="flex justify-between items-center mb-4 border-b border-[#2A1E15]/30 pb-3">
+                        <h3 className="font-mono text-xs font-bold tracking-widest text-[#E5D5C5] uppercase">{statusLabels[stage] || stage}</h3>
+                        <span className="bg-[#1A130E] text-[#8E7E70] text-[10px] px-2 py-0.5 rounded font-mono">
+                          {stageOrders.length}
+                        </span>
+                      </div>
+                      
+                      <div className="flex-1 overflow-y-auto pr-2 space-y-3 custom-scrollbar">
+                        {stageOrders.map(order => (
+                          <div key={order.id} className="bg-[#1A130E] border border-[#2A1E15] rounded-lg p-3 hover:border-[#C8102E]/30 transition-colors">
+                            <div className="flex justify-between items-start mb-2">
+                              <span className="text-[#C8102E] font-bold text-sm tracking-wider">#{order.id.slice(-6)}</span>
+                              <span className="text-[#8E7E70] text-[10px] font-mono">{order.time}</span>
+                            </div>
+                            
+                            <div className="mb-3">
+                              <span className="text-white text-[11px] font-bold block mb-1">DELIVERY</span>
+                              <p className="text-[#8E7E70] text-[9px] uppercase tracking-wide">
+                                Total: €{order.total.toFixed(2)} | {order.paid ? <span className="text-[#10B981]">PAID</span> : <span className="text-[#F59E0B]">UNPAID</span>}
+                              </p>
+                            </div>
+
+                            <div className="space-y-1.5 mb-3 border-t border-[#2A1E15]/30 pt-3">
+                              {order.items.map((item: any, idx: number) => (
+                                <div key={idx} className="flex justify-between text-[11px]">
+                                  <span className="text-[#E5D5C5]">{item.quantity}x {item.name}</span>
+                                  <span className="text-[#8E7E70]">€{(item.price * item.quantity).toFixed(2)}</span>
+                                </div>
+                              ))}
+                            </div>
+
+                            {order.note && (
+                              <div className="mb-3 p-2 bg-[#120D09] rounded text-[10px] text-[#C8102E] border border-[#C8102E]/20 whitespace-pre-wrap">
+                                {order.note}
+                              </div>
+                            )}
+
+                            <div className="flex gap-2 mt-2">
+                              <button className="flex-1 py-1.5 bg-[#120D09] border border-[#2A1E15] hover:border-[#8E7E70] text-[#8E7E70] hover:text-white rounded text-[10px] cursor-pointer">
+                                DETAILS
+                              </button>
+                              {stage !== "delivered" && (
+                                <button onClick={() => advanceOrder(order.id, order.status)}
+                                  className="flex-1 py-1.5 bg-[#C8102E] hover:opacity-95 text-white font-bold rounded text-[10px] cursor-pointer">
+                                  {stage === "pending" ? "READY" : "DELIVER"}
+                                </button>
+                              )}
                             </div>
                           </div>
                         ))}
@@ -1239,6 +1365,10 @@ export function AdminDashboard() {
                   <h3 className="text-xs font-mono tracking-widest text-[#C8102E] uppercase font-bold flex items-center gap-2">
                     🛋️ Le Salon Intérieur ({tablesToRender.filter(t => !t.is_terrace).length})
                   </h3>
+                  <button onClick={() => addTable(false)}
+                    className="bg-[#C8102E] hover:opacity-90 text-white font-bold py-1.5 px-3 rounded text-[10px] flex items-center gap-1 cursor-pointer">
+                    <Plus size={12} /> ADD TABLE
+                  </button>
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -1304,6 +1434,12 @@ export function AdminDashboard() {
                             >
                               DL
                             </button>
+                            <button
+                              onClick={() => deleteTable(table.id)}
+                              className="flex-1 py-1 border border-[#2A1E15] hover:bg-red-950/20 text-[#C8102E] rounded text-[8px] font-bold cursor-pointer"
+                            >
+                              DEL
+                            </button>
                           </div>
                         </div>
                       </div>
@@ -1318,14 +1454,20 @@ export function AdminDashboard() {
                   <h3 className="text-xs font-mono tracking-widest text-[#C8102E] uppercase font-bold flex items-center gap-2">
                     ☀️ La Terrasse ({tablesToRender.filter(t => t.is_terrace).length})
                   </h3>
-                  {tablesToRender.filter(t => t.is_terrace).length > 0 && (
-                    <button
-                      onClick={turnOffAllTerrace}
-                      className="px-2.5 py-1 bg-[#C8102E]/10 hover:bg-[#C8102E]/20 text-[#C8102E] border border-[#C8102E]/30 rounded text-[9px] font-mono font-bold tracking-wider transition-all uppercase flex items-center gap-1 cursor-pointer"
-                    >
-                      <X size={10} /> Désactiver la Terrasse
+                  <div className="flex gap-2">
+                    {tablesToRender.filter(t => t.is_terrace).length > 0 && (
+                      <button
+                        onClick={turnOffAllTerrace}
+                        className="px-2.5 py-1 bg-[#C8102E]/10 hover:bg-[#C8102E]/20 text-[#C8102E] border border-[#C8102E]/30 rounded text-[9px] font-mono font-bold tracking-wider transition-all uppercase flex items-center gap-1 cursor-pointer"
+                      >
+                        <X size={10} /> Désactiver
+                      </button>
+                    )}
+                    <button onClick={() => addTable(true)}
+                      className="bg-[#C8102E] hover:opacity-90 text-white font-bold py-1 px-3 rounded text-[10px] flex items-center gap-1 cursor-pointer">
+                      <Plus size={12} /> ADD TABLE
                     </button>
-                  )}
+                  </div>
                 </div>
 
                 {tablesToRender.filter(t => t.is_terrace).length === 0 ? (
@@ -1395,6 +1537,12 @@ export function AdminDashboard() {
                                 className="flex-1 py-1 border border-[#2A1E15] hover:bg-[#1A130E] text-[#8E7E70] hover:text-white rounded text-[8px] font-bold cursor-pointer"
                               >
                                 DL
+                              </button>
+                              <button
+                                onClick={() => deleteTable(table.id)}
+                                className="flex-1 py-1 border border-[#2A1E15] hover:bg-red-950/20 text-[#C8102E] rounded text-[8px] font-bold cursor-pointer"
+                              >
+                                DEL
                               </button>
                             </div>
                           </div>

@@ -62,12 +62,15 @@ if (!client) {
     { id: 'T04', area: 'Inside Lounge', is_terrace: false, waiter_called: false },
     { id: 'T05', area: 'Inside Lounge', is_terrace: false, waiter_called: false },
     { id: 'T06', area: 'Inside Lounge', is_terrace: false, waiter_called: false },
-    { id: 'T07', area: 'Terrace Patio', is_terrace: true, waiter_called: false },
-    { id: 'T08', area: 'Terrace Patio', is_terrace: true, waiter_called: false },
-    { id: 'T09', area: 'Terrace Patio', is_terrace: true, waiter_called: false },
-    { id: 'T10', area: 'Terrace Patio', is_terrace: true, waiter_called: false },
+    { id: 'T07', area: 'Inside Lounge', is_terrace: false, waiter_called: false },
+    { id: 'T08', area: 'Inside Lounge', is_terrace: false, waiter_called: false },
+    { id: 'T09', area: 'Inside Lounge', is_terrace: false, waiter_called: false },
+    { id: 'T10', area: 'Inside Lounge', is_terrace: false, waiter_called: false },
     { id: 'T11', area: 'Terrace Patio', is_terrace: true, waiter_called: false },
-    { id: 'T12', area: 'Terrace Patio', is_terrace: true, waiter_called: false }
+    { id: 'T12', area: 'Terrace Patio', is_terrace: true, waiter_called: false },
+    { id: 'T13', area: 'Terrace Patio', is_terrace: true, waiter_called: false },
+    { id: 'T14', area: 'Terrace Patio', is_terrace: true, waiter_called: false },
+    { id: 'T15', area: 'Terrace Patio', is_terrace: true, waiter_called: false },
   ];
 
   const INITIAL_HERO = {

@@ -59,6 +59,8 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
   const [customizations, setCustomizations] = useState<Record<string, string | string[]>>({});
   const [search, setSearch] = useState("");
   const [orderNote, setOrderNote] = useState("");
+  const [deliveryAddress, setDeliveryAddress] = useState("");
+  const [deliveryPhone, setDeliveryPhone] = useState("");
   const [orderId, setOrderId] = useState("");
 
   // Bilingual State
@@ -392,6 +394,16 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
       const newOrderId = `ORD-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
       setOrderId(newOrderId);
 
+      let finalNote = orderNote;
+      if (tableId === "DELIVERY") {
+        if (!deliveryAddress || !deliveryPhone) {
+          alert("Please provide both delivery address and phone number.");
+          setStatus("checkout");
+          return;
+        }
+        finalNote = `DELIVERY INFO:\nAddress: ${deliveryAddress}\nPhone: ${deliveryPhone}\n\nNote: ${orderNote}`;
+      }
+
       // 1. Write the main order header to public.orders
       const { error: orderError } = await supabase
         .from("orders")
@@ -401,7 +413,7 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
           area: area || "Terrace Patio",
           status: "pending",
           total: cartTotal,
-          note: orderNote || null,
+          note: finalNote || null,
           paid: false,
           invoice_no: newOrderId
         });
@@ -438,7 +450,7 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
           area: area || "Terrace Patio",
           status: "pending",
           total: cartTotal,
-          note: orderNote || null,
+          note: finalNote || null,
           paid: false,
           invoice_no: orderId,
           created_at: new Date().toISOString()
