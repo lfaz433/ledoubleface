@@ -170,11 +170,23 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
           setActiveOrderItems(itemsData);
         }
       } else {
-        setActiveOrder(null);
-        setActiveOrderItems([]);
+        throw new Error("Empty db");
       }
     } catch (err) {
-      console.warn("Could not check active orders:", err);
+      console.warn("Could not check active orders from DB, trying fallback:", err);
+      if (typeof window !== "undefined") {
+        const localOrders = JSON.parse(localStorage.getItem("ldf_orders") || "[]");
+        const activeLocal = localOrders.filter((o: any) => o.table_id === tableId && !o.paid && o.status !== "delivered");
+        if (activeLocal.length > 0) {
+          const latest = activeLocal.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+          setActiveOrder(latest);
+          const localItems = JSON.parse(localStorage.getItem("ldf_order_items") || "[]");
+          setActiveOrderItems(localItems.filter((i: any) => i.order_id === latest.id));
+          return;
+        }
+      }
+      setActiveOrder(null);
+      setActiveOrderItems([]);
     }
   };
 
@@ -418,7 +430,39 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
     } catch (err) {
       console.error("Order submission failed:", err);
       alert("Submission failed. We will place a local simulated order instead.");
-      setTimeout(() => setStatus("confirmed"), 1000);
+      if (typeof window !== "undefined") {
+        const localOrders = JSON.parse(localStorage.getItem("ldf_orders") || "[]");
+        localOrders.push({
+          id: orderId,
+          table_id: tableId,
+          area: area || "Terrace Patio",
+          status: "pending",
+          total: cartTotal,
+          note: orderNote || null,
+          paid: false,
+          invoice_no: orderId,
+          created_at: new Date().toISOString()
+        });
+        localStorage.setItem("ldf_orders", JSON.stringify(localOrders));
+
+        const localItems = JSON.parse(localStorage.getItem("ldf_order_items") || "[]");
+        const newLocalItems = cart.map((item: any) => ({
+          id: "li-" + Math.random().toString(36).substr(2, 6),
+          order_id: orderId,
+          product_id: item.id,
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+          customizations: item.customizations || {}
+        }));
+        localStorage.setItem("ldf_order_items", JSON.stringify([...localItems, ...newLocalItems]));
+        window.dispatchEvent(new CustomEvent("ldf-db-update", { detail: { table: "orders" } }));
+      }
+      setTimeout(() => {
+        setStatus("confirmed");
+        setCart([]); // Clean local basket
+        setOrderNote("");
+      }, 1000);
     }
   }
 

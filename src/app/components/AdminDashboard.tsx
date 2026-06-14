@@ -94,7 +94,6 @@ export function AdminDashboard() {
   const [counterNote, setCounterNote] = useState("");
   const [activeCategory, setActiveCategory] = useState("");
 
-  // Hero CMS settings states
   const [heroConfig, setHeroConfig] = useState<any>({
     title1_fr: "Deux Visages.",
     title2_fr: "Une Légende.",
@@ -104,6 +103,7 @@ export function AdminDashboard() {
     subtitle_en: "Bold flavors meet Parisian elegance. Every bite is a double experience — street soul with fine dining craft.",
     image: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=1600&h=900&fit=crop&auto=format",
     front_image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600&h=750&fit=crop&auto=format",
+    logo_image: "",
     show_in_menu: false
   });
   const [uploadingHero, setUploadingHero] = useState(false);
@@ -115,11 +115,23 @@ export function AdminDashboard() {
         .select("*")
         .eq("id", "current")
         .limit(1);
-      if (!error && data && data.length > 0) {
+      if (error) throw error;
+      if (data && data.length > 0) {
         setHeroConfig(data[0]);
+        return;
       }
+      throw new Error("Empty db");
     } catch (err) {
-      console.warn("AdminDashboard: could not load hero configuration:", err);
+      console.warn("AdminDashboard: could not load hero configuration from DB, using fallback:", err);
+      if (typeof window !== "undefined") {
+        const local = localStorage.getItem("ldf_hero_config");
+        if (local) {
+          try {
+            const parsed = JSON.parse(local);
+            setHeroConfig(parsed[0]);
+          } catch (e) {}
+        }
+      }
     }
   };
 
@@ -144,7 +156,7 @@ export function AdminDashboard() {
     }
   }
 
-  const handleHeroImageUpload = (field: "image" | "front_image") => async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleHeroImageUpload = (field: "image" | "front_image" | "logo_image") => async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -216,7 +228,7 @@ export function AdminDashboard() {
 
       if (error) throw error;
 
-      if (data) {
+      if (data && data.length > 0) {
         const formatted: Order[] = data.map((o: any) => {
           const timestamp = new Date(o.created_at);
           const timeString = timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -236,11 +248,37 @@ export function AdminDashboard() {
         setOrders(formatted);
         
         // Count pending orders for badge notifications
-        const pendingCount = formatted.filter(o => o.status === "pending").length;
+        const pendingCount = formatted.filter((o: any) => o.status === "pending").length;
         setNotifications(pendingCount);
+        return;
       }
+      throw new Error("Empty DB");
     } catch (err) {
-      console.warn("Could not load orders from Supabase. Offline mode active.", err);
+      console.warn("Could not load orders from Supabase. Trying offline fallback.", err);
+      if (typeof window !== "undefined") {
+        try {
+          const localOrders = JSON.parse(localStorage.getItem("ldf_orders") || "[]");
+          const localItems = JSON.parse(localStorage.getItem("ldf_order_items") || "[]");
+          
+          const formatted = localOrders.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).map((o: any) => {
+            const timestamp = new Date(o.created_at);
+            const timeString = timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+            return {
+              id: o.id,
+              table_id: o.table_id,
+              area: o.area,
+              status: o.status,
+              total: Number(o.total),
+              note: o.note,
+              paid: o.paid,
+              time: timeString,
+              items: localItems.filter((i: any) => i.order_id === o.id) || []
+            };
+          });
+          setOrders(formatted);
+          setNotifications(formatted.filter((o: any) => o.status === "pending").length);
+        } catch (e) {}
+      }
       setDbError(true);
     } finally {
       setLoading(false);
@@ -1781,7 +1819,7 @@ export function AdminDashboard() {
                 <div className="flex flex-col gap-4 mt-2">
                   {/* Image Uploader */}
                   {/* Image Uploader */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {/* Background Image */}
                     <div>
                       <label className="text-[10px] font-mono tracking-wider text-[#8E7E70] block mb-1.5 uppercase">Hero Background Image</label>
@@ -1871,6 +1909,53 @@ export function AdminDashboard() {
                           value={heroConfig.front_image || ""}
                           onChange={e => setHeroConfig((p: any) => ({ ...p, front_image: e.target.value }))}
                           placeholder="Or paste external front image URL (https://...)"
+                          className="w-full px-2 py-1.5 text-[9px] bg-[#1A130E] border border-[#2A1E15] rounded text-white outline-none focus:border-[#C8102E]"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Logo Image */}
+                    <div>
+                      <label className="text-[10px] font-mono tracking-wider text-[#8E7E70] block mb-1.5 uppercase">Navbar Logo Image</label>
+                      {heroConfig.logo_image ? (
+                        <div className="relative h-28 w-full rounded-xl border border-[#2A1E15] overflow-hidden group">
+                          <img src={heroConfig.logo_image} alt="Logo Preview" className="w-full h-full object-contain bg-[#0A0704]" />
+                          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                            <label className="cursor-pointer bg-[#C8102E] hover:opacity-90 text-white font-mono text-[9px] font-bold px-2.5 py-1.5 rounded">
+                              {uploadingHero ? "UPLOADING..." : "REPLACE"}
+                              <input type="file" accept="image/*" onChange={handleHeroImageUpload("logo_image")} disabled={uploadingHero} className="hidden" />
+                            </label>
+                            <button 
+                              type="button"
+                              onClick={() => setHeroConfig((p: any) => ({ ...p, logo_image: "" }))} 
+                              className="bg-zinc-850 hover:bg-zinc-750 text-white font-mono text-[9px] font-bold px-2.5 py-1.5 rounded cursor-pointer"
+                            >
+                              REMOVE
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <label className="flex flex-col items-center justify-center h-28 w-full rounded-xl border border-dashed border-[#2A1E15] hover:border-[#C8102E]/50 transition-colors cursor-pointer bg-[#1A130E]/30">
+                          {uploadingHero ? (
+                            <div className="flex flex-col items-center gap-1">
+                              <div className="w-4 h-4 border-2 border-t-[#C8102E] border-r-transparent animate-spin rounded-full" />
+                              <span className="text-[9px] font-mono text-[#8E7E70]">Uploading...</span>
+                            </div>
+                          ) : (
+                            <div className="flex flex-col items-center gap-1">
+                              <Upload size={16} className="text-[#8E7E70]" />
+                              <span className="text-[9px] font-mono text-[#8E7E70]">Upload logo</span>
+                            </div>
+                          )}
+                          <input type="file" accept="image/*" onChange={handleHeroImageUpload("logo_image")} disabled={uploadingHero} className="hidden" />
+                        </label>
+                      )}
+                      <div className="mt-1.5">
+                        <input
+                          type="text"
+                          value={heroConfig.logo_image || ""}
+                          onChange={e => setHeroConfig((p: any) => ({ ...p, logo_image: e.target.value }))}
+                          placeholder="Or paste external URL (https://...)"
                           className="w-full px-2 py-1.5 text-[9px] bg-[#1A130E] border border-[#2A1E15] rounded text-white outline-none focus:border-[#C8102E]"
                         />
                       </div>

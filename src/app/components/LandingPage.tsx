@@ -102,11 +102,23 @@ export function LandingPage({ onNavigate }: { onNavigate: (view: string, tableId
         .eq("id", "current")
         .limit(1);
       
-      if (!error && data && data.length > 0) {
+      if (error) throw error;
+      if (data && data.length > 0) {
         setHeroConfig(data[0]);
+        return;
       }
+      throw new Error("Empty DB");
     } catch (err) {
-      console.warn("LandingPage: could not fetch hero config:", err);
+      console.warn("LandingPage: could not fetch hero config, using fallback:", err);
+      if (typeof window !== "undefined") {
+        const local = localStorage.getItem("ldf_hero_config");
+        if (local) {
+          try {
+            const parsed = JSON.parse(local);
+            setHeroConfig(parsed[0]);
+          } catch (e) {}
+        }
+      }
     }
   };
 
@@ -181,12 +193,18 @@ export function LandingPage({ onNavigate }: { onNavigate: (view: string, tableId
         style={{ background: scrolled ? "rgba(10,7,4,0.97)" : "transparent", borderBottom: scrolled ? "1px solid rgba(212,160,23,0.15)" : "none", backdropFilter: scrolled ? "blur(12px)" : "none" }}>
         <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: "var(--primary)" }}>
-              <span style={{ fontFamily: "'Playfair Display', serif", fontWeight: 900, fontSize: "14px", color: "#fff" }}>LF</span>
-            </div>
-            <span style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: "20px", color: "var(--foreground)", letterSpacing: "-0.02em" }}>
-              Le Double Face
-            </span>
+            {heroConfig.logo_image ? (
+              <img src={heroConfig.logo_image} alt="Logo" className="h-10 object-contain" />
+            ) : (
+              <>
+                <div className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: "var(--primary)" }}>
+                  <span style={{ fontFamily: "'Playfair Display', serif", fontWeight: 900, fontSize: "14px", color: "#fff" }}>LF</span>
+                </div>
+                <span style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: "20px", color: "var(--foreground)", letterSpacing: "-0.02em" }}>
+                  Le Double Face
+                </span>
+              </>
+            )}
             {/* Hidden Backdoor Star Login */}
             <button 
               onClick={() => onNavigate("admin")}
