@@ -53,6 +53,7 @@ interface RestaurantTable {
   area: string;
   is_terrace: boolean;
   waiter_called: boolean;
+  active?: boolean;
 }
 
 interface Show {
@@ -65,7 +66,7 @@ interface Show {
   available_tickets: number;
 }
 
-const STATIC_TABLE_IDS = ["T01", "T02", "T03", "T04", "T05", "T06", "T07", "T08", "T09", "T10", "T11", "T12", "T13", "T14", "T15"];
+const STATIC_TABLE_IDS = ["T01", "T02", "T03", "T04", "T05", "T06", "T07", "T08", "T09", "T10", "T11", "T12", "T13", "T14", "T15", "T16", "T17", "T18", "T19", "T20"];
 
 type AdminSection = "dashboard" | "products" | "orders" | "tables" | "settings" | "shows" | "counter" | "delivery";
 
@@ -488,20 +489,18 @@ export function AdminDashboard() {
     }
   }
 
-  // Turn off all terrace tables at once
   async function turnOffAllTerrace() {
+    if (!confirm("Are you sure you want to deactivate the terrace? Terrace tables will be hidden from ordering.")) return;
     const terraceTableIds = dbTables.filter(t => t.is_terrace).map(t => t.id);
     if (terraceTableIds.length === 0) return;
 
-    setDbTables(prev => prev.map(t => t.is_terrace ? { ...t, is_terrace: false, area: "Inside Lounge" } : t));
     try {
-      const { error } = await supabase
-        .from("restaurant_tables")
-        .update({ is_terrace: false, area: "Inside Lounge" })
-        .in("id", terraceTableIds);
+      const { error } = await supabase.from("restaurant_tables").update({ active: false }).in("id", terraceTableIds);
       if (error) throw error;
+      setDbTables(prev => prev.map(t => t.is_terrace ? { ...t, active: false } : t));
     } catch (err) {
-      console.warn("Could not toggle off all terrace tables in DB:", err);
+      console.warn("Offline fallback for turning off terrace", err);
+      setDbTables(prev => prev.map(t => t.is_terrace ? { ...t, active: false } : t));
     }
   }
 
@@ -848,7 +847,8 @@ export function AdminDashboard() {
       id: newId,
       area: isTerrace ? "La Terrasse" : "Le Salon Intérieur",
       is_terrace: isTerrace,
-      waiter_called: false
+      waiter_called: false,
+      active: true
     };
 
     try {
@@ -927,6 +927,28 @@ export function AdminDashboard() {
     }
   }
 
+  async function clearRevenue() {
+    if (!confirm("Are you sure you want to delete all delivered orders and reset total revenue to 0? This cannot be undone!")) return;
+    try {
+      const deliveredIds = orders.filter(o => o.status === "delivered").map(o => o.id);
+      if (deliveredIds.length === 0) {
+        alert("No delivered orders to clear.");
+        return;
+      }
+      const { error } = await supabase.from("orders").delete().in("id", deliveredIds);
+      if (error) throw error;
+      setOrders(prev => prev.filter(o => o.status !== "delivered"));
+    } catch (err) {
+      console.warn("Offline: clearing local delivered orders", err);
+      if (typeof window !== "undefined") {
+        const local = JSON.parse(localStorage.getItem("ldf_orders") || "[]");
+        const next = local.filter((o: any) => o.status !== "delivered");
+        localStorage.setItem("ldf_orders", JSON.stringify(next));
+        setOrders(prev => prev.filter(o => o.status !== "delivered"));
+      }
+    }
+  }
+
   async function deleteShow(id: string) {
     if (!confirm("Are you sure you want to delete this show?")) return;
     try {
@@ -953,7 +975,8 @@ export function AdminDashboard() {
     id,
     area: id >= "T11" ? "Terrace Patio" : "Inside Lounge",
     is_terrace: id >= "T11",
-    waiter_called: false
+    waiter_called: false,
+    active: true
   }));
 
   const REVENUE_DATA = [
@@ -1828,15 +1851,18 @@ export function AdminDashboard() {
                     </div>
                     
                     <div>
-                      <label className="text-[10px] font-mono tracking-wider text-[#8E7E70] block mb-1">SHOW IMAGE LINK</label>
+                      <label className="text-[10px] font-mono tracking-wider text-[#8E7E70] block mb-1">SHOW IMAGE</label>
                       <div className="flex flex-col gap-2">
-                        <input
-                          type="text"
-                          value={editingShow.image}
-                          onChange={e => setEditingShow(p => p ? { ...p, image: e.target.value } : null)}
-                          placeholder="Paste image link (https://...)"
-                          className="w-full px-3 py-2 text-xs bg-[#1A130E] border border-[#2A1E15] rounded text-white outline-none focus:border-[#C8102E]"
-                        />
+                        <label className="flex flex-col items-center justify-center h-16 w-full rounded border border-dashed border-[#2A1E15] hover:border-[#C8102E]/50 transition-colors cursor-pointer bg-[#1A130E]/30">
+                          <span className="text-[9px] font-mono text-[#8E7E70]">Upload image file</span>
+                          <input type="file" accept="image/*" onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            const reader = new FileReader();
+                            reader.onloadend = () => setEditingShow((p: any) => p ? { ...p, image: reader.result as string } : null);
+                            reader.readAsDataURL(file);
+                          }} className="hidden" />
+                        </label>
                         {editingShow.image && (
                           <div className="h-16 w-28 rounded border border-[#2A1E15] overflow-hidden">
                             <img src={editingShow.image} alt="Preview" className="w-full h-full object-cover" />
@@ -1934,8 +1960,13 @@ export function AdminDashboard() {
           {section === "settings" && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-6xl">
               {/* Coordinates Card */}
-              <div className="bg-[#120D09] border border-[#2A1E15] p-5 rounded-xl self-start">
-                <h3 className="text-xs font-mono tracking-widest text-[#C8102E] mb-5 uppercase">Restaurant Coordinates</h3>
+              <div className="bg-[#120D09] border border-[#2A1E15] p-5 rounded-xl self-start relative">
+                <div className="flex justify-between items-center mb-5">
+                  <h3 className="text-xs font-mono tracking-widest text-[#C8102E] uppercase">Restaurant Coordinates</h3>
+                  <button onClick={clearRevenue} className="bg-red-950/40 hover:bg-red-900/60 text-[#C8102E] border border-[#C8102E]/30 font-bold py-1 px-3 rounded text-[9px] uppercase tracking-wider transition-colors cursor-pointer flex items-center gap-1">
+                    <Trash2 size={10} /> Reset Balance
+                  </button>
+                </div>
                 <div className="flex flex-col gap-4">
                   {[
                     { label: "Vessel Name", value: "Le Double Face Lounge" },
@@ -2004,15 +2035,6 @@ export function AdminDashboard() {
                           <input type="file" accept="image/*" onChange={handleHeroImageUpload("image")} disabled={uploadingHero} className="hidden" />
                         </label>
                       )}
-                      <div className="mt-1.5">
-                        <input
-                          type="text"
-                          value={heroConfig.image || ""}
-                          onChange={e => setHeroConfig((p: any) => ({ ...p, image: e.target.value }))}
-                          placeholder="Or paste external image URL (https://...)"
-                          className="w-full px-2 py-1.5 text-[9px] bg-[#1A130E] border border-[#2A1E15] rounded text-white outline-none focus:border-[#C8102E]"
-                        />
-                      </div>
                     </div>
 
                     {/* Front Image */}
@@ -2051,15 +2073,6 @@ export function AdminDashboard() {
                           <input type="file" accept="image/*" onChange={handleHeroImageUpload("front_image")} disabled={uploadingHero} className="hidden" />
                         </label>
                       )}
-                      <div className="mt-1.5">
-                        <input
-                          type="text"
-                          value={heroConfig.front_image || ""}
-                          onChange={e => setHeroConfig((p: any) => ({ ...p, front_image: e.target.value }))}
-                          placeholder="Or paste external front image URL (https://...)"
-                          className="w-full px-2 py-1.5 text-[9px] bg-[#1A130E] border border-[#2A1E15] rounded text-white outline-none focus:border-[#C8102E]"
-                        />
-                      </div>
                     </div>
 
                     {/* Logo Image */}
@@ -2098,15 +2111,6 @@ export function AdminDashboard() {
                           <input type="file" accept="image/*" onChange={handleHeroImageUpload("logo_image")} disabled={uploadingHero} className="hidden" />
                         </label>
                       )}
-                      <div className="mt-1.5">
-                        <input
-                          type="text"
-                          value={heroConfig.logo_image || ""}
-                          onChange={e => setHeroConfig((p: any) => ({ ...p, logo_image: e.target.value }))}
-                          placeholder="Or paste external URL (https://...)"
-                          className="w-full px-2 py-1.5 text-[9px] bg-[#1A130E] border border-[#2A1E15] rounded text-white outline-none focus:border-[#C8102E]"
-                        />
-                      </div>
                     </div>
                   </div>
 
@@ -2393,16 +2397,6 @@ function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
               <input type="file" accept="image/*" onChange={handleImageUpload} disabled={uploading} className="hidden" />
             </label>
           )}
-          {/* Manual URL entry field */}
-          <div className="mt-1.5">
-            <input
-              type="text"
-              value={form.image}
-              onChange={e => setForm(p => ({ ...p, image: e.target.value }))}
-              placeholder="Or paste external image URL (https://...)"
-              className="w-full px-2 py-1 text-[9px] bg-[#1A130E] border border-[#2A1E15] rounded text-white outline-none focus:border-[#C8102E]"
-            />
-          </div>
         </div>
         
         <div className="md:col-span-2">

@@ -61,7 +61,10 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
   const [orderNote, setOrderNote] = useState("");
   const [deliveryAddress, setDeliveryAddress] = useState("");
   const [deliveryPhone, setDeliveryPhone] = useState("");
+  const [deliveryName, setDeliveryName] = useState("");
+  const [deliveryEmail, setDeliveryEmail] = useState("");
   const [orderId, setOrderId] = useState("");
+  const [tableActive, setTableActive] = useState(true);
 
   // Bilingual State
   const [lang, setLang] = useState<Language>("fr");
@@ -100,6 +103,22 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
       }
     } catch (err) {
       console.warn("ClientOrdering: could not load hero configuration:", err);
+    }
+  };
+
+  const loadTableStatus = async () => {
+    if (tableId === "DELIVERY" || tableId === "TEST") return;
+    try {
+      const { data, error } = await supabase
+        .from("restaurant_tables")
+        .select("active")
+        .eq("id", tableId)
+        .single();
+      if (!error && data) {
+        setTableActive(data.active !== false);
+      }
+    } catch (err) {
+      console.warn("Could not check table active status", err);
     }
   };
 
@@ -396,12 +415,12 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
 
       let finalNote = orderNote;
       if (tableId === "DELIVERY") {
-        if (!deliveryAddress || !deliveryPhone) {
-          alert("Please provide both delivery address and phone number.");
+        if (!deliveryName || !deliveryPhone || !deliveryAddress) {
+          alert("Please provide your name, phone number, and delivery address.");
           setStatus("checkout");
           return;
         }
-        finalNote = `DELIVERY INFO:\nAddress: ${deliveryAddress}\nPhone: ${deliveryPhone}\n\nNote: ${orderNote}`;
+        finalNote = `DELIVERY INFO:\nName: ${deliveryName}\nEmail: ${deliveryEmail || 'N/A'}\nPhone: ${deliveryPhone}\nAddress: ${deliveryAddress}\n\nNote: ${orderNote}`;
       }
 
       // 1. Write the main order header to public.orders
@@ -476,6 +495,23 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
         setOrderNote("");
       }, 1000);
     }
+  }
+
+  // Check table status
+  if (!tableActive) {
+    return (
+      <div className="min-h-screen bg-[#0A0704] flex items-center justify-center p-6 text-center">
+        <div className="bg-[#120D09] border border-[#2A1E15] rounded-2xl p-8 max-w-sm w-full">
+          <div className="w-16 h-16 bg-[#C8102E]/20 rounded-full flex items-center justify-center mx-auto mb-6 text-[#C8102E]">
+            <X size={32} />
+          </div>
+          <h2 className="font-serif font-black text-white text-2xl mb-4">Section Fermée</h2>
+          <p className="text-[#8E7E70] font-mono text-sm leading-relaxed">
+            Prenez place dans le salon intérieur pour passer votre commande.
+          </p>
+        </div>
+      </div>
+    );
   }
 
   if (loading) {
@@ -736,6 +772,42 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
         </div>
         
         <div className="flex-1 px-4 py-6 overflow-y-auto pb-24">
+          {tableId === "DELIVERY" && (
+            <div className="mb-8 p-4 bg-[#120D09] border border-[#C8102E]/30 rounded-xl">
+              <h3 className="font-serif font-black text-white text-lg mb-4">{t.deliveryDetails || "Delivery Details"}</h3>
+              <div className="flex flex-col gap-3">
+                <input
+                  type="text"
+                  placeholder="Full Name"
+                  value={deliveryName}
+                  onChange={(e) => setDeliveryName(e.target.value)}
+                  className="w-full px-4 py-3 bg-[#1A130E] border border-[#2A1E15] rounded-xl text-white outline-none focus:border-[#C8102E]"
+                />
+                <input
+                  type="email"
+                  placeholder="Email Address (Optional)"
+                  value={deliveryEmail}
+                  onChange={(e) => setDeliveryEmail(e.target.value)}
+                  className="w-full px-4 py-3 bg-[#1A130E] border border-[#2A1E15] rounded-xl text-white outline-none focus:border-[#C8102E]"
+                />
+                <input
+                  type="tel"
+                  placeholder={t.phonePlaceholder || "Phone Number"}
+                  value={deliveryPhone}
+                  onChange={(e) => setDeliveryPhone(e.target.value)}
+                  className="w-full px-4 py-3 bg-[#1A130E] border border-[#2A1E15] rounded-xl text-white outline-none focus:border-[#C8102E]"
+                />
+                <textarea
+                  placeholder={t.addressPlaceholder || "Full Address"}
+                  value={deliveryAddress}
+                  onChange={(e) => setDeliveryAddress(e.target.value)}
+                  rows={2}
+                  className="w-full px-4 py-3 bg-[#1A130E] border border-[#2A1E15] rounded-xl text-white outline-none focus:border-[#C8102E] resize-none"
+                />
+              </div>
+            </div>
+          )}
+
           <p className="text-xs text-[#8E7E70] mb-6">{t.paymentDesc}</p>
           
           <div className="flex flex-col gap-3 mb-8">
@@ -1094,6 +1166,7 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
                       className="w-full px-3 py-2 text-xs bg-[#1A130E] border border-[#2A1E15] rounded text-white outline-none focus:border-[#C8102E]"
                     />
                   </div>
+
                   <div>
                     <label className="text-[9px] font-mono tracking-wider text-[#8E7E70] block mb-1">{t.showsQuantity.toUpperCase()}</label>
                     <div className="flex items-center gap-3 select-none">
