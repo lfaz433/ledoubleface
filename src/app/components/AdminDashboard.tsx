@@ -135,8 +135,12 @@ export function AdminDashboard() {
       alert("Hero settings saved successfully!");
       loadHeroConfig();
     } catch (err) {
-      console.error("Failed to save hero config:", err);
-      alert("Failed to save hero config, operating on local simulation.");
+      console.error("Failed to save hero config to database, saving to local storage fallback:", err);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("ldf_hero_config", JSON.stringify([heroConfig]));
+        window.dispatchEvent(new CustomEvent("ldf-db-update", { detail: { table: "hero_config" } }));
+      }
+      alert("Enregistré localement avec succès (mode simulation suite à une erreur base de données).");
     }
   }
 
