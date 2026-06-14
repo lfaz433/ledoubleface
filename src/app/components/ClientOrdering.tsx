@@ -77,6 +77,24 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
   // Waiter State
   const [waiterCalled, setWaiterCalled] = useState(false);
 
+  const forceReload = async () => {
+    if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+      try {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (const reg of registrations) {
+          await reg.unregister();
+        }
+        if ("caches" in window) {
+          const cacheNames = await caches.keys();
+          await Promise.all(cacheNames.map(name => caches.delete(name)));
+        }
+      } catch (err) {
+        console.error("Failed to unregister service worker / clear cache:", err);
+      }
+    }
+    window.location.href = window.location.origin + window.location.pathname + "?t=" + Date.now();
+  };
+
   // Payment Selection
   const [selectedPayment, setSelectedPayment] = useState<"cash" | "visa" | "apple">("cash");
 
@@ -458,20 +476,20 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
       setStatus("confirmed");
       setCart([]); // Clean local basket
       setOrderNote("");
-    } catch (err) {
+    } catch (err: any) {
       console.error("Order submission failed:", err);
-      alert("Submission failed. We will place a local simulated order instead.");
+      alert(`Submission failed: ${err?.message || JSON.stringify(err)}. We will place a local simulated order instead.`);
       if (typeof window !== "undefined") {
         const localOrders = JSON.parse(localStorage.getItem("ldf_orders") || "[]");
         localOrders.push({
-          id: orderId,
+          id: newOrderId,
           table_id: tableId,
           area: area || "Terrace Patio",
           status: "pending",
           total: cartTotal,
           note: finalNote || null,
           paid: false,
-          invoice_no: orderId,
+          invoice_no: newOrderId,
           created_at: new Date().toISOString()
         });
         localStorage.setItem("ldf_orders", JSON.stringify(localOrders));
@@ -479,7 +497,7 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
         const localItems = JSON.parse(localStorage.getItem("ldf_order_items") || "[]");
         const newLocalItems = cart.map((item: any) => ({
           id: "li-" + Math.random().toString(36).substr(2, 6),
-          order_id: orderId,
+          order_id: newOrderId,
           product_id: item.id,
           name: item.name,
           price: item.price,
@@ -860,7 +878,13 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
         <div className="px-4 py-4 flex items-center justify-between">
           <div className="flex flex-col">
             <span className="font-serif font-black text-lg text-white">Le Double Face</span>
-            <span className="font-mono text-[9px] text-[#C8102E] tracking-widest font-bold">TABLE {tableId} · {area.toUpperCase()}</span>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <span className="font-mono text-[9px] text-[#C8102E] tracking-widest font-bold">TABLE {tableId} · {area.toUpperCase()}</span>
+              <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: (!supabase || supabase.isMock || dbError) ? '#F59E0B' : '#10B981' }} />
+              <span className="font-mono text-[7px] text-[#8E7E70] uppercase tracking-wider">
+                {(!supabase || supabase.isMock || dbError) ? 'Simulated' : 'Online'}
+              </span>
+            </div>
           </div>
           
           <div className="flex items-center gap-2">
@@ -894,6 +918,18 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
             </button>
           </div>
         </div>
+
+        {(!supabase || supabase.isMock || dbError) && (
+          <div className="bg-[#F59E0B]/15 border-t border-white/5 px-4 py-2.5 text-[10px] text-[#F59E0B] font-mono leading-relaxed flex items-center justify-between gap-4">
+            <span>⚠️ <strong>Simulation Mode</strong>: Connection to restaurant database failed. Orders will not sync to the kitchen.</span>
+            <button 
+              onClick={forceReload}
+              className="flex-shrink-0 px-2.5 py-1 bg-[#F59E0B]/25 border border-[#F59E0B]/40 hover:bg-[#F59E0B]/35 active:scale-95 text-white rounded text-[9px] font-bold tracking-wide transition-all cursor-pointer whitespace-nowrap"
+            >
+              RESET CONNECTION
+            </button>
+          </div>
+        )}
 
         <div className="px-4 pb-3">
           <div className="relative mb-3">
@@ -1188,6 +1224,37 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Diagnostics / Sync Support Footer */}
+      <footer className="mt-16 px-4 py-8 border-t border-[#2A1E15]/30 flex flex-col items-center gap-2 text-center bg-[#0C0805]/50 backdrop-blur-sm">
+        <p className="font-serif italic text-[11px] text-[#8E7E70]">Le Double Face Zero-Friction Dining</p>
+        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[9px] font-mono mt-1 text-[#8E7E70]">
+          <div className="flex items-center gap-1">
+            <span>DB URL:</span>
+            <span className="text-[#E5D5C5] font-bold">{import.meta.env.VITE_SUPABASE_URL ? import.meta.env.VITE_SUPABASE_URL.replace("https://", "") : "NOT DEFINED"}</span>
+          </div>
+          <div className="w-1.5 h-1.5 rounded-full bg-white/10 hidden md:block" />
+          <div className="flex items-center gap-1">
+            <span>STATUS:</span>
+            {(!supabase || supabase.isMock || dbError) ? (
+              <span className="flex items-center gap-1 font-bold text-[#F59E0B]">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#F59E0B]" /> OFFLINE (SIMULATED)
+              </span>
+            ) : (
+              <span className="flex items-center gap-1 font-bold text-[#10B981]">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]" /> ONLINE
+              </span>
+            )}
+          </div>
+        </div>
+        
+        <button
+          onClick={forceReload}
+          className="mt-3 px-3 py-1.5 bg-white/5 border border-white/10 hover:bg-white/10 active:scale-95 text-[#E5D5C5] rounded text-[9px] font-mono transition-all cursor-pointer"
+        >
+          🔄 Refresh App Connection (Reset Cache)
+        </button>
+      </footer>
     </motion.div>
   );
 }

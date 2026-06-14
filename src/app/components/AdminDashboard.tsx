@@ -77,6 +77,24 @@ export function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [dbError, setDbError] = useState(false);
 
+  const forceReload = async () => {
+    if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+      try {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (const reg of registrations) {
+          await reg.unregister();
+        }
+        if ("caches" in window) {
+          const cacheNames = await caches.keys();
+          await Promise.all(cacheNames.map(name => caches.delete(name)));
+        }
+      } catch (err) {
+        console.error("Failed to unregister service worker / clear cache:", err);
+      }
+    }
+    window.location.href = window.location.origin + window.location.pathname + "?t=" + Date.now();
+  };
+
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [showProductForm, setShowProductForm] = useState(false);
   const [liveNotifications, setLiveNotifications] = useState(0);
@@ -1132,17 +1150,32 @@ export function AdminDashboard() {
           <div className="flex items-center gap-2">
             <span className="text-[#8E7E70] font-mono text-xs uppercase tracking-widest">{section} console</span>
           </div>
-          <div className="flex items-center gap-4 text-xs font-mono">
-            <span className="text-[#8E7E70]">SUPABASE STATUS:</span>
-            {(!supabase || supabase.isMock || dbError) ? (
-              <span className="flex items-center gap-1.5 font-bold text-[#F59E0B]">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#F59E0B]" /> OFFLINE (SIMULATED)
-              </span>
-            ) : (
-              <span className="flex items-center gap-1.5 font-bold text-[#10B981]">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]" /> ONLINE
-              </span>
-            )}
+          <div className="flex items-center gap-6 text-xs font-mono">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[#8E7E70]">DB URL:</span>
+              <span className="text-white font-bold">{import.meta.env.VITE_SUPABASE_URL ? import.meta.env.VITE_SUPABASE_URL.replace("https://", "") : "NOT DEFINED"}</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[#8E7E70]">STATUS:</span>
+                {(!supabase || supabase.isMock || dbError) ? (
+                  <span className="flex items-center gap-1.5 font-bold text-[#F59E0B]">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#F59E0B]" /> OFFLINE (SIMULATED)
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-1.5 font-bold text-[#10B981]">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]" /> ONLINE
+                  </span>
+                )}
+              </div>
+              <button
+                onClick={forceReload}
+                className="px-2 py-1 bg-white/5 border border-white/10 hover:bg-white/10 active:scale-95 text-[#E5D5C5] rounded text-[9px] font-mono transition-all cursor-pointer"
+                title="Refresh Console Connection (Clear Cache)"
+              >
+                🔄 REFRESH
+              </button>
+            </div>
           </div>
         </header>
 

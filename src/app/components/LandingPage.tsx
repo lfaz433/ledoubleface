@@ -31,6 +31,26 @@ export function LandingPage({ onNavigate }: { onNavigate: (view: string, tableId
   const [lang, setLang] = useState<Language>("fr");
   const t = translations[lang];
 
+  const [dbError, setDbError] = useState(false);
+
+  const forceReload = async () => {
+    if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+      try {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (const reg of registrations) {
+          await reg.unregister();
+        }
+        if ("caches" in window) {
+          const cacheNames = await caches.keys();
+          await Promise.all(cacheNames.map(name => caches.delete(name)));
+        }
+      } catch (err) {
+        console.error("Failed to unregister service worker / clear cache:", err);
+      }
+    }
+    window.location.href = window.location.origin + window.location.pathname + "?t=" + Date.now();
+  };
+
   // Shows State
   const [shows, setShows] = useState<any[]>([]);
   const [selectedShow, setSelectedShow] = useState<any | null>(null);
@@ -60,6 +80,7 @@ export function LandingPage({ onNavigate }: { onNavigate: (view: string, tableId
 
   const fetchMenu = async () => {
     try {
+      setDbError(false);
       const { data, error } = await supabase
         .from("menu_items")
         .eq("active", true)
@@ -73,6 +94,7 @@ export function LandingPage({ onNavigate }: { onNavigate: (view: string, tableId
       }
     } catch (err) {
       console.warn("LandingPage: could not fetch menu from Supabase. Using fallbacks.", err);
+      setDbError(true);
       setMenuItems(FALLBACK_MENU_ITEMS);
     } finally {
       setLoading(false);
@@ -86,11 +108,13 @@ export function LandingPage({ onNavigate }: { onNavigate: (view: string, tableId
         .select("*")
         .order("date", { ascending: true });
       
-      if (!error && data) {
+      if (error) throw error;
+      if (data) {
         setShows(data);
       }
     } catch (err) {
       console.warn("LandingPage: could not fetch shows from Supabase.", err);
+      setDbError(true);
     }
   };
 
@@ -110,6 +134,7 @@ export function LandingPage({ onNavigate }: { onNavigate: (view: string, tableId
       throw new Error("Empty DB");
     } catch (err) {
       console.warn("LandingPage: could not fetch hero config, using fallback:", err);
+      setDbError(true);
       if (typeof window !== "undefined") {
         const local = localStorage.getItem("ldf_hero_config");
         if (local) {
@@ -574,6 +599,36 @@ export function LandingPage({ onNavigate }: { onNavigate: (view: string, tableId
               </a>
             ))}
           </div>
+        </div>
+
+        {/* Connection Diagnostics Bar */}
+        <div className="max-w-7xl mx-auto mt-8 pt-8 border-t border-white/5 flex flex-col items-center justify-center gap-3 text-center">
+          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[10px] font-mono text-muted-foreground">
+            <div className="flex items-center gap-1.5">
+              <span>DATABASE URL:</span>
+              <span className="text-foreground font-bold">{import.meta.env.VITE_SUPABASE_URL ? import.meta.env.VITE_SUPABASE_URL.replace("https://", "") : "NOT DEFINED"}</span>
+            </div>
+            <div className="w-1.5 h-1.5 rounded-full bg-white/10 hidden md:block" />
+            <div className="flex items-center gap-1.5">
+              <span>STATUS:</span>
+              {(!supabase || supabase.isMock || dbError) ? (
+                <span className="flex items-center gap-1 font-bold text-[#F59E0B]">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#F59E0B] animate-pulse" /> OFFLINE (SIMULATED)
+                </span>
+              ) : (
+                <span className="flex items-center gap-1 font-bold text-[#10B981]">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]" /> ONLINE
+                </span>
+              )}
+            </div>
+          </div>
+          
+          <button
+            onClick={forceReload}
+            className="px-3 py-1.5 bg-white/5 border border-white/10 hover:bg-white/10 active:scale-95 text-foreground rounded text-[10px] font-mono transition-all cursor-pointer"
+          >
+            🔄 Refresh Connection (Clear PWA Cache)
+          </button>
         </div>
       </footer>
 
