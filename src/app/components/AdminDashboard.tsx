@@ -1134,9 +1134,15 @@ export function AdminDashboard() {
           </div>
           <div className="flex items-center gap-4 text-xs font-mono">
             <span className="text-[#8E7E70]">SUPABASE STATUS:</span>
-            <span className="flex items-center gap-1.5 font-bold text-[#10B981]">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]" /> ONLINE
-            </span>
+            {(!supabase || supabase.isMock || dbError) ? (
+              <span className="flex items-center gap-1.5 font-bold text-[#F59E0B]">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#F59E0B]" /> OFFLINE (SIMULATED)
+              </span>
+            ) : (
+              <span className="flex items-center gap-1.5 font-bold text-[#10B981]">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]" /> ONLINE
+              </span>
+            )}
           </div>
         </header>
 
