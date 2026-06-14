@@ -107,7 +107,7 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
   };
 
   const loadTableStatus = async () => {
-    if (tableId === "DELIVERY" || tableId === "TEST") return;
+    if (tableId?.toUpperCase() === "DELIVERY" || tableId?.toUpperCase() === "TEST") return;
     try {
       const { data, error } = await supabase
         .from("restaurant_tables")
@@ -414,7 +414,7 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
       setOrderId(newOrderId);
 
       let finalNote = orderNote;
-      if (tableId === "DELIVERY") {
+      if (tableId?.toUpperCase() === "DELIVERY") {
         if (!deliveryName || !deliveryPhone || !deliveryAddress) {
           alert("Please provide your name, phone number, and delivery address.");
           setStatus("checkout");
@@ -772,7 +772,7 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
         </div>
         
         <div className="flex-1 px-4 py-6 overflow-y-auto pb-24">
-          {tableId === "DELIVERY" && (
+          {tableId?.toUpperCase() === "DELIVERY" && (
             <div className="mb-8 p-4 bg-[#120D09] border border-[#C8102E]/30 rounded-xl">
               <h3 className="font-serif font-black text-white text-lg mb-4">{t.deliveryDetails || "Delivery Details"}</h3>
               <div className="flex flex-col gap-3">

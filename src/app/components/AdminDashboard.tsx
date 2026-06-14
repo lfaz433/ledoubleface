@@ -79,7 +79,8 @@ export function AdminDashboard() {
 
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [showProductForm, setShowProductForm] = useState(false);
-  const [notifications, setNotifications] = useState(0);
+  const [liveNotifications, setLiveNotifications] = useState(0);
+  const [deliveryNotifications, setDeliveryNotifications] = useState(0);
 
   // Table Registry & waiter call states
   const [dbTables, setDbTables] = useState<RestaurantTable[]>([]);
@@ -163,7 +164,7 @@ export function AdminDashboard() {
 
     setUploadingHero(true);
     try {
-      const isMock = !supabase || !supabase.storage || typeof supabase.storage.from !== "function";
+      const isMock = !supabase || supabase.isMock || !supabase.storage || typeof supabase.storage.from !== "function";
       if (isMock) {
         const reader = new FileReader();
         reader.onloadend = () => {
@@ -240,8 +241,9 @@ export function AdminDashboard() {
 
       if (error) throw error;
 
-      if (data && data.length > 0) {
-        const formatted: Order[] = data.map((o: any) => {
+      let dbOrders: Order[] = [];
+      if (data) {
+        dbOrders = data.map((o: any) => {
           const timestamp = new Date(o.created_at);
           const timeString = timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
           
@@ -257,14 +259,41 @@ export function AdminDashboard() {
             items: o.order_items || []
           };
         });
-        setOrders(formatted);
-        
-        // Count pending orders for badge notifications
-        const pendingCount = formatted.filter((o: any) => o.status === "pending").length;
-        setNotifications(pendingCount);
-        return;
       }
-      throw new Error("Empty DB");
+
+      let localOrders: Order[] = [];
+      if (typeof window !== "undefined") {
+        try {
+          const localRaw = JSON.parse(localStorage.getItem("ldf_orders") || "[]");
+          const localItems = JSON.parse(localStorage.getItem("ldf_order_items") || "[]");
+          
+          localOrders = localRaw.map((o: any) => {
+            const timestamp = new Date(o.created_at);
+            const timeString = timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+            return {
+              id: o.id,
+              table_id: o.table_id,
+              area: o.area,
+              status: o.status,
+              total: Number(o.total),
+              note: o.note,
+              paid: o.paid,
+              time: timeString,
+              items: localItems.filter((i: any) => i.order_id === o.id) || []
+            };
+          });
+        } catch (e) {}
+      }
+
+      const merged = [...dbOrders];
+      localOrders.forEach(lo => {
+        if (!merged.some(o => o.id === lo.id)) {
+          merged.push(lo);
+        }
+      });
+
+      setOrders(merged);
+
     } catch (err) {
       console.warn("Could not load orders from Supabase. Trying offline fallback.", err);
       if (typeof window !== "undefined") {
@@ -288,7 +317,6 @@ export function AdminDashboard() {
             };
           });
           setOrders(formatted);
-          setNotifications(formatted.filter((o: any) => o.status === "pending").length);
         } catch (e) {}
       }
       setDbError(true);
@@ -307,8 +335,9 @@ export function AdminDashboard() {
 
       if (error) throw error;
 
+      let dbProducts: Product[] = [];
       if (data) {
-        const formatted: Product[] = data.map((p: any) => ({
+        dbProducts = data.map((p: any) => ({
           id: p.id,
           name: p.name,
           category: p.category,
@@ -318,10 +347,51 @@ export function AdminDashboard() {
           active: p.active,
           customFields: p.custom_fields || []
         }));
-        setProducts(formatted);
       }
+
+      let localProducts: Product[] = [];
+      if (typeof window !== "undefined") {
+        try {
+          const localRaw = JSON.parse(localStorage.getItem("ldf_menu_items") || "[]");
+          localProducts = localRaw.map((p: any) => ({
+            id: p.id,
+            name: p.name,
+            category: p.category,
+            price: Number(p.price),
+            desc: p.desc || "",
+            image: p.image || "",
+            active: p.active,
+            customFields: p.custom_fields || []
+          }));
+        } catch (e) {}
+      }
+
+      const merged = [...dbProducts];
+      localProducts.forEach(lp => {
+        if (!merged.some(p => p.id === lp.id)) {
+          merged.push(lp);
+        }
+      });
+
+      setProducts(merged);
     } catch (err) {
-      console.warn("Could not load products from Supabase.", err);
+      console.warn("Could not load products from Supabase. Trying local storage fallback.", err);
+      if (typeof window !== "undefined") {
+        try {
+          const localRaw = JSON.parse(localStorage.getItem("ldf_menu_items") || "[]");
+          const formatted = localRaw.map((p: any) => ({
+            id: p.id,
+            name: p.name,
+            category: p.category,
+            price: Number(p.price),
+            desc: p.desc || "",
+            image: p.image || "",
+            active: p.active,
+            customFields: p.custom_fields || []
+          }));
+          setProducts(formatted);
+        } catch (e) {}
+      }
     }
   };
 
@@ -368,6 +438,13 @@ export function AdminDashboard() {
       console.warn("Could not load tickets list:", err);
     }
   };
+
+  useEffect(() => {
+    const liveCount = orders.filter((o: any) => o.status === "pending" && o.table_id?.toUpperCase() !== "DELIVERY").length;
+    const deliveryCount = orders.filter((o: any) => o.status === "pending" && o.table_id?.toUpperCase() === "DELIVERY").length;
+    setLiveNotifications(liveCount);
+    setDeliveryNotifications(deliveryCount);
+  }, [orders]);
 
   useEffect(() => {
     loadOrders();
@@ -994,8 +1071,8 @@ export function AdminDashboard() {
 
   const navItems = [
     { id: "dashboard" as AdminSection, icon: <LayoutDashboard size={16} />, label: "Dashboard" },
-    { id: "orders" as AdminSection, icon: <ShoppingBag size={16} />, label: "Live Orders Queue", badge: notifications },
-    { id: "delivery" as AdminSection, icon: <Bike size={16} />, label: "Delivery" },
+    { id: "orders" as AdminSection, icon: <ShoppingBag size={16} />, label: "Live Orders Queue", badge: liveNotifications },
+    { id: "delivery" as AdminSection, icon: <Bike size={16} />, label: "Delivery", badge: deliveryNotifications },
     { id: "counter" as AdminSection, icon: <DollarSign size={16} />, label: "Vente au Comptoir" },
     { id: "products" as AdminSection, icon: <Package size={16} />, label: "Menu Forge (CMS)" },
     { id: "tables" as AdminSection, icon: <QrCode size={16} />, label: "Table Registry & QR" },
@@ -1140,7 +1217,7 @@ export function AdminDashboard() {
             <div className="flex flex-col gap-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {(["pending", "ready", "delivered"] as const).map(stage => {
-                  const stageOrders = orders.filter(o => o.status === stage && o.table_id !== "DELIVERY");
+                  const stageOrders = orders.filter(o => o.status === stage && o.table_id?.toUpperCase() !== "DELIVERY");
                   return (
                     <div key={stage} className="flex flex-col min-h-[500px] bg-[#120D09]/50 border border-[#2A1E15]/60 rounded-xl p-4">
                       {/* Stage header */}
@@ -1230,7 +1307,7 @@ export function AdminDashboard() {
             <div className="flex flex-col gap-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {(["pending", "ready", "delivered"] as const).map(stage => {
-                  const stageOrders = orders.filter(o => o.status === stage && o.table_id === "DELIVERY");
+                  const stageOrders = orders.filter(o => o.status === stage && o.table_id?.toUpperCase() === "DELIVERY");
                   return (
                     <div key={stage} className="flex flex-col min-h-[500px] bg-[#120D09]/50 border border-[#2A1E15]/60 rounded-xl p-4">
                       <div className="flex justify-between items-center mb-4 border-b border-[#2A1E15]/30 pb-3">
@@ -2284,7 +2361,7 @@ function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
     setUploading(true);
     try {
       // Offline/local mock support if Supabase keys are missing
-      const isMock = !supabase || !supabase.storage || typeof supabase.storage.from !== "function";
+      const isMock = !supabase || supabase.isMock || !supabase.storage || typeof supabase.storage.from !== "function";
       if (isMock) {
         const reader = new FileReader();
         reader.onloadend = () => {
@@ -2316,8 +2393,19 @@ function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
         setForm(p => ({ ...p, image: data.publicUrl }));
       }
     } catch (err: any) {
-      console.error("Image upload failed:", err);
-      alert(`Image upload failed: ${err.message || err}. You can still paste an image link or continue offline.`);
+      console.warn("Image upload to Supabase failed, falling back to local base64:", err);
+      try {
+        const base64String = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+        setForm(p => ({ ...p, image: base64String }));
+      } catch (fallbackErr) {
+        console.error("Local image fallback failed:", fallbackErr);
+        alert(`Failed to load image locally: ${err.message || err}`);
+      }
     } finally {
       setUploading(false);
     }

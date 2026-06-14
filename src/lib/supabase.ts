@@ -22,6 +22,9 @@ if (
 ) {
   try {
     client = createClient(supabaseUrl, supabaseAnonKey);
+    if (client) {
+      client.isMock = false;
+    }
   } catch (err) {
     console.error("Failed to initialize Supabase client:", err);
   }
@@ -136,6 +139,7 @@ if (!client) {
   }
 
   client = {
+    isMock: true,
     from: (tableName: string) => {
       let data = [];
       if (tableName === "menu_items") data = getCollection("menu_items", INITIAL_MENU);

@@ -25,7 +25,7 @@ export default function App() {
       const urlTable = params.get("table");
       const urlArea = params.get("area");
       
-      if (urlTable) setTableId(urlTable);
+      if (urlTable) setTableId(urlTable.toUpperCase());
       if (urlArea) setArea(urlArea);
       
       if (isSimulator) {
@@ -167,6 +167,7 @@ export default function App() {
                 const id = `T${String(i + 1).padStart(2, "0")}`;
                 return <option key={id} value={id} className="bg-[#120D09]">{id}</option>;
               })}
+              <option value="DELIVERY" className="bg-[#120D09]">DELIVERY</option>
             </select>
           </div>
           <div className="w-px h-3 bg-white/20" />
