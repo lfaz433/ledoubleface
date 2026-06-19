@@ -24,7 +24,7 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
-import { motion, AnimatePresence, LayoutGroup, useReducedMotion } from "framer-motion";
+import { motion, AnimatePresence, LayoutGroup, useReducedMotion } from "motion/react";
 import { toast } from "sonner";
 import { Receipt, Lock, ChevronDown } from "lucide-react";
 import { supabase as oe } from "../../lib/supabase";
