@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase as oe } from "../../lib/supabase";
 import { toast } from "sonner";
 import { Bell, Check, Loader2 } from "lucide-react";
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 
 interface WaiterCall {
   id: string;
