@@ -1,19 +1,22 @@
-# Dependencies
+# Dependencies / Packages
 node_modules/
 .pnpm-store/
 
-# Production builds
+# Production Builds & Deployments
 dist/
 build/
+.vercel/
 
-# Local env files
+# Environment Variables & Secrets
 .env
+.env*
 .env.local
+.env.vercel.pull
 .env.development.local
 .env.test.local
 .env.production.local
 
-# IDE / Editor logs and configurations
+# IDE & Editor Configurations
 .vscode/
 .idea/
 *.suo
@@ -22,7 +25,10 @@ build/
 *.sln
 *.sw?
 
-# OS Files
+# OS Temporary Files
 .DS_Store
 Thumbs.db
-.vercel
+
+# Scratch folder
+scratch/
+

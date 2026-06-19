@@ -63,6 +63,11 @@ export const translations = {
     paymentApplePay: "Apple Pay (Bientôt)",
     paymentCash: "Au Comptoir (Règlement au bar)",
     confirmOrder: "Confirmer et Commander",
+    deliveryDetails: "Informations de Livraison",
+    deliveryPhone: "Téléphone",
+    deliveryAddress: "Adresse de Livraison",
+    deliveryEmail: "Adresse Email (Optionnel)",
+    deliveryError: "Veuillez renseigner votre nom, téléphone et adresse de livraison.",
     
     // Invoice
     orderDispatched: "Commande Envoyée !",
@@ -147,6 +152,11 @@ export const translations = {
     paymentApplePay: "Apple Pay (Soon)",
     paymentCash: "At the Counter (Pay at bar)",
     confirmOrder: "Confirm and Order",
+    deliveryDetails: "Delivery Details",
+    deliveryPhone: "Phone Number",
+    deliveryAddress: "Delivery Address",
+    deliveryEmail: "Email Address (Optional)",
+    deliveryError: "Please provide your name, phone number, and delivery address.",
     
     // Invoice
     orderDispatched: "Order Dispatched!",

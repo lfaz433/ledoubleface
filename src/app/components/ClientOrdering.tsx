@@ -36,6 +36,24 @@ interface CartItem {
 
 type OrderStatus = "browsing" | "customizing" | "cart" | "checkout" | "ordering" | "confirmed";
 
+function fetchWithTimeout<T>(promise: Promise<T>, timeoutMs = 3500): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error("Database connection timed out"));
+    }, timeoutMs);
+    promise.then(
+      (res) => {
+        clearTimeout(timer);
+        resolve(res);
+      },
+      (err) => {
+        clearTimeout(timer);
+        reject(err);
+      }
+    );
+  });
+}
+
 // Parse price from option labels like "+€3.50" or "+3,50 €" or "+2.00"
 function parsePriceModifier(optionText: string): number {
   if (!optionText) return 0;
@@ -48,8 +66,24 @@ function parsePriceModifier(optionText: string): number {
 }
 
 export function ClientOrdering({ tableId, area }: { tableId: string; area: string }) {
-  const [menuItems, setMenuItems] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [menuItems, setMenuItems] = useState<any[]>(() => {
+    if (typeof window !== "undefined") {
+      const local = localStorage.getItem("ldf_menu_items");
+      if (local) {
+        try {
+          return JSON.parse(local);
+        } catch (_) {}
+      }
+    }
+    return [];
+  });
+  const [loading, setLoading] = useState(() => {
+    if (typeof window !== "undefined") {
+      const local = localStorage.getItem("ldf_menu_items");
+      if (local) return false;
+    }
+    return true;
+  });
   const [dbError, setDbError] = useState(false);
 
   const [activeCategory, setActiveCategory] = useState("All");
@@ -73,6 +107,114 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
   // Active Order (Unpaid Session Pursuit)
   const [activeOrder, setActiveOrder] = useState<any | null>(null);
   const [activeOrderItems, setActiveOrderItems] = useState<any[]>([]);
+
+  const downloadInvoicePNG = (id: string, table: string, itemsList?: any[]) => {
+    const canvasWidth = 360;
+    const canvasHeight = 480;
+
+    const canvas = document.createElement("canvas");
+    canvas.width = canvasWidth;
+    canvas.height = canvasHeight;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    // Load QR code image first
+    const qrImg = new Image();
+    qrImg.crossOrigin = "anonymous";
+    qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(id)}`;
+
+    const drawAndDownload = () => {
+      // Background
+      ctx.fillStyle = "#120D09";
+      ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+      // Border
+      ctx.strokeStyle = "#2A1E15";
+      ctx.lineWidth = 10;
+      ctx.strokeRect(5, 5, canvasWidth - 10, canvasHeight - 10);
+      ctx.strokeStyle = "#D4A017";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(12, 12, canvasWidth - 24, canvasHeight - 24);
+
+      // Header Title
+      ctx.fillStyle = "#D4A017";
+      ctx.font = "bold 26px Georgia, serif";
+      ctx.textAlign = "center";
+      ctx.fillText("LE DOUBLE FACE", canvasWidth / 2, 70);
+
+      // Subtitle separator or small text
+      ctx.fillStyle = "#8E7E70";
+      ctx.font = "10px monospace";
+      ctx.fillText("COMMANDE & QR CODE", canvasWidth / 2, 95);
+
+      // Elegant divider
+      ctx.strokeStyle = "#2A1E15";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(30, 115);
+      ctx.lineTo(canvasWidth - 30, 115);
+      ctx.stroke();
+
+      // Order Info Label
+      ctx.fillStyle = "#8E7E70";
+      ctx.font = "11px monospace";
+      ctx.fillText("CODE DE LA FACTURE", canvasWidth / 2, 145);
+
+      // Actual order code (id)
+      ctx.fillStyle = "#E5D5C5";
+      ctx.font = "bold 20px monospace";
+      ctx.fillText(id, canvasWidth / 2, 175);
+
+      // Table or Delivery details
+      ctx.fillStyle = "#D4A017";
+      ctx.font = "bold 15px monospace";
+      const destText = table?.toUpperCase() === "DELIVERY" ? "🛵 LIVRAISON À DOMICILE" : `🍽️ TABLE: ${table}`;
+      ctx.fillText(destText, canvasWidth / 2, 210);
+
+      // Draw QR Code frame
+      ctx.strokeStyle = "#D4A017";
+      ctx.lineWidth = 1;
+      // Centered frame for QR: QR is 150x150. Frame is 158x158.
+      ctx.strokeRect((canvasWidth - 158) / 2, 235, 158, 158);
+
+      // Draw QR Code Image (centered at 105, 239)
+      try {
+        ctx.drawImage(qrImg, (canvasWidth - 150) / 2, 239, 150, 150);
+      } catch (err) {
+        console.error("Failed to draw QR code on canvas:", err);
+        // Draw placeholder text if image fails
+        ctx.fillStyle = "#C8102E";
+        ctx.font = "11px monospace";
+        ctx.fillText("QR CODE ERROR", canvasWidth / 2, 315);
+      }
+
+      // Footer instruction
+      ctx.fillStyle = "#8E7E70";
+      ctx.font = "9px monospace";
+      ctx.fillText("SCANNABLE PAR L'ADMINISTRATEUR POUR SUIVI", canvasWidth / 2, 420);
+
+      ctx.fillStyle = "#D4A017";
+      ctx.font = "italic 11px Georgia, serif";
+      ctx.fillText(lang === "fr" ? "Merci pour votre confiance !" : "Thank you for your trust!", canvasWidth / 2, 445);
+
+      // Download
+      try {
+        const dataUrl = canvas.toDataURL("image/png");
+        const link = document.createElement("a");
+        link.download = `Facture-${id}.png`;
+        link.href = dataUrl;
+        link.click();
+      } catch (e) {
+        console.error("Failed to export canvas as PNG (CORS tainted?):", e);
+      }
+    };
+
+    qrImg.onload = drawAndDownload;
+    qrImg.onerror = () => {
+      console.warn("QR code image failed to load, drawing receipt without QR code");
+      drawAndDownload();
+    };
+  };
 
   // Waiter State
   const [waiterCalled, setWaiterCalled] = useState(false);
@@ -111,11 +253,13 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
 
   const loadHeroConfig = async () => {
     try {
-      const { data, error } = await supabase
-        .from("hero_config")
-        .select("*")
-        .eq("id", "current")
-        .limit(1);
+      const { data, error } = await fetchWithTimeout(
+        supabase
+          .from("hero_config")
+          .select("*")
+          .eq("id", "current")
+          .limit(1)
+      );
       if (!error && data && data.length > 0) {
         setHeroConfig(data[0]);
       }
@@ -127,11 +271,13 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
   const loadTableStatus = async () => {
     if (tableId?.toUpperCase() === "DELIVERY" || tableId?.toUpperCase() === "TEST") return;
     try {
-      const { data, error } = await supabase
-        .from("restaurant_tables")
-        .select("active")
-        .eq("id", tableId)
-        .single();
+      const { data, error } = await fetchWithTimeout(
+        supabase
+          .from("restaurant_tables")
+          .select("active")
+          .eq("id", tableId)
+          .single()
+      );
       if (!error && data) {
         setTableActive(data.active !== false);
       }
@@ -143,26 +289,44 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
   // Fetch Menu from Supabase
   const loadMenu = async () => {
     try {
-      setLoading(true);
+      if (menuItems.length === 0) {
+        setLoading(true);
+      }
       setDbError(false);
       
-      const { data, error } = await supabase
-        .from("menu_items")
-        .select("*")
-        .eq("active", true)
-        .order("created_at", { ascending: true });
+      const { data, error } = await fetchWithTimeout(
+        supabase
+          .from("menu_items")
+          .select("*")
+          .eq("active", true)
+          .order("created_at", { ascending: true })
+      );
 
       if (error) throw error;
       
       if (data && data.length > 0) {
         setMenuItems(data);
+        if (typeof window !== "undefined") {
+          localStorage.setItem("ldf_menu_items", JSON.stringify(data));
+        }
       } else {
         setMenuItems(FALLBACK_MENU_DATA);
       }
     } catch (err) {
       console.warn("Could not load from Supabase database. Using fallback local items. Details:", err);
       setDbError(true);
-      setMenuItems(FALLBACK_MENU_DATA);
+      if (menuItems.length === 0) {
+        const local = typeof window !== "undefined" ? localStorage.getItem("ldf_menu_items") : null;
+        if (local) {
+          try {
+            setMenuItems(JSON.parse(local));
+          } catch (_) {
+            setMenuItems(FALLBACK_MENU_DATA);
+          }
+        } else {
+          setMenuItems(FALLBACK_MENU_DATA);
+        }
+      }
     } finally {
       setLoading(false);
     }
@@ -170,10 +334,12 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
 
   const loadShows = async () => {
     try {
-      const { data, error } = await supabase
-        .from("shows")
-        .select("*")
-        .order("date", { ascending: true });
+      const { data, error } = await fetchWithTimeout(
+        supabase
+          .from("shows")
+          .select("*")
+          .order("date", { ascending: true })
+      );
       if (!error && data) {
         setShows(data);
       }
@@ -186,24 +352,28 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
     try {
       if (!supabase) return;
       // Fetch latest unpaid order for this table
-      const { data, error } = await supabase
-        .from("orders")
-        .select("*")
-        .eq("table_id", tableId)
-        .eq("paid", false)
-        .neq("status", "delivered")
-        .order("created_at", { ascending: false })
-        .limit(1);
+      const { data, error } = await fetchWithTimeout(
+        supabase
+          .from("orders")
+          .select("*")
+          .eq("table_id", tableId)
+          .eq("paid", false)
+          .neq("status", "delivered")
+          .order("created_at", { ascending: false })
+          .limit(1)
+      );
 
       if (error) throw error;
 
       if (data && data.length > 0) {
         setActiveOrder(data[0]);
         // Also fetch items for this order
-        const { data: itemsData, error: itemsError } = await supabase
-          .from("order_items")
-          .select("*")
-          .eq("order_id", data[0].id);
+        const { data: itemsData, error: itemsError } = await fetchWithTimeout(
+          supabase
+            .from("order_items")
+            .select("*")
+            .eq("order_id", data[0].id)
+        );
 
         if (!itemsError && itemsData) {
           setActiveOrderItems(itemsData);
@@ -280,12 +450,8 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
       }, 3000);
     } catch (err) {
       console.error("Booking ticket failed:", err);
-      alert("Ticket purchase failed. Proceeding with simulated confirmation.");
-      setBookingSuccess(true);
-      setTimeout(() => {
-        setBookingShow(null);
-        setBookingSuccess(false);
-      }, 2000);
+      alert("Ticket purchase failed. Please check your connection and try again.");
+      setBookingSuccess(false);
     }
   };
 
@@ -363,7 +529,19 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
       if (targetProdId) {
         const item = menuItems.find(i => i.id === targetProdId);
         if (item) {
-          openCustomize(item);
+          const fields = item.customFields || item.custom_fields;
+          if (Array.isArray(fields) && fields.length > 0) {
+            openCustomize(item);
+          } else {
+            // No custom fields - add to cart directly and open the cart screen!
+            const k = `${item.id}-{}`;
+            setCart(prev => {
+              const existing = prev.find(i => i.itemKey === k);
+              if (existing) return prev.map(i => i.itemKey === k ? { ...i, quantity: i.quantity + 1 } : i);
+              return [...prev, { id: item.id, name: item.name, price: item.price, quantity: 1, customizations: {}, itemKey: k }];
+            });
+            setStatus("cart");
+          }
           const url = new URL(window.location.href);
           url.searchParams.delete("product");
           window.history.replaceState({}, "", url.toString());
@@ -426,21 +604,21 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
   async function placeOrder() {
     if (cart.length === 0) return;
     setStatus("ordering");
+
+    const newOrderId = `ORD-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+    setOrderId(newOrderId);
+
+    let finalNote = orderNote;
+    if (tableId?.toUpperCase() === "DELIVERY") {
+      if (!deliveryName || !deliveryPhone || !deliveryAddress) {
+        alert(t.deliveryError || "Please provide your name, phone number, and delivery address.");
+        setStatus("checkout");
+        return;
+      }
+      finalNote = `DELIVERY INFO:\nName: ${deliveryName}\nEmail: ${deliveryEmail || 'N/A'}\nPhone: ${deliveryPhone}\nAddress: ${deliveryAddress}\n\nNote: ${orderNote}`;
+    }
     
     try {
-      const newOrderId = `ORD-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
-      setOrderId(newOrderId);
-
-      let finalNote = orderNote;
-      if (tableId?.toUpperCase() === "DELIVERY") {
-        if (!deliveryName || !deliveryPhone || !deliveryAddress) {
-          alert("Please provide your name, phone number, and delivery address.");
-          setStatus("checkout");
-          return;
-        }
-        finalNote = `DELIVERY INFO:\nName: ${deliveryName}\nEmail: ${deliveryEmail || 'N/A'}\nPhone: ${deliveryPhone}\nAddress: ${deliveryAddress}\n\nNote: ${orderNote}`;
-      }
-
       // 1. Write the main order header to public.orders
       const { error: orderError } = await supabase
         .from("orders")
@@ -478,40 +656,8 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
       setOrderNote("");
     } catch (err: any) {
       console.error("Order submission failed:", err);
-      alert(`Submission failed: ${err?.message || JSON.stringify(err)}. We will place a local simulated order instead.`);
-      if (typeof window !== "undefined") {
-        const localOrders = JSON.parse(localStorage.getItem("ldf_orders") || "[]");
-        localOrders.push({
-          id: newOrderId,
-          table_id: tableId,
-          area: area || "Terrace Patio",
-          status: "pending",
-          total: cartTotal,
-          note: finalNote || null,
-          paid: false,
-          invoice_no: newOrderId,
-          created_at: new Date().toISOString()
-        });
-        localStorage.setItem("ldf_orders", JSON.stringify(localOrders));
-
-        const localItems = JSON.parse(localStorage.getItem("ldf_order_items") || "[]");
-        const newLocalItems = cart.map((item: any) => ({
-          id: "li-" + Math.random().toString(36).substr(2, 6),
-          order_id: newOrderId,
-          product_id: item.id,
-          name: item.name,
-          price: item.price,
-          quantity: item.quantity,
-          customizations: item.customizations || {}
-        }));
-        localStorage.setItem("ldf_order_items", JSON.stringify([...localItems, ...newLocalItems]));
-        window.dispatchEvent(new CustomEvent("ldf-db-update", { detail: { table: "orders" } }));
-      }
-      setTimeout(() => {
-        setStatus("confirmed");
-        setCart([]); // Clean local basket
-        setOrderNote("");
-      }, 1000);
+      alert(`Order submission failed: ${err?.message || "Please check your internet connection"}. Please try again or ask a waiter.`);
+      setStatus("checkout");
     }
   }
 
@@ -546,25 +692,51 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
 
   if (status === "confirmed") {
     const qrInvoiceUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(orderId)}`;
+    const isDelivery = tableId?.toUpperCase() === "DELIVERY";
     return (
       <div className="min-h-screen flex flex-col items-center justify-center px-6 bg-[#0A0704] text-white">
         <div className="w-16 h-16 rounded-full flex items-center justify-center mb-6 bg-[#C8102E]/15 border border-[#C8102E]">
           <Check size={28} className="text-[#C8102E]" />
         </div>
         <h2 className="font-serif text-2xl font-extrabold text-white mb-2">{t.orderDispatched}</h2>
-        <p className="text-[#8E7E70] mb-2 text-xs">Table {tableId} · {area}</p>
+        <p className="text-[#8E7E70] mb-2 text-xs">
+          {isDelivery 
+            ? (lang === "fr" ? "Livraison à domicile" : "Home Delivery")
+            : `Table ${tableId} · ${area}`}
+        </p>
         
         <p className="text-[10px] font-mono text-[#8E7E70] tracking-wider mb-5 bg-[#120D09] border border-[#2A1E15] px-3 py-1.5 rounded select-all">
           {t.invoiceCode}: <span className="text-white font-bold">{orderId}</span>
         </p>
 
-        {/* Invoice QR Code */}
-        <div className="bg-white p-2.5 rounded-xl mb-4 border border-white/20">
-          <img src={qrInvoiceUrl} alt="Invoice QR" className="w-32 h-32 object-contain" />
-        </div>
-        <p className="text-[10px] text-[#8E7E70] text-center max-w-xs mb-8 leading-relaxed">
-          {t.invoiceQrDesc}
-        </p>
+        {isDelivery ? (
+          <div className="text-center max-w-xs mb-8 flex flex-col items-center animate-fade-in">
+            <div className="text-4xl mb-4">🛵</div>
+            <p className="text-sm font-semibold text-white mb-2">
+              {lang === "fr" ? "En route pour la livraison" : "Delivery on the way"}
+            </p>
+            <p className="text-xs text-[#8E7E70] leading-relaxed">
+              {lang === "fr" 
+                ? "Votre commande est transmise. Nos livreurs vous contacteront par téléphone à leur arrivée." 
+                : "Your order is dispatched. Our rider will call your phone number upon arrival."}
+            </p>
+          </div>
+        ) : (
+          <>
+            {/* Invoice QR Code */}
+            <div className="bg-white p-2.5 rounded-xl mb-4 border border-white/20">
+              <img src={qrInvoiceUrl} alt="Invoice QR" className="w-32 h-32 object-contain" />
+            </div>
+            <p className="text-[10px] text-[#8E7E70] text-center max-w-xs mb-8 leading-relaxed">
+              {t.invoiceQrDesc}
+            </p>
+          </>
+        )}
+
+        <button onClick={() => downloadInvoicePNG(orderId, tableId, cart)}
+          className="px-8 py-3 mb-3 text-xs tracking-widest bg-[#D4A017] text-[#0A0704] hover:opacity-90 active:scale-95 transition-all font-bold rounded cursor-pointer flex items-center justify-center gap-1.5 shadow-lg shadow-[#D4A017]/10 w-full max-w-xs">
+          📥 {lang === "fr" ? "TÉLÉCHARGER LA FACTURE (PNG)" : "DOWNLOAD RECEIPT (PNG)"}
+        </button>
 
         <button onClick={() => {
           setStatus("browsing");
@@ -572,7 +744,7 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
           checkActiveOrder(); // Sync
           setOrderId(`ORD-${Math.random().toString(36).substr(2, 6).toUpperCase()}`);
         }}
-          className="px-8 py-3 text-xs tracking-widest bg-[#C8102E] text-white hover:opacity-90 active:scale-95 transition-all font-bold rounded cursor-pointer">
+          className="px-8 py-3 text-xs tracking-widest bg-[#C8102E] text-white hover:opacity-90 active:scale-95 transition-all font-bold rounded cursor-pointer w-full max-w-xs">
           {t.backToMenu}
         </button>
       </div>
@@ -583,7 +755,7 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
     return (
       <motion.div 
         initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", damping: 25, stiffness: 200 }}
-        className="min-h-screen bg-[#0A0704] text-white flex flex-col absolute inset-0 z-50 overflow-hidden"
+        className="min-h-screen bg-[#0A0704] text-white flex flex-col fixed inset-0 z-50 overflow-hidden"
       >
         {/* Customization Header */}
         <div className="sticky top-0 z-10 px-4 py-4 flex items-center bg-[#0A0704]/95 border-b border-[#2A1E15] backdrop-blur-md">
@@ -611,7 +783,7 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
               <p className="text-xs text-[#8E7E70] mb-6 leading-relaxed">{selectedItem.desc}</p>
 
               {/* Render modifiers */}
-              {Array.isArray(selectedItem.customFields) && selectedItem.customFields.map((field: any) => (
+              {Array.isArray(selectedItem.customFields || selectedItem.custom_fields) && (selectedItem.customFields || selectedItem.custom_fields).map((field: any) => (
                 <div key={field.id} className="mb-6 bg-[#120D09]/40 border border-[#2A1E15] p-5 rounded-2xl backdrop-blur-sm shadow-sm">
                   <div className="flex items-center gap-2 mb-4">
                     <span className="font-bold text-sm text-white">{field.name}</span>
@@ -692,7 +864,7 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
     return (
       <motion.div 
         initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} transition={{ type: "spring", damping: 25, stiffness: 200 }}
-        className="min-h-screen bg-[#0A0704] text-white flex flex-col absolute inset-0 z-50"
+        className="min-h-screen bg-[#0A0704] text-white flex flex-col fixed inset-0 z-50"
       >
         <div className="sticky top-0 z-10 px-4 py-4 flex items-center gap-3 bg-white/5 border-b border-white/10 backdrop-blur-md">
           <button onClick={() => setStatus("browsing")} className="text-[#8E7E70] hover:text-white transition-colors cursor-pointer">
@@ -780,7 +952,7 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
     return (
       <motion.div 
         initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} transition={{ type: "spring", damping: 25, stiffness: 200 }}
-        className="min-h-screen bg-[#0A0704] text-white flex flex-col absolute inset-0 z-50"
+        className="min-h-screen bg-[#0A0704] text-white flex flex-col fixed inset-0 z-50"
       >
         <div className="sticky top-0 z-10 px-4 py-4 flex items-center gap-3 bg-white/5 border-b border-white/10 backdrop-blur-md">
           <button onClick={() => setStatus("cart")} className="text-[#8E7E70] hover:text-white transition-colors cursor-pointer">
@@ -796,27 +968,27 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
               <div className="flex flex-col gap-3">
                 <input
                   type="text"
-                  placeholder="Full Name"
+                  placeholder={t.showsFullName || "Full Name"}
                   value={deliveryName}
                   onChange={(e) => setDeliveryName(e.target.value)}
                   className="w-full px-4 py-3 bg-[#1A130E] border border-[#2A1E15] rounded-xl text-white outline-none focus:border-[#C8102E]"
                 />
                 <input
                   type="email"
-                  placeholder="Email Address (Optional)"
+                  placeholder={t.deliveryEmail || "Email Address (Optional)"}
                   value={deliveryEmail}
                   onChange={(e) => setDeliveryEmail(e.target.value)}
                   className="w-full px-4 py-3 bg-[#1A130E] border border-[#2A1E15] rounded-xl text-white outline-none focus:border-[#C8102E]"
                 />
                 <input
                   type="tel"
-                  placeholder={t.phonePlaceholder || "Phone Number"}
+                  placeholder={t.deliveryPhone || "Phone Number"}
                   value={deliveryPhone}
                   onChange={(e) => setDeliveryPhone(e.target.value)}
                   className="w-full px-4 py-3 bg-[#1A130E] border border-[#2A1E15] rounded-xl text-white outline-none focus:border-[#C8102E]"
                 />
                 <textarea
-                  placeholder={t.addressPlaceholder || "Full Address"}
+                  placeholder={t.deliveryAddress || "Full Address"}
                   value={deliveryAddress}
                   onChange={(e) => setDeliveryAddress(e.target.value)}
                   rows={2}
@@ -832,7 +1004,13 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
             {[
               { id: "visa" as const, label: t.paymentVisa, disabled: true },
               { id: "apple" as const, label: t.paymentApplePay, disabled: true },
-              { id: "cash" as const, label: t.paymentCash, disabled: false }
+              { 
+                id: "cash" as const, 
+                label: tableId?.toUpperCase() === "DELIVERY" 
+                  ? (lang === "fr" ? "Paiement en espèces à la livraison" : "Cash on delivery (Pay at door)")
+                  : t.paymentCash, 
+                disabled: false 
+              }
             ].map(method => (
               <button
                 key={method.id}
@@ -880,25 +1058,27 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
             <span className="font-serif font-black text-lg text-white">Le Double Face</span>
             <div className="flex items-center gap-1.5 mt-0.5">
               <span className="font-mono text-[9px] text-[#C8102E] tracking-widest font-bold">TABLE {tableId} · {area.toUpperCase()}</span>
-              <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: (!supabase || supabase.isMock || dbError) ? '#F59E0B' : '#10B981' }} />
+              <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: (!supabase || supabase.isMock || dbError) ? '#EF4444' : '#10B981' }} />
               <span className="font-mono text-[7px] text-[#8E7E70] uppercase tracking-wider">
-                {(!supabase || supabase.isMock || dbError) ? 'Simulated' : 'Online'}
+                {(!supabase || supabase.isMock || dbError) ? 'Offline' : 'Online'}
               </span>
             </div>
           </div>
           
           <div className="flex items-center gap-2">
             {/* Waiter Call Button */}
-            <button
-              onClick={callServer}
-              disabled={waiterCalled}
-              className={`px-3 py-1.5 rounded-lg text-[10px] font-bold tracking-wider transition-all border flex items-center gap-1 ${
-                waiterCalled ? "bg-[#C8102E]/20 border-[#C8102E] text-[#C8102E] animate-pulse cursor-not-allowed" : "bg-black/40 border-white/10 text-white cursor-pointer hover:bg-black/60"
-              }`}
-            >
-              <span>🛎️</span>
-              <span className="hidden xs:inline">{t.callWaiter.split(" ")[1]}</span>
-            </button>
+            {tableId?.toUpperCase() !== "DELIVERY" && (
+              <button
+                onClick={callServer}
+                disabled={waiterCalled}
+                className={`px-3 py-1.5 rounded-lg text-[10px] font-bold tracking-wider transition-all border flex items-center gap-1 ${
+                  waiterCalled ? "bg-[#C8102E]/20 border-[#C8102E] text-[#C8102E] animate-pulse cursor-not-allowed" : "bg-black/40 border-white/10 text-white cursor-pointer hover:bg-black/60"
+                }`}
+              >
+                <span>🛎️</span>
+                <span className="hidden xs:inline">{t.callWaiter.split(" ")[1]}</span>
+              </button>
+            )}
 
             {/* Language Switcher */}
             <button
@@ -919,14 +1099,14 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
           </div>
         </div>
 
-        {(!supabase || supabase.isMock || dbError) && (
-          <div className="bg-[#F59E0B]/15 border-t border-white/5 px-4 py-2.5 text-[10px] text-[#F59E0B] font-mono leading-relaxed flex items-center justify-between gap-4">
-            <span>⚠️ <strong>Simulation Mode</strong>: Connection to restaurant database failed. Orders will not sync to the kitchen.</span>
+        {dbError && (
+          <div className="bg-[#EF4444]/15 border-t border-white/5 px-4 py-2.5 text-[10px] text-[#EF4444] font-mono leading-relaxed flex items-center justify-between gap-4">
+            <span>⚠️ <strong>Connection Error</strong>: Could not connect to the restaurant database. Orders may not sync to the kitchen.</span>
             <button 
-              onClick={forceReload}
-              className="flex-shrink-0 px-2.5 py-1 bg-[#F59E0B]/25 border border-[#F59E0B]/40 hover:bg-[#F59E0B]/35 active:scale-95 text-white rounded text-[9px] font-bold tracking-wide transition-all cursor-pointer whitespace-nowrap"
+              onClick={loadMenu}
+              className="flex-shrink-0 px-2.5 py-1 bg-[#EF4444]/25 border border-[#EF4444]/40 hover:bg-[#EF4444]/35 active:scale-95 text-white rounded text-[9px] font-bold tracking-wide transition-all cursor-pointer whitespace-nowrap"
             >
-              RESET CONNECTION
+              RETRY CONNECTION
             </button>
           </div>
         )}
@@ -1002,6 +1182,12 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
           </div>
           <div className="text-[10px] text-[#8E7E70] border-t border-[#2A1E15]/40 pt-2 flex justify-between items-center">
             <span>Total: €{activeOrder.total?.toFixed(2)}</span>
+            <button 
+              onClick={() => downloadInvoicePNG(activeOrder.id, activeOrder.table_id || tableId, activeOrderItems)}
+              className="px-2 py-1 bg-[#D4A017]/10 hover:bg-[#D4A017]/20 border border-[#D4A017]/30 text-[#D4A017] rounded text-[8px] font-bold tracking-wider transition-all cursor-pointer flex items-center gap-1"
+            >
+              📥 PNG
+            </button>
             <span className="text-[#C8102E] font-extrabold tracking-widest text-[9px] animate-pulse">{t.orderMoreBtn}</span>
           </div>
         </div>
@@ -1015,24 +1201,28 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
             <span className="font-mono text-[9px] tracking-widest font-black uppercase">{t.heroSpecial}</span>
           </div>
           <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none" style={{ scrollbarWidth: "none" }}>
-            {menuItems.filter(i => i.popular).map(item => (
-              <button key={item.id} onClick={() => Array.isArray(item.customFields) && item.customFields.length > 0 ? openCustomize(item) : (() => {
-                const k = `${item.id}-{}`;
-                setCart(p => {
-                  const ex = p.find(i => i.itemKey === k);
-                  return ex ? p.map(i => i.itemKey === k ? { ...i, quantity: i.quantity + 1 } : i) : [...p, { id: item.id, name: item.name, price: item.price, quantity: 1, customizations: {}, itemKey: k }];
-                });
-              })()}
-                className="flex-shrink-0 w-36 overflow-hidden text-left bg-[#120D09] border border-[#2A1E15] rounded hover:border-[#C8102E] transition-all cursor-pointer">
-                <div className="h-24 bg-[#1A130E] overflow-hidden">
-                  <ImageWithFallback src={item.image} alt={item.name} className="w-full h-full object-cover" />
-                </div>
-                <div className="p-2.5">
-                  <div className="text-xs font-bold text-white truncate">{item.name}</div>
-                  <div className="font-mono text-[10px] text-[#C8102E] font-bold mt-1">€{item.price.toFixed(2)}</div>
-                </div>
-              </button>
-            ))}
+            {menuItems.filter(i => i.popular).map(item => {
+              const fields = item.customFields || item.custom_fields;
+              const hasModifiers = Array.isArray(fields) && fields.length > 0;
+              return (
+                <button key={item.id} onClick={() => hasModifiers ? openCustomize(item) : (() => {
+                  const k = `${item.id}-{}`;
+                  setCart(p => {
+                    const ex = p.find(i => i.itemKey === k);
+                    return ex ? p.map(i => i.itemKey === k ? { ...i, quantity: i.quantity + 1 } : i) : [...p, { id: item.id, name: item.name, price: item.price, quantity: 1, customizations: {}, itemKey: k }];
+                  });
+                })()}
+                  className="flex-shrink-0 w-36 overflow-hidden text-left bg-[#120D09] border border-[#2A1E15] rounded hover:border-[#C8102E] transition-all cursor-pointer">
+                  <div className="h-24 bg-[#1A130E] overflow-hidden">
+                    <ImageWithFallback src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                  </div>
+                  <div className="p-2.5">
+                    <div className="text-xs font-bold text-white truncate">{item.name}</div>
+                    <div className="font-mono text-[10px] text-[#C8102E] font-bold mt-1">€{item.price.toFixed(2)}</div>
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
@@ -1046,7 +1236,8 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map(item => {
             const handleSelect = () => {
-              if (Array.isArray(item.customFields) && item.customFields.length > 0) {
+              const fields = item.customFields || item.custom_fields;
+              if (Array.isArray(fields) && fields.length > 0) {
                 openCustomize(item);
               } else {
                 const k = `${item.id}-{}`;
@@ -1237,8 +1428,8 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
           <div className="flex items-center gap-1">
             <span>STATUS:</span>
             {(!supabase || supabase.isMock || dbError) ? (
-              <span className="flex items-center gap-1 font-bold text-[#F59E0B]">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#F59E0B]" /> OFFLINE (SIMULATED)
+              <span className="flex items-center gap-1 font-bold text-[#EF4444]">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#EF4444]" /> OFFLINE
               </span>
             ) : (
               <span className="flex items-center gap-1 font-bold text-[#10B981]">

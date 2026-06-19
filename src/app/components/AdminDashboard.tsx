@@ -3,7 +3,8 @@ import {
   LayoutDashboard, Package, ShoppingBag, Tv, QrCode, Settings,
   Plus, Trash2, Edit2, Check, X, Bell, TrendingUp, Users, DollarSign,
   Eye, MoreVertical, ChevronDown, AlertCircle, Clock, CheckCircle2,
-  GripVertical, ChevronRight, Save, ArrowLeft, RefreshCw, Upload, Award, Bike
+  GripVertical, ChevronRight, Save, ArrowLeft, RefreshCw, Upload, Award, Bike,
+  LogOut
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { supabase } from "../../lib/supabase";
@@ -70,7 +71,7 @@ const STATIC_TABLE_IDS = ["T01", "T02", "T03", "T04", "T05", "T06", "T07", "T08"
 
 type AdminSection = "dashboard" | "products" | "orders" | "tables" | "settings" | "shows" | "counter" | "delivery";
 
-export function AdminDashboard() {
+export function AdminDashboard({ onLogout }: { onLogout?: () => void } = {}) {
   const [section, setSection] = useState<AdminSection>("dashboard");
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -100,8 +101,126 @@ export function AdminDashboard() {
   const [liveNotifications, setLiveNotifications] = useState(0);
   const [deliveryNotifications, setDeliveryNotifications] = useState(0);
 
+  const downloadInvoicePNG = (order: any) => {
+    const id = order.id;
+    const table = order.table_id;
+
+    const canvasWidth = 360;
+    const canvasHeight = 480;
+
+    const canvas = document.createElement("canvas");
+    canvas.width = canvasWidth;
+    canvas.height = canvasHeight;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    // Load QR code image first
+    const qrImg = new Image();
+    qrImg.crossOrigin = "anonymous";
+    qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(id)}`;
+
+    const drawAndDownload = () => {
+      // Background
+      ctx.fillStyle = "#120D09";
+      ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+      // Border
+      ctx.strokeStyle = "#2A1E15";
+      ctx.lineWidth = 10;
+      ctx.strokeRect(5, 5, canvasWidth - 10, canvasHeight - 10);
+      ctx.strokeStyle = "#D4A017";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(12, 12, canvasWidth - 24, canvasHeight - 24);
+
+      // Header Title
+      ctx.fillStyle = "#D4A017";
+      ctx.font = "bold 26px Georgia, serif";
+      ctx.textAlign = "center";
+      ctx.fillText("LE DOUBLE FACE", canvasWidth / 2, 70);
+
+      // Subtitle separator or small text
+      ctx.fillStyle = "#8E7E70";
+      ctx.font = "10px monospace";
+      ctx.fillText("COMMANDE & QR CODE", canvasWidth / 2, 95);
+
+      // Elegant divider
+      ctx.strokeStyle = "#2A1E15";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(30, 115);
+      ctx.lineTo(canvasWidth - 30, 115);
+      ctx.stroke();
+
+      // Order Info Label
+      ctx.fillStyle = "#8E7E70";
+      ctx.font = "11px monospace";
+      ctx.fillText("CODE DE LA FACTURE", canvasWidth / 2, 145);
+
+      // Actual order code (id)
+      ctx.fillStyle = "#E5D5C5";
+      ctx.font = "bold 20px monospace";
+      ctx.fillText(id, canvasWidth / 2, 175);
+
+      // Table or Delivery details
+      ctx.fillStyle = "#D4A017";
+      ctx.font = "bold 15px monospace";
+      const destText = table?.toUpperCase() === "DELIVERY" ? "🛵 LIVRAISON À DOMICILE" : `🍽️ TABLE: ${table}`;
+      ctx.fillText(destText, canvasWidth / 2, 210);
+
+      // Draw QR Code frame
+      ctx.strokeStyle = "#D4A017";
+      ctx.lineWidth = 1;
+      // Centered frame for QR: QR is 150x150. Frame is 158x158.
+      ctx.strokeRect((canvasWidth - 158) / 2, 235, 158, 158);
+
+      // Draw QR Code Image (centered at 105, 239)
+      try {
+        ctx.drawImage(qrImg, (canvasWidth - 150) / 2, 239, 150, 150);
+      } catch (err) {
+        console.error("Failed to draw QR code on canvas:", err);
+        // Draw placeholder text if image fails
+        ctx.fillStyle = "#C8102E";
+        ctx.font = "11px monospace";
+        ctx.fillText("QR CODE ERROR", canvasWidth / 2, 315);
+      }
+
+      // Footer instruction
+      ctx.fillStyle = "#8E7E70";
+      ctx.font = "9px monospace";
+      ctx.fillText("SCANNABLE PAR L'ADMINISTRATEUR POUR SUIVI", canvasWidth / 2, 420);
+
+      ctx.fillStyle = "#D4A017";
+      ctx.font = "italic 11px Georgia, serif";
+      ctx.fillText("Merci pour votre confiance !", canvasWidth / 2, 445);
+
+      // Download
+      try {
+        const dataUrl = canvas.toDataURL("image/png");
+        const link = document.createElement("a");
+        link.download = `Facture-${id}.png`;
+        link.href = dataUrl;
+        link.click();
+      } catch (e) {
+        console.error("Failed to export canvas as PNG (CORS tainted?):", e);
+      }
+    };
+
+    qrImg.onload = drawAndDownload;
+    qrImg.onerror = () => {
+      console.warn("QR code image failed to load, drawing receipt without QR code");
+      drawAndDownload();
+    };
+  };
+
   // Table Registry & waiter call states
   const [dbTables, setDbTables] = useState<RestaurantTable[]>([]);
+
+  // Coordinates/Preferences states
+  const [prefVesselName, setPrefVesselName] = useState("Le Double Face Lounge");
+  const [prefAddress, setPrefAddress] = useState("14 Rue du Faubourg Saint-Antoine, Paris");
+  const [prefHotline, setPrefHotline] = useState("+33 1 42 74 31 00");
+  const [prefOpSlots, setPrefOpSlots] = useState("Mon–Sun 11:30–23:30");
+  const [savingPrefs, setSavingPrefs] = useState(false);
 
   // Shows manager states
   const [shows, setShows] = useState<Show[]>([]);
@@ -421,12 +540,47 @@ export function AdminDashboard() {
         .select("*")
         .order("id", { ascending: true });
       if (!error && data) {
-        setDbTables(data);
+        const settingsRow = data.find(t => t.id === "SETTINGS");
+        if (settingsRow) {
+          try {
+            const parsed = JSON.parse(settingsRow.area);
+            setPrefVesselName(parsed.vessel_name || "Le Double Face Lounge");
+            setPrefAddress(parsed.address || "14 Rue du Faubourg Saint-Antoine, Paris");
+            setPrefHotline(parsed.hotline || "+33 1 42 74 31 00");
+            setPrefOpSlots(parsed.operation_slots || "Mon–Sun 11:30–23:30");
+          } catch (_) {}
+        }
+        setDbTables(data.filter(t => t.id !== "SETTINGS"));
       }
     } catch (err) {
       console.warn("Could not load tables registry:", err);
     }
   };
+
+  async function handleSavePreferences() {
+    setSavingPrefs(true);
+    try {
+      const { error } = await supabase
+        .from("restaurant_tables")
+        .upsert({
+          id: "SETTINGS",
+          area: JSON.stringify({
+            vessel_name: prefVesselName,
+            address: prefAddress,
+            hotline: prefHotline,
+            operation_slots: prefOpSlots
+          })
+        });
+      if (error) throw error;
+      alert("Coordonnées du restaurant enregistrées avec succès !");
+      loadTables();
+    } catch (err) {
+      console.error("Failed to save restaurant preferences:", err);
+      alert("Erreur lors de l'enregistrement des préférences.");
+    } finally {
+      setSavingPrefs(false);
+    }
+  }
 
   // 4. Fetch Shows & Tickets
   const loadShows = async () => {
@@ -515,11 +669,11 @@ export function AdminDashboard() {
     };
   }, []);
 
-  // Pipeline advance actions (Pending -> Ready -> Delivered)
+  // Pipeline advance actions (Pending -> Preparing -> Ready -> Delivered)
   async function advanceOrder(id: string, currentStatus: Order["status"]) {
-    const statusSequence: Order["status"][] = ["pending", "ready", "delivered"];
+    const statusSequence: Order["status"][] = ["pending", "preparing", "ready", "delivered"];
     const currentIndex = statusSequence.indexOf(currentStatus);
-    if (currentIndex === -1 || currentIndex === 2) return;
+    if (currentIndex === -1 || currentIndex === 3) return;
     
     const nextStatus = statusSequence[currentIndex + 1];
 
@@ -1141,6 +1295,17 @@ export function AdminDashboard() {
             );
           })}
         </nav>
+        {onLogout && (
+          <div className="p-3 border-t border-[#2A1E15] mt-auto">
+            <button
+              onClick={onLogout}
+              className="w-full flex items-center gap-2.5 px-3 py-2 text-left rounded text-xs transition-all text-[#8E7E70] hover:text-white hover:bg-white/5 border border-transparent cursor-pointer"
+            >
+              <LogOut size={16} className="text-[#C8102E]" />
+              <span className="font-mono uppercase tracking-wider text-[10px]">Log Out</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Main Panel Content */}
@@ -1159,8 +1324,8 @@ export function AdminDashboard() {
               <div className="flex items-center gap-1.5">
                 <span className="text-[#8E7E70]">STATUS:</span>
                 {(!supabase || supabase.isMock || dbError) ? (
-                  <span className="flex items-center gap-1.5 font-bold text-[#F59E0B]">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#F59E0B]" /> OFFLINE (SIMULATED)
+                  <span className="flex items-center gap-1.5 font-bold text-[#EF4444]">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#EF4444]" /> OFFLINE
                   </span>
                 ) : (
                   <span className="flex items-center gap-1.5 font-bold text-[#10B981]">
@@ -1254,14 +1419,14 @@ export function AdminDashboard() {
           {/* 2. LIVE ORDERS PIPELINE */}
           {section === "orders" && (
             <div className="flex flex-col gap-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {(["pending", "ready", "delivered"] as const).map(stage => {
-                  const stageOrders = orders.filter(o => o.status === stage && o.table_id?.toUpperCase() !== "DELIVERY");
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                {(["pending", "preparing", "ready", "delivered"] as const).map(stage => {
+                  const stageOrders = orders.filter(o => o.status === stage && o.table_id?.toUpperCase() !== "DELIVERY" && o.table_id?.toUpperCase() !== "COMPTOIR");
                   return (
                     <div key={stage} className="flex flex-col min-h-[500px] bg-[#120D09]/50 border border-[#2A1E15]/60 rounded-xl p-4">
                       {/* Stage header */}
                       <div className="flex items-center justify-between mb-4 pb-2 border-b border-[#2A1E15]">
-                        <span className="text-xs font-mono font-bold uppercase tracking-wider text-[#E5D5C5]">{stage === "delivered" ? "FULFILLED" : stage.toUpperCase()}</span>
+                        <span className="text-xs font-mono font-bold uppercase tracking-wider text-[#E5D5C5]">{stage === "delivered" ? "FULFILLED" : statusLabels[stage] || stage.toUpperCase()}</span>
                         <span className="bg-[#1A130E] border border-[#2A1E15] px-2 py-0.5 rounded text-[10px] font-mono text-[#8E7E70]">{stageOrders.length}</span>
                       </div>
 
@@ -1316,10 +1481,14 @@ export function AdminDashboard() {
 
                               {/* Operations actions */}
                               <div className="flex gap-2.5 mt-1">
+                                <button onClick={() => downloadInvoicePNG(order)}
+                                  className="flex-1 py-1.5 bg-[#D4A017] hover:opacity-95 text-[#0A0704] font-bold rounded text-[10px] cursor-pointer">
+                                  RECEIPT (PNG)
+                                </button>
                                 {stage !== "delivered" && (
                                   <button onClick={() => advanceOrder(order.id, order.status)}
                                     className="flex-1 py-1.5 bg-[#C8102E] hover:opacity-95 text-white font-bold rounded text-[10px] cursor-pointer">
-                                    {stage === "pending" ? "READY" : "DELIVER"}
+                                    {stage === "pending" ? "COOK" : stage === "preparing" ? "READY" : "SERVE"}
                                   </button>
                                 )}
                                 
@@ -1344,8 +1513,8 @@ export function AdminDashboard() {
           {/* 2.5 DELIVERY PIPELINE */}
           {section === "delivery" && (
             <div className="flex flex-col gap-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {(["pending", "ready", "delivered"] as const).map(stage => {
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                {(["pending", "preparing", "ready", "delivered"] as const).map(stage => {
                   const stageOrders = orders.filter(o => o.status === stage && o.table_id?.toUpperCase() === "DELIVERY");
                   return (
                     <div key={stage} className="flex flex-col min-h-[500px] bg-[#120D09]/50 border border-[#2A1E15]/60 rounded-xl p-4">
@@ -1387,13 +1556,14 @@ export function AdminDashboard() {
                             )}
 
                             <div className="flex gap-2 mt-2">
-                              <button className="flex-1 py-1.5 bg-[#120D09] border border-[#2A1E15] hover:border-[#8E7E70] text-[#8E7E70] hover:text-white rounded text-[10px] cursor-pointer">
-                                DETAILS
+                              <button onClick={() => downloadInvoicePNG(order)}
+                                className="flex-1 py-1.5 bg-[#D4A017] text-[#0A0704] font-bold rounded text-[10px] cursor-pointer">
+                                RECEIPT
                               </button>
                               {stage !== "delivered" && (
                                 <button onClick={() => advanceOrder(order.id, order.status)}
                                   className="flex-1 py-1.5 bg-[#C8102E] hover:opacity-95 text-white font-bold rounded text-[10px] cursor-pointer">
-                                  {stage === "pending" ? "READY" : "DELIVER"}
+                                  {stage === "pending" ? "PREPARE" : stage === "preparing" ? "READY" : "DELIVER"}
                                 </button>
                               )}
                             </div>
@@ -2085,21 +2255,26 @@ export function AdminDashboard() {
                 </div>
                 <div className="flex flex-col gap-4">
                   {[
-                    { label: "Vessel Name", value: "Le Double Face Lounge" },
-                    { label: "Coordinates/Address", value: "14 Rue du Faubourg Saint-Antoine, Paris" },
-                    { label: "Hotline", value: "+33 1 42 74 31 00" },
-                    { label: "Operation Slots", value: "Mon–Sun 11:30–23:30" },
+                    { label: "Vessel Name", value: prefVesselName, onChange: (e: any) => setPrefVesselName(e.target.value) },
+                    { label: "Coordinates/Address", value: prefAddress, onChange: (e: any) => setPrefAddress(e.target.value) },
+                    { label: "Hotline", value: prefHotline, onChange: (e: any) => setPrefHotline(e.target.value) },
+                    { label: "Operation Slots", value: prefOpSlots, onChange: (e: any) => setPrefOpSlots(e.target.value) },
                   ].map(f => (
                     <div key={f.label}>
                       <label className="text-[10px] font-mono tracking-wider text-[#8E7E70] block mb-1.5 uppercase">{f.label}</label>
                       <input
-                        defaultValue={f.value}
+                        value={f.value}
+                        onChange={f.onChange}
                         className="w-full px-3 py-2 text-xs bg-[#1A130E] border border-[#2A1E15] rounded text-white outline-none focus:border-[#C8102E]"
                       />
                     </div>
                   ))}
-                  <button className="bg-[#C8102E] hover:opacity-90 text-white font-bold py-2 px-4 rounded text-xs self-start mt-2 cursor-pointer">
-                    SAVE PREFERENCES
+                  <button 
+                    onClick={handleSavePreferences}
+                    disabled={savingPrefs}
+                    className="bg-[#C8102E] hover:opacity-90 disabled:opacity-50 text-white font-bold py-2 px-4 rounded text-xs self-start mt-2 cursor-pointer transition-opacity"
+                  >
+                    {savingPrefs ? "SAVING..." : "SAVE PREFERENCES"}
                   </button>
                 </div>
               </div>

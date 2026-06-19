@@ -230,6 +230,7 @@ create table if not exists public.hero_config (
     subtitle_en text,
     image text not null,
     front_image text,
+    logo_image text,
     show_in_menu boolean default false,
     created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );

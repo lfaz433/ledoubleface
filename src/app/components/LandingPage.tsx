@@ -21,11 +21,45 @@ const SERVICES = [
   { icon: <Users size={28} />, titleKey: "Private Events", descKey: "Reserve the full restaurant for private events, corporate dinners, and exclusive gatherings." },
 ];
 
-export function LandingPage({ onNavigate }: { onNavigate: (view: string, tableId?: string, productId?: string) => void }) {
+function fetchWithTimeout<T>(promise: Promise<T>, timeoutMs = 3500): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error("Database connection timed out"));
+    }, timeoutMs);
+    promise.then(
+      (res) => {
+        clearTimeout(timer);
+        resolve(res);
+      },
+      (err) => {
+        clearTimeout(timer);
+        reject(err);
+      }
+    );
+  });
+}
+
+export function LandingPage({ onNavigate, tableId }: { onNavigate: (view: string, tableId?: string, productId?: string) => void; tableId?: string }) {
   const [scrolled, setScrolled] = useState(false);
   const [activeCategory, setActiveCategory] = useState("All");
-  const [menuItems, setMenuItems] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [menuItems, setMenuItems] = useState<any[]>(() => {
+    if (typeof window !== "undefined") {
+      const local = localStorage.getItem("ldf_menu_items");
+      if (local) {
+        try {
+          return JSON.parse(local);
+        } catch (_) {}
+      }
+    }
+    return [];
+  });
+  const [loading, setLoading] = useState(() => {
+    if (typeof window !== "undefined") {
+      const local = localStorage.getItem("ldf_menu_items");
+      if (local) return false;
+    }
+    return true;
+  });
 
   // Bilingual State
   const [lang, setLang] = useState<Language>("fr");
@@ -72,6 +106,14 @@ export function LandingPage({ onNavigate }: { onNavigate: (view: string, tableId
     show_in_menu: false
   });
 
+  // Coordinates/Preferences state
+  const [preferences, setPreferences] = useState({
+    vessel_name: "Le Double Face Lounge",
+    address: "14 Rue du Faubourg Saint-Antoine, Paris",
+    hotline: "+33 1 42 74 31 00",
+    operation_slots: "Mon–Sun 11:30–23:30"
+  });
+
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 60);
     window.addEventListener("scroll", handler);
@@ -80,22 +122,42 @@ export function LandingPage({ onNavigate }: { onNavigate: (view: string, tableId
 
   const fetchMenu = async () => {
     try {
+      if (menuItems.length === 0) {
+        setLoading(true);
+      }
       setDbError(false);
-      const { data, error } = await supabase
-        .from("menu_items")
-        .eq("active", true)
-        .order("created_at", { ascending: true });
+      const { data, error } = await fetchWithTimeout(
+        supabase
+          .from("menu_items")
+          .select("*")
+          .eq("active", true)
+          .order("created_at", { ascending: true })
+      );
       
       if (error) throw error;
       if (data && data.length > 0) {
         setMenuItems(data);
+        if (typeof window !== "undefined") {
+          localStorage.setItem("ldf_menu_items", JSON.stringify(data));
+        }
       } else {
         setMenuItems(FALLBACK_MENU_ITEMS);
       }
     } catch (err) {
       console.warn("LandingPage: could not fetch menu from Supabase. Using fallbacks.", err);
       setDbError(true);
-      setMenuItems(FALLBACK_MENU_ITEMS);
+      if (menuItems.length === 0) {
+        const local = typeof window !== "undefined" ? localStorage.getItem("ldf_menu_items") : null;
+        if (local) {
+          try {
+            setMenuItems(JSON.parse(local));
+          } catch (_) {
+            setMenuItems(FALLBACK_MENU_ITEMS);
+          }
+        } else {
+          setMenuItems(FALLBACK_MENU_ITEMS);
+        }
+      }
     } finally {
       setLoading(false);
     }
@@ -103,10 +165,12 @@ export function LandingPage({ onNavigate }: { onNavigate: (view: string, tableId
 
   const fetchShows = async () => {
     try {
-      const { data, error } = await supabase
-        .from("shows")
-        .select("*")
-        .order("date", { ascending: true });
+      const { data, error } = await fetchWithTimeout(
+        supabase
+          .from("shows")
+          .select("*")
+          .order("date", { ascending: true })
+      );
       
       if (error) throw error;
       if (data) {
@@ -120,11 +184,13 @@ export function LandingPage({ onNavigate }: { onNavigate: (view: string, tableId
 
   const fetchHeroConfig = async () => {
     try {
-      const { data, error } = await supabase
-        .from("hero_config")
-        .select("*")
-        .eq("id", "current")
-        .limit(1);
+      const { data, error } = await fetchWithTimeout(
+        supabase
+          .from("hero_config")
+          .select("*")
+          .eq("id", "current")
+          .limit(1)
+      );
       
       if (error) throw error;
       if (data && data.length > 0) {
@@ -147,10 +213,36 @@ export function LandingPage({ onNavigate }: { onNavigate: (view: string, tableId
     }
   };
 
+  const fetchPreferences = async () => {
+    try {
+      const { data, error } = await fetchWithTimeout(
+        supabase
+          .from("restaurant_tables")
+          .select("*")
+          .eq("id", "SETTINGS")
+          .limit(1)
+      );
+      if (!error && data && data.length > 0) {
+        try {
+          const parsed = JSON.parse(data[0].area);
+          setPreferences({
+            vessel_name: parsed.vessel_name || "Le Double Face Lounge",
+            address: parsed.address || "14 Rue du Faubourg Saint-Antoine, Paris",
+            hotline: parsed.hotline || "+33 1 42 74 31 00",
+            operation_slots: parsed.operation_slots || "Mon–Sun 11:30–23:30"
+          });
+        } catch (_) {}
+      }
+    } catch (err) {
+      console.warn("LandingPage: could not fetch preferences:", err);
+    }
+  };
+
   useEffect(() => {
     fetchMenu();
     fetchShows();
     fetchHeroConfig();
+    fetchPreferences();
 
     const heroChannel = supabase
       .channel("hero-landing-sync")
@@ -163,8 +255,20 @@ export function LandingPage({ onNavigate }: { onNavigate: (view: string, tableId
       )
       .subscribe();
 
+    const tablesChannel = supabase
+      .channel("tables-landing-sync")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "restaurant_tables" },
+        () => {
+          fetchPreferences();
+        }
+      )
+      .subscribe();
+
     return () => {
       supabase.removeChannel(heroChannel);
+      supabase.removeChannel(tablesChannel);
     };
   }, []);
 
@@ -199,12 +303,8 @@ export function LandingPage({ onNavigate }: { onNavigate: (view: string, tableId
       }, 3000);
     } catch (err) {
       console.error("Booking ticket failed:", err);
-      alert("Ticket purchase failed. Proceeding with simulated confirmation.");
-      setBookingSuccess(true);
-      setTimeout(() => {
-        setSelectedShow(null);
-        setBookingSuccess(false);
-      }, 2000);
+      alert("Ticket purchase failed. Please check your connection and try again.");
+      setBookingSuccess(false);
     }
   };
 
@@ -226,23 +326,25 @@ export function LandingPage({ onNavigate }: { onNavigate: (view: string, tableId
                   <span style={{ fontFamily: "'Playfair Display', serif", fontWeight: 900, fontSize: "14px", color: "#fff" }}>LF</span>
                 </div>
                 <span style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: "20px", color: "var(--foreground)", letterSpacing: "-0.02em" }}>
-                  Le Double Face
+                  {preferences.vessel_name}
                 </span>
               </>
             )}
-            {/* Hidden Backdoor Star Login */}
-            <button 
-              onClick={() => onNavigate("admin")}
-              className="opacity-0 hover:opacity-100 transition-opacity text-xs text-white/5 select-none cursor-pointer pl-1"
-              title="Admin Portal"
-            >
-              ★
-            </button>
+            {/* Table Connection Badge */}
+            {tableId && tableId !== "DELIVERY" && tableId !== "T07" && (
+              <div className="flex items-center gap-1.5 px-2.5 py-1 bg-[#10B981]/15 border border-[#10B981]/30 rounded text-[#10B981] font-mono text-[9px] font-black tracking-wider animate-pulse ml-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]" />
+                <span>TABLE {tableId}</span>
+              </div>
+            )}
           </div>
           <div className="hidden md:flex items-center gap-8">
-            <a href="#menu" className="text-sm transition-colors hover:text-accent-foreground" style={{ color: "var(--muted-foreground)", letterSpacing: "0.08em", fontWeight: 500 }}>
+            <button onClick={() => onNavigate("client", (!tableId || tableId === "DELIVERY" || tableId === "T07") ? "DELIVERY" : tableId)}
+              className="text-sm transition-colors hover:text-accent-foreground text-left cursor-pointer bg-transparent border-0 p-0 font-semibold uppercase tracking-wider text-muted-foreground"
+              style={{ letterSpacing: "0.08em" }}
+            >
               {t.navMenu}
-            </a>
+            </button>
             <a href="#services" className="text-sm transition-colors hover:text-accent-foreground" style={{ color: "var(--muted-foreground)", letterSpacing: "0.08em", fontWeight: 500 }}>
               {t.navServices}
             </a>
@@ -264,7 +366,7 @@ export function LandingPage({ onNavigate }: { onNavigate: (view: string, tableId
             >
               {lang.toUpperCase()}
             </button>
-            <button onClick={() => onNavigate("client", "T01")}
+            <button onClick={() => onNavigate("client", (!tableId || tableId === "DELIVERY" || tableId === "T07") ? "DELIVERY" : tableId)}
               className="px-4 py-2 text-sm transition-all hover:opacity-90 active:scale-95 cursor-pointer"
               style={{ background: "var(--accent)", color: "var(--accent-foreground)", borderRadius: "var(--radius)", fontWeight: 700, letterSpacing: "0.04em" }}>
               {t.orderNow}
@@ -298,17 +400,12 @@ export function LandingPage({ onNavigate }: { onNavigate: (view: string, tableId
               {lang === "fr" ? heroConfig.subtitle_fr : heroConfig.subtitle_en}
             </p>
             <div className="mt-10 flex flex-wrap gap-4">
-              <button onClick={() => onNavigate("client", "T01")}
+              <button onClick={() => onNavigate("client", "DELIVERY")}
                 className="flex items-center gap-2 px-8 py-4 text-base transition-all hover:opacity-90 active:scale-95 cursor-pointer"
                 style={{ background: "var(--primary)", color: "#fff", borderRadius: "var(--radius)", fontWeight: 700, letterSpacing: "0.06em" }}>
-                {t.orderAtTable} <ArrowRight size={18} />
+                {lang === "fr" ? "LIVRAISON" : "DELIVERY"} <ArrowRight size={18} />
               </button>
-              <button onClick={() => onNavigate("client", "DELIVERY")}
-                className="flex items-center gap-2 px-8 py-4 text-base transition-all hover:bg-white/5 cursor-pointer"
-                style={{ border: "1px solid rgba(245,240,232,0.2)", color: "var(--foreground)", borderRadius: "var(--radius)", fontWeight: 600 }}>
-                {lang === "fr" ? "Livraison" : "Delivery"} <ArrowRight size={18} />
-              </button>
-              <button onClick={() => onNavigate("client", "T01")}
+              <button onClick={() => onNavigate("client", (!tableId || tableId === "DELIVERY" || tableId === "T07") ? "DELIVERY" : tableId)}
                 className="flex items-center gap-2 px-8 py-4 text-base transition-all hover:bg-white/5 cursor-pointer"
                 style={{ border: "1px solid rgba(245,240,232,0.2)", color: "var(--foreground)", borderRadius: "var(--radius)", fontWeight: 600 }}>
                 {t.viewMenu}
@@ -415,7 +512,7 @@ export function LandingPage({ onNavigate }: { onNavigate: (view: string, tableId
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filtered.map(item => (
                   <div key={item.id} 
-                    onClick={() => onNavigate("client", "T01", item.id)}
+                    onClick={() => onNavigate("client", (!tableId || tableId === "DELIVERY" || tableId === "T07") ? "DELIVERY" : tableId)}
                     className="group overflow-hidden transition-all duration-300 hover:-translate-y-1 cursor-pointer select-none"
                     style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "var(--radius)" }}>
                     <div className="relative h-48 overflow-hidden">
@@ -442,7 +539,7 @@ export function LandingPage({ onNavigate }: { onNavigate: (view: string, tableId
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          onNavigate("client", "T01", item.id);
+                          onNavigate("client", (!tableId || tableId === "DELIVERY" || tableId === "T07") ? "DELIVERY" : tableId);
                         }}
                         className="w-full py-3.5 text-sm transition-all hover:opacity-90 active:scale-95 cursor-pointer"
                         style={{ background: "var(--primary)", color: "#fff", borderRadius: "var(--radius)", fontWeight: 700, letterSpacing: "0.05em" }}>
@@ -455,7 +552,7 @@ export function LandingPage({ onNavigate }: { onNavigate: (view: string, tableId
               
               <div className="mt-12 text-center">
                 <button
-                  onClick={() => onNavigate("client", "T01")}
+                  onClick={() => onNavigate("client", (!tableId || tableId === "DELIVERY" || tableId === "T07") ? "DELIVERY" : tableId)}
                   className="inline-flex items-center gap-2 px-8 py-4 text-base transition-all hover:opacity-90 active:scale-95 shadow-lg shadow-[#C8102E]/20 cursor-pointer"
                   style={{ background: "var(--primary)", color: "#fff", borderRadius: "var(--radius)", fontWeight: 700, letterSpacing: "0.06em" }}
                 >
@@ -563,9 +660,9 @@ export function LandingPage({ onNavigate }: { onNavigate: (view: string, tableId
       <section id="contact" className="py-20 px-6" style={{ background: "var(--secondary)", borderTop: "1px solid var(--border)" }}>
         <div className="max-w-7xl mx-auto grid md:grid-cols-3 gap-10">
           {[
-            { icon: <MapPin size={20} />, label: "Location", value: t.coordinatesLocation },
-            { icon: <Phone size={20} />, label: "Reservations", value: "+33 1 42 74 31 00" },
-            { icon: <Clock size={20} />, label: "Hours", value: t.coordinatesHours },
+            { icon: <MapPin size={20} />, label: "Location", value: preferences.address },
+            { icon: <Phone size={20} />, label: "Reservations", value: preferences.hotline },
+            { icon: <Clock size={20} />, label: "Hours", value: preferences.operation_slots },
           ].map(info => (
             <div key={info.label} className="flex items-start gap-4">
               <div className="mt-0.5" style={{ color: "var(--accent)" }}>{info.icon}</div>
@@ -585,9 +682,9 @@ export function LandingPage({ onNavigate }: { onNavigate: (view: string, tableId
             <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: "var(--primary)" }}>
               <span style={{ fontFamily: "'Playfair Display', serif", fontWeight: 900, fontSize: "12px", color: "#fff" }}>LF</span>
             </div>
-            <span style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: "16px" }}>Le Double Face</span>
+            <span style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: "16px" }}>{preferences.vessel_name}</span>
           </div>
-          <p style={{ fontSize: "12px", color: "var(--muted-foreground)" }}>© 2026 Le Double Face · Paris · {t.footerRights}</p>
+          <p style={{ fontSize: "12px", color: "var(--muted-foreground)" }}>© 2026 {preferences.vessel_name} · {t.footerRights}</p>
           <div className="flex items-center gap-4">
             {[
               { Icon: Instagram, url: "https://instagram.com/ledoubleface" },
@@ -603,32 +700,20 @@ export function LandingPage({ onNavigate }: { onNavigate: (view: string, tableId
 
         {/* Connection Diagnostics Bar */}
         <div className="max-w-7xl mx-auto mt-8 pt-8 border-t border-white/5 flex flex-col items-center justify-center gap-3 text-center">
-          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[10px] font-mono text-muted-foreground">
-            <div className="flex items-center gap-1.5">
-              <span>DATABASE URL:</span>
-              <span className="text-foreground font-bold">{import.meta.env.VITE_SUPABASE_URL ? import.meta.env.VITE_SUPABASE_URL.replace("https://", "") : "NOT DEFINED"}</span>
-            </div>
-            <div className="w-1.5 h-1.5 rounded-full bg-white/10 hidden md:block" />
-            <div className="flex items-center gap-1.5">
-              <span>STATUS:</span>
-              {(!supabase || supabase.isMock || dbError) ? (
-                <span className="flex items-center gap-1 font-bold text-[#F59E0B]">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#F59E0B] animate-pulse" /> OFFLINE (SIMULATED)
-                </span>
-              ) : (
-                <span className="flex items-center gap-1 font-bold text-[#10B981]">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]" /> ONLINE
-                </span>
-              )}
-            </div>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <button
+              onClick={forceReload}
+              className="px-3 py-1.5 bg-white/5 border border-white/10 hover:bg-white/10 active:scale-95 text-foreground rounded text-[10px] font-mono transition-all cursor-pointer"
+            >
+              🔄 Refresh Connection (Clear PWA Cache)
+            </button>
+            <button
+              onClick={() => onNavigate("admin")}
+              className="px-3 py-1.5 bg-white/5 border border-white/10 hover:bg-white/10 active:scale-95 text-foreground rounded text-[10px] font-mono transition-all cursor-pointer flex items-center gap-1.5"
+            >
+              🔑 Staff Portal
+            </button>
           </div>
-          
-          <button
-            onClick={forceReload}
-            className="px-3 py-1.5 bg-white/5 border border-white/10 hover:bg-white/10 active:scale-95 text-foreground rounded text-[10px] font-mono transition-all cursor-pointer"
-          >
-            🔄 Refresh Connection (Clear PWA Cache)
-          </button>
         </div>
       </footer>
 

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { ClientOrdering } from "./components/ClientOrdering";
 import { AdminDashboard } from "./components/AdminDashboard";
+import { AdminAuthGate } from "./components/AdminAuthGate";
 import { LandingPage } from "./components/LandingPage";
 import { Monitor, Smartphone, Columns, ArrowLeft } from "lucide-react";
 
@@ -8,9 +9,13 @@ type RouteView = "landing" | "menu" | "admin" | "simulator";
 
 export default function App() {
   const [view, setView] = useState<RouteView>("landing");
-  const [tableId, setTableId] = useState("T07");
+  const [tableId, setTableId] = useState("DELIVERY");
   const [area, setArea] = useState("Terrace Patio");
   const [simulatorMode, setSimulatorMode] = useState<"guest" | "admin" | "split">("split");
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [view]);
 
   useEffect(() => {
     // Sync URL parameters with app routing state
@@ -111,7 +116,7 @@ export default function App() {
 
   // Render Standalone Landing Page View
   if (view === "landing") {
-    return <LandingPage onNavigate={handleNavigate} />;
+    return <LandingPage onNavigate={handleNavigate} tableId={tableId} />;
   }
 
   // Render Standalone Guest Menu View
@@ -139,7 +144,7 @@ export default function App() {
         >
           <ArrowLeft size={14} /> HOME
         </button>
-        <AdminDashboard />
+        <AdminAuthGate onLogout={() => navigateTo("landing")} />
       </div>
     );
   }
