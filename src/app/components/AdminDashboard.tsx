@@ -1550,6 +1550,10 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
     { id: "settings" as AdminSection, icon: <Settings size={16} />, label: "Preferences" },
   ];
 
+  // ── Mobile nav state ──────────────────────────────────────────────────────
+  const [navOpen, setNavOpen] = useState(false);
+  const closeNav = useCallback(() => setNavOpen(false), []);
+
   if (loading) {
     return (
       <div className="h-full w-full flex flex-col items-center justify-center bg-[#0A0704] text-[#8E7E70] p-6">
@@ -1560,10 +1564,6 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
       </div>
     );
   }
-
-  // ── Mobile nav state ──────────────────────────────────────────────────────
-  const [navOpen, setNavOpen] = useState(false);
-  const closeNav = useCallback(() => setNavOpen(false), []);
 
   const NavContent = () => (
     <>
