@@ -69,7 +69,7 @@ interface Show {
 
 const STATIC_TABLE_IDS = ["T01", "T02", "T03", "T04", "T05", "T06", "T07", "T08", "T09", "T10", "T11", "T12", "T13", "T14", "T15", "T16", "T17", "T18", "T19", "T20"];
 
-type AdminSection = "dashboard" | "products" | "orders" | "tables" | "settings" | "shows" | "counter" | "delivery";
+type AdminSection = "dashboard" | "products" | "orders" | "tables" | "settings" | "shows" | "counter" | "delivery" | "staff";
 
 export function AdminDashboard({ onLogout }: { onLogout?: () => void } = {}) {
   const [section, setSection] = useState<AdminSection>("dashboard");
@@ -77,6 +77,18 @@ export function AdminDashboard({ onLogout }: { onLogout?: () => void } = {}) {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [dbError, setDbError] = useState(false);
+
+  // Waiter & Staff Management States
+  const [waiters, setWaiters] = useState<any[]>([]);
+  const [showWaiterModal, setShowWaiterModal] = useState(false);
+  const [newWaiterName, setNewWaiterName] = useState("");
+  const [newWaiterEmail, setNewWaiterEmail] = useState("");
+  const [newWaiterPin, setNewWaiterPin] = useState("");
+  const [newWaiterTables, setNewWaiterTables] = useState("");
+  const [waiterSubmitting, setWaiterSubmitting] = useState(false);
+  const [waiterError, setWaiterError] = useState<string | null>(null);
+
+  const isMock = !supabase || supabase.isMock || !supabase.auth;
 
   const forceReload = async () => {
     if (typeof window !== "undefined" && "serviceWorker" in navigator) {
@@ -611,6 +623,114 @@ export function AdminDashboard({ onLogout }: { onLogout?: () => void } = {}) {
     }
   };
 
+  const loadWaiters = async () => {
+    try {
+      let data: any[] | null = null;
+      let error: any = null;
+
+      if (isMock) {
+        data = JSON.parse(localStorage.getItem("ldf_waiters") || "[]");
+      } else {
+        const response = await supabase
+          .from("waiters")
+          .select("*")
+          .order("created_at", { ascending: false });
+        data = response.data;
+        error = response.error;
+      }
+      if (error) throw error;
+      if (data) setWaiters(data);
+    } catch (err) {
+      console.error("Error loading waiters:", err);
+    }
+  };
+
+  const toggleWaiterActive = async (waiter: any) => {
+    const nextActive = !waiter.is_active;
+    try {
+      if (isMock) {
+        const localWaiters = JSON.parse(localStorage.getItem("ldf_waiters") || "[]");
+        const updated = localWaiters.map((w: any) => w.id === waiter.id ? { ...w, is_active: nextActive } : w);
+        localStorage.setItem("ldf_waiters", JSON.stringify(updated));
+        window.dispatchEvent(new CustomEvent("ldf-db-update", { detail: { table: "waiters" } }));
+      } else {
+        const { error } = await supabase
+          .from("waiters")
+          .update({ is_active: nextActive })
+          .eq("id", waiter.id);
+        if (error) throw error;
+      }
+      loadWaiters();
+    } catch (err) {
+      console.error("Failed to toggle waiter status:", err);
+    }
+  };
+
+  const handleCreateWaiter = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setWaiterError(null);
+    setWaiterSubmitting(true);
+
+    const assigned_tables = newWaiterTables
+      .split(",")
+      .map(x => x.trim().toUpperCase())
+      .filter(x => x.length > 0);
+
+    if (isMock) {
+      setTimeout(() => {
+        const localWaiters = JSON.parse(localStorage.getItem("ldf_waiters") || "[]");
+        const newId = `mock-waiter-${Date.now()}`;
+        const newRec = {
+          id: newId,
+          name: newWaiterName,
+          email: newWaiterEmail,
+          assigned_tables,
+          is_active: true,
+          created_at: new Date().toISOString(),
+          last_seen: new Date().toISOString()
+        };
+        localStorage.setItem("ldf_waiters", JSON.stringify([...localWaiters, newRec]));
+        setWaiterSubmitting(false);
+        setShowWaiterModal(false);
+        setNewWaiterName("");
+        setNewWaiterEmail("");
+        setNewWaiterPin("");
+        setNewWaiterTables("");
+        loadWaiters();
+        window.dispatchEvent(new CustomEvent("ldf-db-update", { detail: { table: "waiters" } }));
+      }, 800);
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase.functions.invoke("create-waiter", {
+        body: {
+          name: newWaiterName,
+          email: newWaiterEmail,
+          pin: newWaiterPin,
+          assigned_tables
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.error) {
+        setWaiterError(data.error);
+      } else {
+        setShowWaiterModal(false);
+        setNewWaiterName("");
+        setNewWaiterEmail("");
+        setNewWaiterPin("");
+        setNewWaiterTables("");
+        loadWaiters();
+      }
+    } catch (err: any) {
+      setWaiterError(err?.message || "Failed to create waiter.");
+    } finally {
+      setWaiterSubmitting(false);
+    }
+  };
+
   useEffect(() => {
     const liveCount = orders.filter((o: any) => o.status === "pending" && o.table_id?.toUpperCase() !== "DELIVERY").length;
     const deliveryCount = orders.filter((o: any) => o.status === "pending" && o.table_id?.toUpperCase() === "DELIVERY").length;
@@ -625,6 +745,19 @@ export function AdminDashboard({ onLogout }: { onLogout?: () => void } = {}) {
     loadShows();
     loadTickets();
     loadHeroConfig();
+    loadWaiters();
+
+    // Subscribe to waiters table in real-time
+    const waitersChannel = supabase
+      .channel("waiters-admin-sync")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "waiters" },
+        () => {
+          loadWaiters();
+        }
+      )
+      .subscribe();
 
     // Subscribe to orders changes in real-time
     const ordersChannel = supabase
@@ -666,6 +799,7 @@ export function AdminDashboard({ onLogout }: { onLogout?: () => void } = {}) {
       supabase.removeChannel(ordersChannel);
       supabase.removeChannel(tablesChannel);
       supabase.removeChannel(heroChannel);
+      supabase.removeChannel(waitersChannel);
     };
   }, []);
 
@@ -1249,6 +1383,7 @@ export function AdminDashboard({ onLogout }: { onLogout?: () => void } = {}) {
     { id: "products" as AdminSection, icon: <Package size={16} />, label: "Menu Forge (CMS)" },
     { id: "tables" as AdminSection, icon: <QrCode size={16} />, label: "Table Registry & QR" },
     { id: "shows" as AdminSection, icon: <Award size={16} />, label: "Shows Manager" },
+    { id: "staff" as AdminSection, icon: <Users size={16} />, label: "Staff (Équipe)" },
     { id: "settings" as AdminSection, icon: <Settings size={16} />, label: "Preferences" },
   ];
 
@@ -2503,6 +2638,186 @@ export function AdminDashboard({ onLogout }: { onLogout?: () => void } = {}) {
                   </button>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* 7. STAFF MANAGEMENT (ÉQUIPE) */}
+          {section === "staff" && (
+            <div className="flex flex-col gap-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-serif font-black text-lg text-white">Waiter Registry</h3>
+                  <p className="text-xs text-[#8E7E70] mt-1 font-mono">Manage floor service credentials and table assignments.</p>
+                </div>
+                <button
+                  onClick={() => setShowWaiterModal(true)}
+                  className="bg-[#C8102E] hover:opacity-90 text-white font-bold py-2 px-4 rounded text-xs flex items-center gap-1.5 cursor-pointer shadow-md shadow-[#C8102E]/20"
+                >
+                  <Plus size={14} /> ADD NEW WAITER
+                </button>
+              </div>
+
+              {/* Waiters Registry Table */}
+              <div className="bg-[#120D09] border border-[#2A1E15] rounded-xl overflow-hidden">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-[#2A1E15] bg-[#1A130E]/30">
+                      <th className="px-4 py-3 text-[10px] font-mono text-[#8E7E70] uppercase">Waiter Details</th>
+                      <th className="px-4 py-3 text-[10px] font-mono text-[#8E7E70] uppercase">Assigned Tables</th>
+                      <th className="px-4 py-3 text-[10px] font-mono text-[#8E7E70] uppercase">Online Status</th>
+                      <th className="px-4 py-3 text-[10px] font-mono text-[#8E7E70] uppercase text-right">Service Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#2A1E15]/50">
+                    {waiters.map((w) => {
+                      const isOnline = w.last_seen && (Date.now() - new Date(w.last_seen).getTime() < 300000);
+                      const timeStr = w.last_seen ? new Date(w.last_seen).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "N/A";
+                      
+                      return (
+                        <tr key={w.id} className="hover:bg-white/[0.01]">
+                          <td className="px-4 py-3.5 text-xs">
+                            <div className="font-bold text-white">{w.name}</div>
+                            <div className="text-[10px] text-[#8E7E70] font-mono mt-0.5">{w.email}</div>
+                          </td>
+                          <td className="px-4 py-3.5 text-xs">
+                            {w.assigned_tables && w.assigned_tables.length > 0 ? (
+                              <div className="flex flex-wrap gap-1">
+                                {w.assigned_tables.map((t: string) => (
+                                  <span key={t} className="bg-[#1A130E] border border-[#2A1E15] text-[#E5D5C5] text-[9px] font-mono px-2 py-0.5 rounded">{t}</span>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="text-[10px] text-[#8E7E70] italic">No tables assigned</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3.5 text-xs">
+                            <div className="flex items-center gap-1.5">
+                              <span className={`w-2 h-2 rounded-full ${isOnline ? "bg-[#10B981] animate-pulse" : "bg-[#8E7E70]/30"}`} />
+                              <span className="font-bold text-white text-[10px] font-mono">{isOnline ? "ONLINE" : "OFFLINE"}</span>
+                              {w.last_seen && (
+                                <span className="text-[10px] text-[#8E7E70] font-mono">({timeStr})</span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3.5 text-xs text-right">
+                            <button
+                              onClick={() => toggleWaiterActive(w)}
+                              className={`px-2.5 py-1 rounded text-[9px] font-mono font-bold tracking-wider cursor-pointer border ${
+                                w.is_active 
+                                  ? "bg-[#10B981]/15 text-[#10B981] border-[#10B981]/30 hover:bg-[#10B981]/25" 
+                                  : "bg-[#1A130E] text-[#8E7E70] border-[#2A1E15] hover:text-white"
+                              }`}
+                            >
+                              {w.is_active ? "ACTIVE" : "INACTIVE"}
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+
+                    {waiters.length === 0 && (
+                      <tr>
+                        <td colSpan={4} className="px-4 py-12 text-center text-xs text-[#8E7E70] italic">
+                          No floor waiters registered in system yet.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Add Waiter Modal */}
+              {showWaiterModal && (
+                <div className="fixed inset-0 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 z-50 text-white select-none">
+                  <div className="bg-[#120D09] border border-[#2A1E15] p-8 rounded-2xl max-w-md w-full shadow-2xl relative">
+                    <h4 className="font-serif font-bold text-xl mb-1 text-white">Register Floor Waiter</h4>
+                    <p className="text-[10px] text-[#8E7E70] uppercase font-mono mb-6">Staff Access Credentials</p>
+
+                    {waiterError && (
+                      <div className="mb-5 p-3.5 bg-[#C8102E]/10 border border-[#C8102E]/30 rounded-xl text-xs text-white">
+                        {waiterError}
+                      </div>
+                    )}
+
+                    <form onSubmit={handleCreateWaiter} className="space-y-4">
+                      <div>
+                        <label className="block text-[9px] font-mono text-[#8E7E70] uppercase mb-1">Full Name</label>
+                        <input
+                          type="text"
+                          required
+                          value={newWaiterName}
+                          onChange={(e) => setNewWaiterName(e.target.value)}
+                          placeholder="e.g. Jean Dupont"
+                          className="w-full px-3 py-2 text-xs bg-[#1A130E] border border-[#2A1E15] rounded-xl text-white outline-none focus:border-[#C8102E]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[9px] font-mono text-[#8E7E70] uppercase mb-1">Email Address</label>
+                        <input
+                          type="email"
+                          required
+                          value={newWaiterEmail}
+                          onChange={(e) => setNewWaiterEmail(e.target.value)}
+                          placeholder="e.g. jean@ledoubleface.com"
+                          className="w-full px-3 py-2 text-xs bg-[#1A130E] border border-[#2A1E15] rounded-xl text-white outline-none focus:border-[#C8102E]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[9px] font-mono text-[#8E7E70] uppercase mb-1">4-Digit Access PIN</label>
+                        <input
+                          type="password"
+                          required
+                          maxLength={4}
+                          value={newWaiterPin}
+                          onChange={(e) => setNewWaiterPin(e.target.value.replace(/\D/g, ""))}
+                          placeholder="e.g. 1234"
+                          className="w-full px-3 py-2 text-xs bg-[#1A130E] border border-[#2A1E15] rounded-xl text-white outline-none focus:border-[#C8102E] tracking-widest font-bold text-center text-lg"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[9px] font-mono text-[#8E7E70] uppercase mb-1">Assigned Tables (Comma Separated)</label>
+                        <input
+                          type="text"
+                          value={newWaiterTables}
+                          onChange={(e) => setNewWaiterTables(e.target.value)}
+                          placeholder="e.g. T01, T02, T03"
+                          className="w-full px-3 py-2 text-xs bg-[#1A130E] border border-[#2A1E15] rounded-xl text-white outline-none focus:border-[#C8102E]"
+                        />
+                      </div>
+
+                      <div className="flex gap-3 pt-4 border-t border-[#2A1E15]/30">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowWaiterModal(false);
+                            setWaiterError(null);
+                          }}
+                          className="flex-1 py-2.5 bg-white/5 border border-white/10 hover:bg-white/10 text-white font-bold rounded-xl text-xs cursor-pointer active:scale-95 transition-all text-center"
+                        >
+                          CANCEL
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={waiterSubmitting}
+                          className="flex-1 py-2.5 bg-[#C8102E] text-white font-bold rounded-xl text-xs hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                        >
+                          {waiterSubmitting ? (
+                            <>
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              <span>CREATING...</span>
+                            </>
+                          ) : (
+                            <span>REGISTER WAITER</span>
+                          )}
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

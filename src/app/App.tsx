@@ -2,10 +2,11 @@ import { useState, useEffect } from "react";
 import { ClientOrdering } from "./components/ClientOrdering";
 import { AdminDashboard } from "./components/AdminDashboard";
 import { AdminAuthGate } from "./components/AdminAuthGate";
+import { WaiterAuthGate } from "./components/WaiterAuthGate";
 import { LandingPage } from "./components/LandingPage";
 import { Monitor, Smartphone, Columns, ArrowLeft } from "lucide-react";
 
-type RouteView = "landing" | "menu" | "admin" | "simulator";
+type RouteView = "landing" | "menu" | "admin" | "waiter" | "simulator";
 
 export default function App() {
   const [view, setView] = useState<RouteView>("landing");
@@ -25,6 +26,7 @@ export default function App() {
       
       const isSimulator = params.get("simulator") === "true" || path === "/simulator";
       const isAdmin = params.get("view") === "admin" || path === "/admin";
+      const isWaiter = params.get("view") === "waiter" || path === "/waiter";
       const isMenu = params.get("view") === "menu" || path === "/menu" || params.has("table");
       
       const urlTable = params.get("table");
@@ -37,6 +39,8 @@ export default function App() {
         setView("simulator");
       } else if (isAdmin) {
         setView("admin");
+      } else if (isWaiter) {
+        setView("waiter");
       } else if (isMenu) {
         setView("menu");
       } else {
@@ -63,6 +67,8 @@ export default function App() {
       url.searchParams.delete("product");
     } else if (newView === "admin") {
       url.searchParams.set("view", "admin");
+    } else if (newView === "waiter") {
+      url.searchParams.set("view", "waiter");
     } else if (newView === "menu") {
       url.searchParams.set("view", "menu");
       if (targetTableId) {
@@ -88,6 +94,8 @@ export default function App() {
   const handleNavigate = (viewStr: string, targetTableId?: string, productId?: string) => {
     if (viewStr === "admin") {
       navigateTo("admin");
+    } else if (viewStr === "waiter") {
+      navigateTo("waiter");
     } else if (viewStr === "client" || viewStr === "menu") {
       if (productId) {
         const url = new URL(window.location.href);
@@ -145,6 +153,24 @@ export default function App() {
           <ArrowLeft size={14} /> HOME
         </button>
         <AdminAuthGate onLogout={() => navigateTo("landing")} />
+      </div>
+    );
+  }
+
+  // Render Standalone Waiter Dashboard View
+  if (view === "waiter") {
+    return (
+      <div className="min-h-screen bg-[#0A0704] text-white relative">
+        <button
+          onClick={() => navigateTo("landing")}
+          className="fixed top-4 left-4 z-50 flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono tracking-widest text-[#E5D5C5] bg-black/40 border border-white/10 hover:bg-black/60 rounded-lg backdrop-blur-md transition-all cursor-pointer"
+        >
+          <ArrowLeft size={14} /> HOME
+        </button>
+        <WaiterAuthGate 
+          onLogout={() => navigateTo("landing")} 
+          onAdminRedirect={() => navigateTo("admin")}
+        />
       </div>
     );
   }
