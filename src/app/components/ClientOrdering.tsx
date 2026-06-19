@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { ShoppingCart, Plus, Minus, X, ChevronLeft, Check, Clock, Flame, Star, Search, RefreshCw, AlertCircle, ChevronDown } from "lucide-react";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { supabase } from "../../lib/supabase";
-import { motion, AnimatePresence, animate, useMotionValue, useTransform } from "framer-motion";
+import { motion, AnimatePresence, animate, useMotionValue, useTransform } from "motion/react";
 import { translations, Language } from "../../lib/translations";
 import { OrderTracker } from "./OrderTracker";
 
