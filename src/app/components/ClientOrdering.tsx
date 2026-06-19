@@ -607,26 +607,29 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
   }
 
   const handleAddItemDirectly = (item: any) => {
-    const fields = item.customFields || item.custom_fields;
-    if (Array.isArray(fields) && fields.length > 0) {
-      openCustomize(item);
-    } else {
-      const k = `${item.id}-{}`;
-      
-      if (typeof navigator !== "undefined" && navigator.vibrate) {
-        navigator.vibrate(50);
-      }
-      
-      setAddingItemIds(p => ({ ...p, [item.id]: true }));
-      setTimeout(() => {
-        setAddingItemIds(p => ({ ...p, [item.id]: false }));
-      }, 500);
+    const k = `${item.id}-{}`;
 
-      setCart(prev => {
-        const existing = prev.find(i => i.itemKey === k);
-        if (existing) return prev.map(i => i.itemKey === k ? { ...i, quantity: i.quantity + 1 } : i);
-        return [...prev, { id: item.id, name: item.name, price: item.price, quantity: 1, customizations: {}, itemKey: k }];
-      });
+    if (typeof navigator !== "undefined" && navigator.vibrate) {
+      navigator.vibrate(50);
+    }
+
+    setAddingItemIds(p => ({ ...p, [item.id]: true }));
+    setTimeout(() => {
+      setAddingItemIds(p => ({ ...p, [item.id]: false }));
+    }, 500);
+
+    setCart(prev => {
+      const existing = prev.find(i => i.itemKey === k);
+      if (existing) return prev.map(i => i.itemKey === k ? { ...i, quantity: i.quantity + 1 } : i);
+      return [...prev, { id: item.id, name: item.name, price: item.price, quantity: 1, customizations: {}, itemKey: k }];
+    });
+  };
+
+  const handleProductCardClick = (item: any) => {
+    const fields = item.customFields || item.custom_fields;
+    openCustomize(item);
+    if (!Array.isArray(fields) || fields.length === 0) {
+      setCustomizations({});
     }
   };
 
@@ -1042,7 +1045,7 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
               return (
                 <button 
                   key={item.id} 
-                  onClick={() => handleAddItemDirectly(item)}
+                  onClick={() => handleProductCardClick(item)}
                   className="relative flex-shrink-0 w-36 overflow-hidden text-left bg-[#120D09] border border-[#2A1E15] rounded hover:border-[#C8102E] transition-all cursor-pointer"
                 >
                   <AnimatePresence>
@@ -1095,7 +1098,7 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
                 animate={addingItemIds[item.id] ? { scale: [1, 1.04, 1] } : { scale: 1 }}
                 transition={{ duration: 0.4 }}
                 key={item.id} 
-                onClick={() => handleAddItemDirectly(item)}
+                onClick={() => handleProductCardClick(item)}
                 className="relative flex gap-3 glass-panel rounded-xl overflow-hidden cursor-pointer select-none transition-colors duration-200 hover:bg-white/[0.03] active:bg-white/[0.05]"
               >
                 <AnimatePresence>
@@ -1140,7 +1143,7 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
                         handleAddItemDirectly(item);
                       }}
                       className="flex items-center gap-1.5 px-3.5 py-2 bg-[#C8102E] hover:opacity-90 text-[11px] font-bold text-white rounded transition-all cursor-pointer shadow-sm shadow-[#C8102E]/20">
-                      <Plus size={11} /> {t.addToCart.split(" ")[0]}
+                      <Plus size={11} /> {lang === "fr" ? "Ajouter" : "Add"}
                     </button>
                   </div>
                 </div>
