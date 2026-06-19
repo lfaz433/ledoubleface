@@ -11,6 +11,7 @@ import { supabase } from "../../lib/supabase";
 import WaiterCallAlert, { usePendingCallsCount } from "./WaiterCallAlert";
 import { OrderStatusBadge } from "./OrderStatusBadge";
 import { ConfirmButton } from "./ConfirmButton";
+import { LiveOrdersQueue } from "./LiveOrdersQueue";
 import { toast } from "sonner";
 
 // — TypeScript Interfaces
@@ -47,11 +48,16 @@ interface Order {
   area: string;
   items: OrderItem[];
   status: "pending" | "preparing" | "ready" | "delivered";
+  /** Waiter-granular status from order_status DB column */
+  order_status?: string;
   time: string;
   total: number;
   note?: string;
   paid?: boolean;
+  /** ISO 8601 timestamp — needed by LiveOrdersQueue elapsed timer */
+  created_at?: string;
 }
+
 
 interface RestaurantTable {
   id: string;
@@ -424,10 +430,12 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
             table_id: o.table_id,
             area: o.area,
             status: o.status,
+            order_status: o.order_status,
             total: Number(o.total),
             note: o.note,
             paid: o.paid,
             time: timeString,
+            created_at: o.created_at,
             items: o.order_items || []
           };
         });
@@ -447,10 +455,12 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
               table_id: o.table_id,
               area: o.area,
               status: o.status,
+              order_status: o.order_status,
               total: Number(o.total),
               note: o.note,
               paid: o.paid,
               time: timeString,
+              created_at: o.created_at,
               items: localItems.filter((i: any) => i.order_id === o.id) || []
             };
           });
@@ -1725,105 +1735,14 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
             </div>
           )}
 
-          {/* 2. LIVE ORDERS PIPELINE */}
+          {/* 2. LIVE ORDERS PIPELINE — redesigned 3-step kanban */}
           {section === "orders" && (
-            <div className="flex flex-col gap-6">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                {(["pending", "preparing", "ready", "delivered"] as const).map(stage => {
-                  const stageOrders = orders.filter(o => o.status === stage && o.table_id?.toUpperCase() !== "DELIVERY" && o.table_id?.toUpperCase() !== "COMPTOIR");
-                  return (
-                    <div key={stage} className="flex flex-col min-h-[500px] bg-[#120D09]/50 border border-[#2A1E15]/60 rounded-xl p-4">
-                      {/* Stage header */}
-                      <div className="flex items-center justify-between mb-4 pb-2 border-b border-[#2A1E15]">
-                        <span className="text-xs font-mono font-bold uppercase tracking-wider text-[#E5D5C5]">{stage === "delivered" ? "FULFILLED" : statusLabels[stage] || stage.toUpperCase()}</span>
-                        <span className="bg-[#1A130E] border border-[#2A1E15] px-2 py-0.5 rounded text-[10px] font-mono text-[#8E7E70]">{stageOrders.length}</span>
-                      </div>
-
-                      {/* Stage tickets list */}
-                      <div className="flex flex-col gap-3 flex-1 overflow-y-auto">
-                        {stageOrders.map(order => (
-                          <div key={order.id} className="p-4 bg-[#120D09] border border-[#2A1E15] rounded-xl flex flex-col justify-between transition-all hover:border-[#C8102E]/40">
-                            <div>
-                              <div className="flex justify-between items-start mb-2 pb-2 border-b border-[#2A1E15]/30">
-                                <div>
-                                  <div className="flex items-center gap-2">
-                                    <div className="font-serif font-black text-xs text-white">{order.id}</div>
-                                    <OrderStatusBadge
-                                      orderId={order.id}
-                                      currentStatus={order.order_status || order.status}
-                                      onStatusChange={loadOrders}
-                                    />
-                                  </div>
-                                  <div className="font-mono text-[8px] text-[#8E7E70] uppercase mt-0.5">Table {order.table_id} · {order.area}</div>
-                                </div>
-                                <span className="font-mono text-[9px] text-[#8E7E70]">{order.time}</span>
-                              </div>
-
-                              <div className="flex flex-col gap-1.5 mb-4">
-                                {order.items.map((item, idx) => (
-                                  <div key={idx} className="text-xs text-[#E5D5C5]">
-                                    <div className="flex justify-between">
-                                      <span className="font-bold">{item.quantity}x {item.name}</span>
-                                      <span className="font-mono text-[10px] text-[#8E7E70]">€{(item.price * item.quantity).toFixed(2)}</span>
-                                    </div>
-                                    {Object.entries(item.customizations).map(([k, v]) => v && (Array.isArray(v) ? v.length > 0 : true) && (
-                                      <div key={k} className="text-[10px] text-[#8E7E70] pl-3">
-                                        ↳ {Array.isArray(v) ? v.join(", ") : v}
-                                      </div>
-                                    ))}
-                                  </div>
-                                ))}
-                              </div>
-
-                              {order.note && (
-                                <div className="p-2 bg-[#1A130E] border border-dashed border-[#2A1E15] text-[10px] text-amber-500 rounded font-mono mb-4">
-                                  NOTE: {order.note}
-                                </div>
-                              )}
-                            </div>
-
-                            <div className="pt-2 border-t border-[#2A1E15]/30 flex flex-col gap-2">
-                              <div className="flex justify-between items-center text-xs font-mono">
-                                <span className="text-[#8E7E70]">Total Bill:</span>
-                                <span className="font-bold text-white">€{order.total.toFixed(2)}</span>
-                              </div>
-                              
-                              <div className="flex justify-between items-center text-[10px] font-mono">
-                                <span className="text-[#8E7E70]">Payment:</span>
-                                <span className={`font-bold ${order.paid ? "text-green-500" : "text-amber-500"}`}>
-                                  {order.paid ? "PAID" : "UNPAID"}
-                                </span>
-                              </div>
-
-                              {/* Operations actions */}
-                              <div className="flex gap-2.5 mt-1">
-                                <button onClick={() => downloadInvoicePNG(order)}
-                                  className="flex-1 py-1.5 bg-[#D4A017] hover:opacity-95 text-[#0A0704] font-bold rounded text-[10px] cursor-pointer">
-                                  RECEIPT (PNG)
-                                </button>
-                                {stage !== "delivered" && (
-                                  <button onClick={() => advanceOrder(order.id, order.status)}
-                                    className="flex-1 py-1.5 bg-[#C8102E] hover:opacity-95 text-white font-bold rounded text-[10px] cursor-pointer">
-                                    {stage === "pending" ? "COOK" : stage === "preparing" ? "READY" : "SERVE"}
-                                  </button>
-                                )}
-                                
-                                {stage === "delivered" && !order.paid && (
-                                  <button onClick={() => markOrderPaid(order.id)}
-                                    className="flex-1 py-1.5 bg-green-700 hover:bg-green-600 text-white font-bold rounded text-[10px] cursor-pointer">
-                                    MARK AS PAID
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+            <LiveOrdersQueue
+              orders={orders}
+              setOrders={setOrders}
+              language={language}
+              downloadInvoicePNG={downloadInvoicePNG}
+            />
           )}
 
           {/* 2.5 DELIVERY PIPELINE */}
