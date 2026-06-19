@@ -4,9 +4,11 @@ import { AdminDashboard } from "./components/AdminDashboard";
 import { AdminAuthGate } from "./components/AdminAuthGate";
 import { WaiterAuthGate } from "./components/WaiterAuthGate";
 import { LandingPage } from "./components/LandingPage";
+import { KitchenDisplay } from "./components/KitchenDisplay";
+import { CustomerDisplay } from "./components/CustomerDisplay";
 import { Monitor, Smartphone, Columns, ArrowLeft } from "lucide-react";
 
-type RouteView = "landing" | "menu" | "admin" | "waiter" | "simulator";
+type RouteView = "landing" | "menu" | "admin" | "waiter" | "simulator" | "kitchen" | "display";
 
 export default function App() {
   const [view, setView] = useState<RouteView>("landing");
@@ -27,7 +29,9 @@ export default function App() {
       const isSimulator = params.get("simulator") === "true" || path === "/simulator";
       const isAdmin = params.get("view") === "admin" || path === "/admin";
       const isWaiter = params.get("view") === "waiter" || path === "/waiter";
-      const isMenu = params.get("view") === "menu" || path === "/menu" || params.has("table");
+      const isKitchen = params.get("view") === "kitchen" || path === "/kitchen";
+      const isDisplay = params.get("view") === "display" || path === "/display";
+      const isMenu = params.get("view") === "menu" || params.get("view") === "order" || path === "/menu" || path === "/order" || params.has("table");
       
       const urlTable = params.get("table");
       const urlArea = params.get("area");
@@ -41,6 +45,10 @@ export default function App() {
         setView("admin");
       } else if (isWaiter) {
         setView("waiter");
+      } else if (isKitchen) {
+        setView("kitchen");
+      } else if (isDisplay) {
+        setView("display");
       } else if (isMenu) {
         setView("menu");
       } else {
@@ -70,7 +78,7 @@ export default function App() {
     } else if (newView === "waiter") {
       url.searchParams.set("view", "waiter");
     } else if (newView === "menu") {
-      url.searchParams.set("view", "menu");
+      url.searchParams.set("view", "order");
       if (targetTableId) {
         url.searchParams.set("table", targetTableId);
         setTableId(targetTableId);
@@ -85,6 +93,10 @@ export default function App() {
       }
     } else if (newView === "simulator") {
       url.searchParams.set("simulator", "true");
+    } else if (newView === "kitchen") {
+      url.searchParams.set("view", "kitchen");
+    } else if (newView === "display") {
+      url.searchParams.set("view", "display");
     }
     
     window.history.pushState({}, "", url.toString());
@@ -96,6 +108,10 @@ export default function App() {
       navigateTo("admin");
     } else if (viewStr === "waiter") {
       navigateTo("waiter");
+    } else if (viewStr === "kitchen") {
+      navigateTo("kitchen");
+    } else if (viewStr === "display") {
+      navigateTo("display");
     } else if (viewStr === "client" || viewStr === "menu") {
       if (productId) {
         const url = new URL(window.location.href);
@@ -173,6 +189,16 @@ export default function App() {
         />
       </div>
     );
+  }
+
+  // Render Standalone Kitchen Screen View (KDS)
+  if (view === "kitchen") {
+    return <KitchenDisplay />;
+  }
+
+  // Render Standalone Customer Display Board View
+  if (view === "display") {
+    return <CustomerDisplay />;
   }
 
   // Render Simulator View (Split / Guest / Admin Testing)

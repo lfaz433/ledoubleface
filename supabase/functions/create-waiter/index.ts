@@ -22,7 +22,7 @@ serve(async (req) => {
       );
     }
 
-    // 1. Verify caller's identity and make sure they are not a waiter
+    // 1. Verify caller's identity and make sure they are an admin
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
     
@@ -42,28 +42,14 @@ serve(async (req) => {
     const callerRole = user.user_metadata?.role;
     if (callerRole === "waiter") {
       return new Response(
-        JSON.stringify({ error: "Forbidden: Waiters cannot create staff accounts" }),
+        JSON.stringify({ error: "Forbidden: Waiters cannot manage staff accounts" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // 2. Parse request payload
+    // 2. Parse request payload and action dispatch
     const body = await req.json();
-    const { name, email, pin, assigned_tables } = body;
-
-    if (!name || !email || !pin) {
-      return new Response(
-        JSON.stringify({ error: "Missing required fields: name, email, and pin are required." }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    if (pin.length !== 4 || isNaN(Number(pin))) {
-      return new Response(
-        JSON.stringify({ error: "Invalid PIN: PIN must be a 4-digit number." }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    const { action = "create", waiter_id, name, email, pin, assigned_tables, is_active } = body;
 
     // 3. Initialize Admin Client with service_role key to manage users
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
@@ -71,54 +57,158 @@ serve(async (req) => {
       auth: { persistSession: false }
     });
 
-    // 4. Create user in Supabase Auth
-    const { data: authData, error: authError } = await adminSupabase.auth.admin.createUser({
-      email,
-      password: pin, // PIN acts as password
-      email_confirm: true,
-      user_metadata: {
-        role: "waiter",
-        name,
-        assigned_tables: assigned_tables || []
+    if (action === "create") {
+      if (!name || !email || !pin) {
+        return new Response(
+          JSON.stringify({ error: "Missing required fields: name, email, and pin are required." }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
-    });
 
-    if (authError || !authData.user) {
+      if (pin.length !== 4 || isNaN(Number(pin))) {
+        return new Response(
+          JSON.stringify({ error: "Invalid PIN: PIN must be a 4-digit number." }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Create user in Supabase Auth
+      const { data: authData, error: authError } = await adminSupabase.auth.admin.createUser({
+        email,
+        password: pin,
+        email_confirm: true,
+        user_metadata: {
+          role: "waiter",
+          name,
+          assigned_tables: assigned_tables || []
+        }
+      });
+
+      if (authError || !authData.user) {
+        return new Response(
+          JSON.stringify({ error: authError?.message || "Failed to create Auth user" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const newWaiterId = authData.user.id;
+
+      // Insert waiter details into the public.waiters table
+      const { error: dbError } = await adminSupabase
+        .from("waiters")
+        .insert([
+          {
+            id: newWaiterId,
+            name,
+            email,
+            assigned_tables: assigned_tables || [],
+            is_active: true,
+            last_seen: new Date().toISOString()
+          }
+        ]);
+
+      if (dbError) {
+        // Rollback Auth user creation if DB insert fails
+        await adminSupabase.auth.admin.deleteUser(newWaiterId);
+        return new Response(
+          JSON.stringify({ error: `Database Error: ${dbError.message}` }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
       return new Response(
-        JSON.stringify({ error: authError?.message || "Failed to create Auth user" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ success: true, waiter_id: newWaiterId }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
-    }
 
-    const waiterId = authData.user.id;
+    } else if (action === "update") {
+      if (!waiter_id || !name || !email) {
+        return new Response(
+          JSON.stringify({ error: "Missing required fields for update: waiter_id, name, email are required." }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
 
-    // 5. Insert waiter details into the public.waiters table
-    const { error: dbError } = await adminSupabase
-      .from("waiters")
-      .insert([
-        {
-          id: waiterId,
+      // Update user in Supabase Auth
+      const authUpdates: any = {
+        email,
+        user_metadata: {
+          role: "waiter",
+          name,
+          assigned_tables: assigned_tables || []
+        }
+      };
+
+      if (pin) {
+        if (pin.length !== 4 || isNaN(Number(pin))) {
+          return new Response(
+            JSON.stringify({ error: "Invalid PIN: PIN must be a 4-digit number." }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        authUpdates.password = pin;
+      }
+
+      const { error: authError } = await adminSupabase.auth.admin.updateUserById(waiter_id, authUpdates);
+      if (authError) {
+        return new Response(
+          JSON.stringify({ error: authError.message }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Update in public.waiters table
+      const { error: dbError } = await adminSupabase
+        .from("waiters")
+        .update({
           name,
           email,
           assigned_tables: assigned_tables || [],
-          is_active: true,
-          last_seen: new Date().toISOString()
-        }
-      ]);
+          is_active: is_active !== false
+        })
+        .eq("id", waiter_id);
 
-    if (dbError) {
-      // Rollback Auth user creation if DB insert fails to maintain consistency
-      await adminSupabase.auth.admin.deleteUser(waiterId);
+      if (dbError) {
+        return new Response(
+          JSON.stringify({ error: `Database Error: ${dbError.message}` }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
       return new Response(
-        JSON.stringify({ error: `Database Error: ${dbError.message}` }),
+        JSON.stringify({ success: true }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+
+    } else if (action === "delete") {
+      if (!waiter_id) {
+        return new Response(
+          JSON.stringify({ error: "Missing waiter_id for deletion." }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Delete user from Auth (automatically deletes waiter record due to CASCADE delete trigger)
+      const { error: authError } = await adminSupabase.auth.admin.deleteUser(waiter_id);
+      if (authError) {
+        return new Response(
+          JSON.stringify({ error: authError.message }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      return new Response(
+        JSON.stringify({ success: true }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+
+    } else {
+      return new Response(
+        JSON.stringify({ error: `Unsupported action: ${action}` }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    return new Response(
-      JSON.stringify({ success: true, waiter_id: waiterId }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
   } catch (err: any) {
     return new Response(
       JSON.stringify({ error: err?.message || "Internal Server Error" }),

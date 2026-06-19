@@ -168,6 +168,12 @@ if (!client) {
             }));
           }
 
+          const compareGte = (a: any, b: any) => {
+            const d1 = Date.parse(a);
+            const d2 = Date.parse(b);
+            return (!isNaN(d1) && !isNaN(d2)) ? d1 >= d2 : a >= b;
+          };
+
           const queryChain = {
             eq: (column: string, value: any) => {
               result = result.filter(row => row[column] === value);
@@ -178,6 +184,10 @@ if (!client) {
                 },
                 neq: (col2: string, val2: any) => {
                   result = result.filter(row => row[col2] !== val2);
+                  return chain2;
+                },
+                gte: (col2: string, val2: any) => {
+                  result = result.filter(row => compareGte(row[col2], val2));
                   return chain2;
                 },
                 order: () => chain2,
@@ -200,6 +210,34 @@ if (!client) {
                   result = result.filter(row => row[col2] !== val2);
                   return chain2;
                 },
+                gte: (col2: string, val2: any) => {
+                  result = result.filter(row => compareGte(row[col2], val2));
+                  return chain2;
+                },
+                order: () => chain2,
+                limit: (limitCount: number) => {
+                  result = result.slice(0, limitCount);
+                  return Promise.resolve({ data: result, error: null });
+                },
+                then: (resolve: any) => resolve({ data: result, error: null })
+              };
+              return chain2;
+            },
+            gte: (column: string, value: any) => {
+              result = result.filter(row => compareGte(row[column], value));
+              const chain2 = {
+                eq: (col2: string, val2: any) => {
+                  result = result.filter(row => row[col2] === val2);
+                  return chain2;
+                },
+                neq: (col2: string, val2: any) => {
+                  result = result.filter(row => row[col2] !== val2);
+                  return chain2;
+                },
+                gte: (col2: string, val2: any) => {
+                  result = result.filter(row => compareGte(row[col2], val2));
+                  return chain2;
+                },
                 order: () => chain2,
                 limit: (limitCount: number) => {
                   result = result.slice(0, limitCount);
@@ -217,6 +255,10 @@ if (!client) {
                 return 0;
               });
               const chain2 = {
+                gte: (col2: string, val2: any) => {
+                  result = result.filter(row => compareGte(row[col2], val2));
+                  return chain2;
+                },
                 then: (resolve: any) => resolve({ data: result, error: null })
               };
               return chain2;

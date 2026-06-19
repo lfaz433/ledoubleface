@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { ShoppingCart, Plus, Minus, X, ChevronLeft, Check, Clock, Flame, Star, Search, RefreshCw, AlertCircle } from "lucide-react";
+import { ShoppingCart, Plus, Minus, X, ChevronLeft, Check, Clock, Flame, Star, Search, RefreshCw, AlertCircle, ChevronDown } from "lucide-react";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { supabase } from "../../lib/supabase";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, animate, useMotionValue, useTransform } from "framer-motion";
 import { translations, Language } from "../../lib/translations";
+import { OrderTracker } from "./OrderTracker";
 
 // local fallback in case database connection is not ready or configured yet
 const FALLBACK_MENU_DATA = [
@@ -65,6 +66,22 @@ function parsePriceModifier(optionText: string): number {
   return 0;
 }
 
+function AnimatedPrice({ value }: { value: number }) {
+  const motionValue = useMotionValue(value);
+  const rounded = useTransform(motionValue, (latest) => latest.toFixed(2));
+  
+  useEffect(() => {
+    const controls = animate(motionValue, value, {
+      type: "spring",
+      damping: 30,
+      stiffness: 200
+    });
+    return controls.stop;
+  }, [value, motionValue]);
+  
+  return <motion.span>{rounded}</motion.span>;
+}
+
 export function ClientOrdering({ tableId, area }: { tableId: string; area: string }) {
   const [menuItems, setMenuItems] = useState<any[]>(() => {
     if (typeof window !== "undefined") {
@@ -99,6 +116,12 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
   const [deliveryEmail, setDeliveryEmail] = useState("");
   const [orderId, setOrderId] = useState("");
   const [tableActive, setTableActive] = useState(true);
+  const [waiterCallPending, setWaiterCallPending] = useState(false);
+  const [waiterCallTimer, setWaiterCallTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
+  const [lastOrderedItems, setLastOrderedItems] = useState<any[]>([]);
+  const [lastOrderedTotal, setLastOrderedTotal] = useState<number>(0);
+  const [addingItemIds, setAddingItemIds] = useState<Record<string, boolean>>({});
+  const [noteExpanded, setNoteExpanded] = useState(false);
 
   // Bilingual State
   const [lang, setLang] = useState<Language>("fr");
@@ -583,10 +606,39 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
     setStatus("customizing");
   }
 
+  const handleAddItemDirectly = (item: any) => {
+    const fields = item.customFields || item.custom_fields;
+    if (Array.isArray(fields) && fields.length > 0) {
+      openCustomize(item);
+    } else {
+      const k = `${item.id}-{}`;
+      
+      if (typeof navigator !== "undefined" && navigator.vibrate) {
+        navigator.vibrate(50);
+      }
+      
+      setAddingItemIds(p => ({ ...p, [item.id]: true }));
+      setTimeout(() => {
+        setAddingItemIds(p => ({ ...p, [item.id]: false }));
+      }, 500);
+
+      setCart(prev => {
+        const existing = prev.find(i => i.itemKey === k);
+        if (existing) return prev.map(i => i.itemKey === k ? { ...i, quantity: i.quantity + 1 } : i);
+        return [...prev, { id: item.id, name: item.name, price: item.price, quantity: 1, customizations: {}, itemKey: k }];
+      });
+    }
+  };
+
   function addToCart() {
     if (!selectedItem) return;
     const finalPrice = getItemPriceWithModifiers();
     const key = `${selectedItem.id}-${JSON.stringify(customizations)}`;
+    
+    if (typeof navigator !== "undefined" && navigator.vibrate) {
+      navigator.vibrate(50);
+    }
+    
     setCart(prev => {
       const existing = prev.find(i => i.itemKey === key);
       if (existing) return prev.map(i => i.itemKey === key ? { ...i, quantity: i.quantity + 1 } : i);
@@ -599,6 +651,102 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
   function adjustQty(key: string, delta: number) {
     setCart(prev => prev.map(i => i.itemKey === key ? { ...i, quantity: Math.max(0, i.quantity + delta) } : i).filter(i => i.quantity > 0));
   }
+
+  // Synthesize/Register Waiter Call logic
+  async function handleCallWaiter() {
+    if (waiterCallPending) return;
+    try {
+      if (supabase.isMock) {
+        // Mock DB implementation
+        const localCalls = JSON.parse(localStorage.getItem("ldf_waiter_calls") || "[]");
+        const newCall = {
+          id: `call-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+          order_id: orderId || null,
+          table_id: tableId,
+          area: area || "Terrace Patio",
+          status: "pending",
+          called_at: new Date().toISOString()
+        };
+        localCalls.push(newCall);
+        localStorage.setItem("ldf_waiter_calls", JSON.stringify(localCalls));
+        window.dispatchEvent(new Event("ldf-db-update"));
+      } else {
+        await supabase.from("waiter_calls").insert({
+          order_id: orderId || null,
+          table_id: tableId,
+          area: area || "Terrace Patio",
+          status: "pending"
+        });
+      }
+      setWaiterCallPending(true);
+      navigator.vibrate?.([100, 50, 100]);
+      const timer = setTimeout(() => setWaiterCallPending(false), 90000);
+      setWaiterCallTimer(timer);
+    } catch (err) {
+      console.error("Failed to call waiter", err);
+    }
+  }
+
+  // Subscribe to waiter calls acknowledgement to reset pending state
+  useEffect(() => {
+    if (!orderId) return;
+
+    let subscription: any = null;
+    if (!supabase.isMock) {
+      subscription = supabase
+        .channel(`waiter-calls-client-${orderId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "UPDATE",
+            schema: "public",
+            table: "waiter_calls",
+            filter: `order_id=eq.${orderId}`,
+          },
+          (payload: any) => {
+            if (payload.new && payload.new.status === "acknowledged") {
+              if (waiterCallTimer) {
+                clearTimeout(waiterCallTimer);
+              }
+              setWaiterCallPending(false);
+            }
+          }
+        )
+        .subscribe();
+    } else {
+      const handleMockUpdate = () => {
+        try {
+          const localCalls = JSON.parse(localStorage.getItem("ldf_waiter_calls") || "[]");
+          const activeCall = localCalls.find((c: any) => c.order_id === orderId);
+          if (activeCall && activeCall.status === "acknowledged") {
+            if (waiterCallTimer) {
+              clearTimeout(waiterCallTimer);
+            }
+            setWaiterCallPending(false);
+          }
+        } catch (_) {}
+      };
+      window.addEventListener("ldf-db-update", handleMockUpdate);
+      return () => {
+        window.removeEventListener("ldf-db-update", handleMockUpdate);
+      };
+    }
+
+    return () => {
+      if (subscription) {
+        supabase.removeChannel(subscription);
+      }
+    };
+  }, [orderId, waiterCallTimer]);
+
+  // Clean up timer on unmount
+  useEffect(() => {
+    return () => {
+      if (waiterCallTimer) {
+        clearTimeout(waiterCallTimer);
+      }
+    };
+  }, [waiterCallTimer]);
 
   // Submit Order to Supabase Database
   async function placeOrder() {
@@ -651,6 +799,8 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
 
       if (itemsError) throw itemsError;
 
+      setLastOrderedItems([...cart]);
+      setLastOrderedTotal(cartTotal);
       setStatus("confirmed");
       setCart([]); // Clean local basket
       setOrderNote("");
@@ -691,377 +841,64 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
   }
 
   if (status === "confirmed") {
-    const qrInvoiceUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(orderId)}`;
-    const isDelivery = tableId?.toUpperCase() === "DELIVERY";
+    const formattedItems = lastOrderedItems.map(i => ({
+      name: i.name,
+      quantity: i.quantity,
+      price: i.price,
+      customizations: i.customizations
+    }));
+
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-6 bg-[#0A0704] text-white">
-        <div className="w-16 h-16 rounded-full flex items-center justify-center mb-6 bg-[#C8102E]/15 border border-[#C8102E]">
-          <Check size={28} className="text-[#C8102E]" />
-        </div>
-        <h2 className="font-serif text-2xl font-extrabold text-white mb-2">{t.orderDispatched}</h2>
-        <p className="text-[#8E7E70] mb-2 text-xs">
-          {isDelivery 
-            ? (lang === "fr" ? "Livraison à domicile" : "Home Delivery")
-            : `Table ${tableId} · ${area}`}
-        </p>
-        
-        <p className="text-[10px] font-mono text-[#8E7E70] tracking-wider mb-5 bg-[#120D09] border border-[#2A1E15] px-3 py-1.5 rounded select-all">
-          {t.invoiceCode}: <span className="text-white font-bold">{orderId}</span>
-        </p>
-
-        {isDelivery ? (
-          <div className="text-center max-w-xs mb-8 flex flex-col items-center animate-fade-in">
-            <div className="text-4xl mb-4">🛵</div>
-            <p className="text-sm font-semibold text-white mb-2">
-              {lang === "fr" ? "En route pour la livraison" : "Delivery on the way"}
-            </p>
-            <p className="text-xs text-[#8E7E70] leading-relaxed">
-              {lang === "fr" 
-                ? "Votre commande est transmise. Nos livreurs vous contacteront par téléphone à leur arrivée." 
-                : "Your order is dispatched. Our rider will call your phone number upon arrival."}
-            </p>
-          </div>
-        ) : (
-          <>
-            {/* Invoice QR Code */}
-            <div className="bg-white p-2.5 rounded-xl mb-4 border border-white/20">
-              <img src={qrInvoiceUrl} alt="Invoice QR" className="w-32 h-32 object-contain" />
-            </div>
-            <p className="text-[10px] text-[#8E7E70] text-center max-w-xs mb-8 leading-relaxed">
-              {t.invoiceQrDesc}
-            </p>
-          </>
-        )}
-
-        <button onClick={() => downloadInvoicePNG(orderId, tableId, cart)}
-          className="px-8 py-3 mb-3 text-xs tracking-widest bg-[#D4A017] text-[#0A0704] hover:opacity-90 active:scale-95 transition-all font-bold rounded cursor-pointer flex items-center justify-center gap-1.5 shadow-lg shadow-[#D4A017]/10 w-full max-w-xs">
-          📥 {lang === "fr" ? "TÉLÉCHARGER LA FACTURE (PNG)" : "DOWNLOAD RECEIPT (PNG)"}
-        </button>
-
-        <button onClick={() => {
-          setStatus("browsing");
-          setCart([]);
-          checkActiveOrder(); // Sync
-          setOrderId(`ORD-${Math.random().toString(36).substr(2, 6).toUpperCase()}`);
-        }}
-          className="px-8 py-3 text-xs tracking-widest bg-[#C8102E] text-white hover:opacity-90 active:scale-95 transition-all font-bold rounded cursor-pointer w-full max-w-xs">
-          {t.backToMenu}
-        </button>
+      <div className="min-h-screen bg-[#0A0704] flex flex-col items-center justify-center p-4 w-full">
+        <OrderTracker
+          orderId={orderId}
+          orderNumber={orderId}
+          tableId={tableId}
+          area={area}
+          items={formattedItems}
+          totalPrice={lastOrderedTotal}
+          language={lang}
+          onCallWaiter={handleCallWaiter}
+          onNewOrder={() => {
+            setStatus("browsing");
+            setCart([]);
+            checkActiveOrder(); // Sync
+            setOrderId(`ORD-${Math.random().toString(36).substr(2, 6).toUpperCase()}`);
+          }}
+          waiterCallPending={waiterCallPending}
+        />
       </div>
     );
   }
 
   if (status === "customizing" && selectedItem) {
-    return (
-      <motion.div 
-        initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", damping: 25, stiffness: 200 }}
-        className="min-h-screen bg-[#0A0704] text-white flex flex-col fixed inset-0 z-50 overflow-hidden"
-      >
-        {/* Customization Header */}
-        <div className="sticky top-0 z-10 px-4 py-4 flex items-center bg-[#0A0704]/95 border-b border-[#2A1E15] backdrop-blur-md">
-          <div className="max-w-3xl mx-auto w-full flex items-center gap-3">
-            <button onClick={() => setStatus("browsing")} className="text-[#8E7E70] hover:text-white transition-colors cursor-pointer p-1">
-              <ChevronLeft size={22} />
-            </button>
-            <span className="font-serif font-bold text-lg">{t.customOptions}</span>
-          </div>
-        </div>
-
-        {/* Customization Details */}
-        <div className="flex-1 overflow-y-auto pb-28">
-          <div className="max-w-3xl mx-auto w-full">
-            <div className="relative h-64 sm:h-72 overflow-hidden bg-[#1A130E] border-b border-[#2A1E15] sm:rounded-b-2xl">
-              <ImageWithFallback src={selectedItem.image} alt={selectedItem.name} className="w-full h-full object-cover" />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#0A0704] via-[#0A0704]/40 to-transparent" />
-            </div>
-
-            <div className="px-4 py-6">
-              <div className="flex justify-between items-start mb-2">
-                <h2 className="font-serif font-bold text-2xl text-white">{selectedItem.name}</h2>
-                <span className="font-mono font-bold text-lg text-[#E5D5C5]">€{selectedItem.price.toFixed(2)}</span>
-              </div>
-              <p className="text-xs text-[#8E7E70] mb-6 leading-relaxed">{selectedItem.desc}</p>
-
-              {/* Render modifiers */}
-              {Array.isArray(selectedItem.customFields || selectedItem.custom_fields) && (selectedItem.customFields || selectedItem.custom_fields).map((field: any) => (
-                <div key={field.id} className="mb-6 bg-[#120D09]/40 border border-[#2A1E15] p-5 rounded-2xl backdrop-blur-sm shadow-sm">
-                  <div className="flex items-center gap-2 mb-4">
-                    <span className="font-bold text-sm text-white">{field.name}</span>
-                    {field.required && (
-                      <span className="px-2 py-0.5 border border-[#C8102E]/30 bg-[#C8102E]/10 text-[#C8102E] text-[9px] font-black rounded-full tracking-wider ml-1 font-mono uppercase">
-                        {lang === "fr" ? "Requis" : "Required"}
-                      </span>
-                    )}
-                  </div>
-                  {field.type === "radio" && (
-                    <div className="flex flex-wrap gap-2.5">
-                      {field.options.map((opt: string) => {
-                        const selected = customizations[field.id] === opt;
-                        return (
-                          <button key={opt} onClick={() => setCustomizations(p => ({ ...p, [field.id]: opt }))}
-                            className="px-5 py-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 border cursor-pointer flex-1 min-w-[90px] sm:flex-initial text-center"
-                            style={{
-                              borderColor: selected ? "#C8102E" : "#2A1E15",
-                              background: selected ? "rgba(200,16,46,0.2)" : "#120D09",
-                              color: selected ? "#FFFFFF" : "#E5D5C5",
-                              boxShadow: selected ? "0 0 12px rgba(200, 16, 46, 0.15)" : "none"
-                            }}>
-                            <span>{opt}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-                  {field.type === "checkbox" && (
-                    <div className="flex flex-col gap-2.5">
-                      {field.options.map((opt: string) => {
-                        const arr = (customizations[field.id] as string[] | undefined) || [];
-                        const checked = arr.includes(opt);
-                        return (
-                          <button key={opt} onClick={() => setCustomizations(p => {
-                            const prev = (p[field.id] as string[] | undefined) || [];
-                            return { ...p, [field.id]: checked ? prev.filter(x => x !== opt) : [...prev, opt] };
-                          })}
-                            className="flex items-center gap-3.5 px-4.5 py-3.5 text-xs text-left rounded-xl transition-all cursor-pointer border select-none duration-150"
-                            style={{ 
-                              borderColor: checked ? "#C8102E" : "#2A1E15", 
-                              background: checked ? "rgba(200,16,46,0.06)" : "#120D09",
-                              color: checked ? "#FFFFFF" : "#E5D5C5"
-                            }}>
-                            <div className="w-5 h-5 flex items-center justify-center flex-shrink-0 rounded-md border transition-all"
-                              style={{ 
-                                borderColor: checked ? "#C8102E" : "#2A1E15", 
-                                background: checked ? "#C8102E" : "transparent" 
-                              }}>
-                              {checked && <Check size={12} className="text-white stroke-[3px]" />}
-                            </div>
-                            <span className="flex-1 font-semibold">{opt}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Sticky Drawer Footer */}
-        <div className="fixed bottom-0 left-0 right-0 p-4 border-t border-[#2A1E15] bg-[#0A0704]/98 backdrop-blur-md z-30">
-          <div className="max-w-3xl mx-auto w-full">
-            <button onClick={addToCart}
-              className="w-full py-4 text-xs font-black tracking-widest bg-[#C8102E] text-white rounded-xl hover:opacity-90 active:scale-[0.98] transition-all cursor-pointer shadow-lg shadow-[#C8102E]/20">
-              {t.addToCart.toUpperCase()} — €{getItemPriceWithModifiers().toFixed(2)}
-            </button>
-          </div>
-        </div>
-      </motion.div>
-    );
-  }
-
-  if (status === "cart") {
-    return (
-      <motion.div 
-        initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} transition={{ type: "spring", damping: 25, stiffness: 200 }}
-        className="min-h-screen bg-[#0A0704] text-white flex flex-col fixed inset-0 z-50"
-      >
-        <div className="sticky top-0 z-10 px-4 py-4 flex items-center gap-3 bg-white/5 border-b border-white/10 backdrop-blur-md">
-          <button onClick={() => setStatus("browsing")} className="text-[#8E7E70] hover:text-white transition-colors cursor-pointer">
-            <ChevronLeft size={22} />
-          </button>
-          <span className="font-serif font-bold text-lg">{t.cartTitle} · Table {tableId}</span>
-        </div>
-        
-        <div className="flex-1 px-4 py-6 overflow-y-auto pb-24">
-          {cart.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20">
-              <ShoppingCart size={48} className="text-[#2A1E15] mb-4" />
-              <p className="text-sm text-[#8E7E70]">{t.cartEmpty}</p>
-            </div>
-          ) : (
-            <>
-              <div className="flex flex-col gap-3 mb-6">
-                {cart.map(item => (
-                  <div key={item.itemKey} className="p-4 bg-[#120D09] border border-[#2A1E15] rounded-lg">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="font-bold text-[#E5D5C5] text-sm">{item.name}</span>
-                      <span className="font-mono text-xs font-bold text-[#C8102E]">€{(item.price * item.quantity).toFixed(2)}</span>
-                    </div>
-                    {Object.entries(item.customizations).map(([k, v]) => v && (Array.isArray(v) ? v.length > 0 : true) && (
-                      <div key={k} className="text-[11px] text-[#8E7E70] mb-1">
-                        {Array.isArray(v) ? v.join(", ") : v}
-                      </div>
-                    ))}
-                    <div className="flex items-center gap-3 mt-3 pt-3 border-t border-[#2A1E15]/50 select-none">
-                      <button onClick={() => adjustQty(item.itemKey, -1)}
-                        className="w-10 h-10 flex items-center justify-center border border-[#2A1E15] rounded text-white hover:bg-[#1A130E] transition-all cursor-pointer">
-                        <Minus size={14} />
-                      </button>
-                      <span className="font-mono text-sm font-bold text-[#E5D5C5] w-6 text-center">{item.quantity}</span>
-                      <button onClick={() => adjustQty(item.itemKey, 1)}
-                        className="w-10 h-10 flex items-center justify-center bg-[#C8102E] text-white rounded hover:opacity-90 transition-all cursor-pointer">
-                        <Plus size={14} />
-                      </button>
-                      <button onClick={() => adjustQty(item.itemKey, -item.quantity)} className="ml-auto text-[#8E7E70] hover:text-white cursor-pointer p-2" title="Remove">
-                        <X size={16} />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mb-6">
-                <label className="text-[11px] font-mono tracking-widest text-[#8E7E70] block mb-2">{t.cartNote.toUpperCase()}</label>
-                <textarea
-                  value={orderNote}
-                  onChange={e => setOrderNote(e.target.value)}
-                  rows={2}
-                  placeholder="Allergies, requests..."
-                  className="w-full px-3 py-2 text-xs bg-[#120D09] border border-[#2A1E15] rounded-md text-white outline-none focus:border-[#C8102E] transition-colors resize-none"
-                />
-              </div>
-
-              <div className="p-4 bg-[#120D09] border border-[#2A1E15] rounded-lg mb-6">
-                <div className="flex justify-between mb-1.5 text-xs text-[#8E7E70]">
-                  <span>Subtotal</span>
-                  <span className="font-mono">€{cartTotal.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between mb-1.5 text-xs text-[#8E7E70]">
-                  <span>Service</span>
-                  <span>Included</span>
-                </div>
-                <div className="flex justify-between pt-3 mt-3 border-t border-[#2A1E15] font-black text-sm text-white">
-                  <span>Total</span>
-                  <span className="font-mono text-base text-[#C8102E]">€{cartTotal.toFixed(2)}</span>
-                </div>
-              </div>
-
-              <button onClick={() => setStatus("checkout")}
-                className="w-full py-4 text-xs font-bold tracking-widest bg-[#C8102E] hover:opacity-95 text-white rounded-xl transition-all active:scale-98 cursor-pointer">
-                {t.checkoutBtn.toUpperCase()}
-              </button>
-            </>
-          )}
-        </div>
-      </motion.div>
-    );
-  }
-
-  if (status === "checkout") {
-    return (
-      <motion.div 
-        initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} transition={{ type: "spring", damping: 25, stiffness: 200 }}
-        className="min-h-screen bg-[#0A0704] text-white flex flex-col fixed inset-0 z-50"
-      >
-        <div className="sticky top-0 z-10 px-4 py-4 flex items-center gap-3 bg-white/5 border-b border-white/10 backdrop-blur-md">
-          <button onClick={() => setStatus("cart")} className="text-[#8E7E70] hover:text-white transition-colors cursor-pointer">
-            <ChevronLeft size={22} />
-          </button>
-          <span className="font-serif font-bold text-lg">{t.paymentTitle}</span>
-        </div>
-        
-        <div className="flex-1 px-4 py-6 overflow-y-auto pb-24">
-          {tableId?.toUpperCase() === "DELIVERY" && (
-            <div className="mb-8 p-4 bg-[#120D09] border border-[#C8102E]/30 rounded-xl">
-              <h3 className="font-serif font-black text-white text-lg mb-4">{t.deliveryDetails || "Delivery Details"}</h3>
-              <div className="flex flex-col gap-3">
-                <input
-                  type="text"
-                  placeholder={t.showsFullName || "Full Name"}
-                  value={deliveryName}
-                  onChange={(e) => setDeliveryName(e.target.value)}
-                  className="w-full px-4 py-3 bg-[#1A130E] border border-[#2A1E15] rounded-xl text-white outline-none focus:border-[#C8102E]"
-                />
-                <input
-                  type="email"
-                  placeholder={t.deliveryEmail || "Email Address (Optional)"}
-                  value={deliveryEmail}
-                  onChange={(e) => setDeliveryEmail(e.target.value)}
-                  className="w-full px-4 py-3 bg-[#1A130E] border border-[#2A1E15] rounded-xl text-white outline-none focus:border-[#C8102E]"
-                />
-                <input
-                  type="tel"
-                  placeholder={t.deliveryPhone || "Phone Number"}
-                  value={deliveryPhone}
-                  onChange={(e) => setDeliveryPhone(e.target.value)}
-                  className="w-full px-4 py-3 bg-[#1A130E] border border-[#2A1E15] rounded-xl text-white outline-none focus:border-[#C8102E]"
-                />
-                <textarea
-                  placeholder={t.deliveryAddress || "Full Address"}
-                  value={deliveryAddress}
-                  onChange={(e) => setDeliveryAddress(e.target.value)}
-                  rows={2}
-                  className="w-full px-4 py-3 bg-[#1A130E] border border-[#2A1E15] rounded-xl text-white outline-none focus:border-[#C8102E] resize-none"
-                />
-              </div>
-            </div>
-          )}
-
-          <p className="text-xs text-[#8E7E70] mb-6">{t.paymentDesc}</p>
-          
-          <div className="flex flex-col gap-3 mb-8">
-            {[
-              { id: "visa" as const, label: t.paymentVisa, disabled: true },
-              { id: "apple" as const, label: t.paymentApplePay, disabled: true },
-              { 
-                id: "cash" as const, 
-                label: tableId?.toUpperCase() === "DELIVERY" 
-                  ? (lang === "fr" ? "Paiement en espèces à la livraison" : "Cash on delivery (Pay at door)")
-                  : t.paymentCash, 
-                disabled: false 
-              }
-            ].map(method => (
-              <button
-                key={method.id}
-                disabled={method.disabled}
-                onClick={() => setSelectedPayment(method.id)}
-                className={`flex items-center justify-between p-4 rounded-xl border transition-all text-left ${
-                  method.disabled ? "opacity-30 cursor-not-allowed border-[#2A1E15] bg-zinc-950/20" :
-                  selectedPayment === method.id ? "border-[#C8102E] bg-red-950/10 cursor-pointer" : "border-[#2A1E15] bg-[#120D09] hover:bg-[#1A130E] cursor-pointer"
-                }`}
-              >
-                <span className={`text-xs font-semibold ${selectedPayment === method.id ? "text-white" : "text-[#8E7E70]"}`}>{method.label}</span>
-                <div className="w-4 h-4 rounded-full border flex items-center justify-center" style={{ borderColor: selectedPayment === method.id ? "#C8102E" : "#2A1E15" }}>
-                  {selectedPayment === method.id && <div className="w-2 h-2 rounded-full bg-[#C8102E]" />}
-                </div>
-              </button>
-            ))}
-          </div>
-
-          <div className="p-4 bg-[#120D09] border border-[#2A1E15] rounded-xl mb-8">
-            <div className="flex justify-between font-black text-sm text-white">
-              <span>{t.confirmOrder}</span>
-              <span className="font-mono text-[#C8102E]">€{cartTotal.toFixed(2)}</span>
-            </div>
-          </div>
-          
-          <button onClick={placeOrder}
-            disabled={status === "ordering"}
-            className="w-full py-4 text-xs font-bold tracking-widest bg-[#C8102E] hover:opacity-95 text-white rounded-xl transition-all active:scale-98 cursor-pointer">
-            {status === "ordering" ? "TRANSMITTING TICKET..." : t.confirmOrder.toUpperCase()}
-          </button>
-        </div>
-      </motion.div>
-    );
+    // Left for safety, but we will handle it overlay-style. We can return null or keep it just in case.
+    // Actually, we've removed the early exit, so let's delete this block completely.
   }
 
   return (
     <motion.div 
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="min-h-screen pb-24 bg-transparent text-white"
+      className="min-h-screen pb-28 bg-transparent text-white relative"
     >
       {/* Header */}
       <div className="sticky top-0 z-10 bg-white/5 border-b border-white/10 backdrop-blur-xl shadow-lg">
         <div className="px-4 py-4 flex items-center justify-between">
-          <div className="flex flex-col">
-            <span className="font-serif font-black text-lg text-white">Le Double Face</span>
-            <div className="flex items-center gap-1.5 mt-0.5">
-              <span className="font-mono text-[9px] text-[#C8102E] tracking-widest font-bold">TABLE {tableId} · {area.toUpperCase()}</span>
-              <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: (!supabase || supabase.isMock || dbError) ? '#EF4444' : '#10B981' }} />
-              <span className="font-mono text-[7px] text-[#8E7E70] uppercase tracking-wider">
-                {(!supabase || supabase.isMock || dbError) ? 'Offline' : 'Online'}
-              </span>
+          <div className="flex flex-col gap-1.5">
+            <span className="font-serif font-black text-lg text-white leading-tight">Le Double Face</span>
+            <div className="flex items-center flex-wrap gap-1.5">
+              {/* Permanent Context Pill */}
+              <div className="flex items-center gap-1.5 px-2.5 py-1 bg-[#C8102E]/10 border border-[#C8102E]/25 rounded-full text-[9px] text-[#C8102E] font-mono font-black tracking-wider uppercase">
+                <span>🍽️ {tableId?.toUpperCase() === "DELIVERY" ? (lang === "fr" ? "LIVRAISON" : "DELIVERY") : `TABLE ${tableId}`}</span>
+                <span className="opacity-40">•</span>
+                <span>{area}</span>
+              </div>
+              <div className="flex items-center gap-1 bg-[#1A130E] border border-[#2A1E15] px-2 py-0.5 rounded-full text-[9px] font-mono font-bold">
+                <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: (!supabase || supabase.isMock || dbError) ? '#EF4444' : '#10B981' }} />
+                <span className="text-[#8E7E70] uppercase tracking-wider text-[7px]">
+                  {(!supabase || supabase.isMock || dbError) ? 'Offline' : 'Online'}
+                </span>
+              </div>
             </div>
           </div>
           
@@ -1202,17 +1039,33 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
           </div>
           <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none" style={{ scrollbarWidth: "none" }}>
             {menuItems.filter(i => i.popular).map(item => {
-              const fields = item.customFields || item.custom_fields;
-              const hasModifiers = Array.isArray(fields) && fields.length > 0;
               return (
-                <button key={item.id} onClick={() => hasModifiers ? openCustomize(item) : (() => {
-                  const k = `${item.id}-{}`;
-                  setCart(p => {
-                    const ex = p.find(i => i.itemKey === k);
-                    return ex ? p.map(i => i.itemKey === k ? { ...i, quantity: i.quantity + 1 } : i) : [...p, { id: item.id, name: item.name, price: item.price, quantity: 1, customizations: {}, itemKey: k }];
-                  });
-                })()}
-                  className="flex-shrink-0 w-36 overflow-hidden text-left bg-[#120D09] border border-[#2A1E15] rounded hover:border-[#C8102E] transition-all cursor-pointer">
+                <button 
+                  key={item.id} 
+                  onClick={() => handleAddItemDirectly(item)}
+                  className="relative flex-shrink-0 w-36 overflow-hidden text-left bg-[#120D09] border border-[#2A1E15] rounded hover:border-[#C8102E] transition-all cursor-pointer"
+                >
+                  <AnimatePresence>
+                    {addingItemIds[item.id] && (
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="absolute inset-0 bg-black/60 backdrop-blur-[1px] flex items-center justify-center z-10"
+                      >
+                        <motion.div
+                          initial={{ scale: 0.5, rotate: -20 }}
+                          animate={{ scale: 1, rotate: 0 }}
+                          exit={{ scale: 0.8 }}
+                          transition={{ type: "spring", damping: 12, stiffness: 200 }}
+                          className="w-10 h-10 rounded-full bg-[#10B981] flex items-center justify-center text-white shadow-lg shadow-[#10B981]/25"
+                        >
+                          <Check size={20} className="stroke-[3px]" />
+                        </motion.div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
                   <div className="h-24 bg-[#1A130E] overflow-hidden">
                     <ImageWithFallback src={item.image} alt={item.name} className="w-full h-full object-cover" />
                   </div>
@@ -1235,28 +1088,38 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
         
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map(item => {
-            const handleSelect = () => {
-              const fields = item.customFields || item.custom_fields;
-              if (Array.isArray(fields) && fields.length > 0) {
-                openCustomize(item);
-              } else {
-                const k = `${item.id}-{}`;
-                setCart(p => {
-                  const ex = p.find(i => i.itemKey === k);
-                  return ex ? p.map(i => i.itemKey === k ? { ...i, quantity: i.quantity + 1 } : i) : [...p, { id: item.id, name: item.name, price: item.price, quantity: 1, customizations: {}, itemKey: k }];
-                });
-              }
-            };
-
             return (
               <motion.div 
                 whileHover={{ scale: 1.015 }}
                 whileTap={{ scale: 0.985 }}
+                animate={addingItemIds[item.id] ? { scale: [1, 1.04, 1] } : { scale: 1 }}
+                transition={{ duration: 0.4 }}
                 key={item.id} 
-                onClick={handleSelect}
-                className="flex gap-3 glass-panel rounded-xl overflow-hidden cursor-pointer select-none transition-colors duration-200 hover:bg-white/[0.03] active:bg-white/[0.05]"
+                onClick={() => handleAddItemDirectly(item)}
+                className="relative flex gap-3 glass-panel rounded-xl overflow-hidden cursor-pointer select-none transition-colors duration-200 hover:bg-white/[0.03] active:bg-white/[0.05]"
               >
-                <div className="w-24 h-24 bg-black/40 flex-shrink-0">
+                <AnimatePresence>
+                  {addingItemIds[item.id] && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="absolute inset-0 bg-black/60 backdrop-blur-[1px] flex items-center justify-center z-10"
+                    >
+                      <motion.div
+                        initial={{ scale: 0.5, rotate: -20 }}
+                        animate={{ scale: 1, rotate: 0 }}
+                        exit={{ scale: 0.8 }}
+                        transition={{ type: "spring", damping: 12, stiffness: 200 }}
+                        className="w-12 h-12 rounded-full bg-[#10B981] flex items-center justify-center text-white shadow-lg shadow-[#10B981]/25"
+                      >
+                        <Check size={24} className="stroke-[3px]" />
+                      </motion.div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                <div className="w-24 h-24 bg-black/40 flex-shrink-0 relative">
                   <ImageWithFallback src={item.image} alt={item.name} className="w-full h-full object-cover" />
                 </div>
                 
@@ -1274,7 +1137,7 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
                     <button
                       onClick={(e) => {
                         e.stopPropagation(); // prevent card double tap trigger
-                        handleSelect();
+                        handleAddItemDirectly(item);
                       }}
                       className="flex items-center gap-1.5 px-3.5 py-2 bg-[#C8102E] hover:opacity-90 text-[11px] font-bold text-white rounded transition-all cursor-pointer shadow-sm shadow-[#C8102E]/20">
                       <Plus size={11} /> {t.addToCart.split(" ")[0]}
@@ -1332,18 +1195,33 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
         </div>
       )}
 
-      {/* Floating cart bar */}
+      {/* Sticky Cart Bar (Zero-friction bottom sticky bar) */}
       <AnimatePresence>
         {cartCount > 0 && status === "browsing" && (
           <motion.div 
-            initial={{ y: 100, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 100, opacity: 0 }}
-            className="fixed bottom-6 left-4 right-4 z-20"
+            initial={{ y: 100, opacity: 0 }} 
+            animate={{ y: 0, opacity: 1 }} 
+            exit={{ y: 100, opacity: 0 }}
+            transition={{ type: "spring", damping: 25, stiffness: 200 }}
+            className="fixed bottom-0 left-0 right-0 z-30 bg-[#C8102E] text-white shadow-2xl border-t border-[#C8102E]/20"
           >
-            <button onClick={() => setStatus("cart")}
-              className="w-full py-3.5 flex items-center justify-between px-5 bg-[#C8102E] text-white rounded-xl font-bold shadow-lg shadow-[#C8102E]/40 transition-all hover:opacity-95 active:scale-95 cursor-pointer">
-              <span className="w-6 h-6 flex items-center justify-center text-[10px] font-black rounded bg-white/20">{cartCount}</span>
-              <span className="text-xs font-extrabold tracking-widest">{t.cartTitle.toUpperCase()}</span>
-              <span className="font-mono text-sm">€{cartTotal.toFixed(2)}</span>
+            <button 
+              onClick={() => setStatus("cart")}
+              className="w-full py-4 flex items-center justify-between px-6 font-bold transition-all hover:bg-black/10 active:opacity-90 cursor-pointer"
+            >
+              <div className="flex items-center gap-3">
+                <span className="w-6 h-6 flex items-center justify-center text-[10px] font-black rounded-full bg-white/20">
+                  {cartCount}
+                </span>
+                <span className="text-xs font-black tracking-widest">
+                  {t.cartTitle.toUpperCase()}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 font-mono text-sm">
+                <span>€</span>
+                <AnimatedPrice value={cartTotal} />
+                <span className="ml-1 text-white/70">→</span>
+              </div>
             </button>
           </motion.div>
         )}
@@ -1446,6 +1324,408 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
           🔄 Refresh App Connection (Reset Cache)
         </button>
       </footer>
+
+      {/* Zero-friction Bottom Sheets */}
+      <AnimatePresence>
+        {/* Customization Sheet */}
+        {status === "customizing" && selectedItem && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => {
+                setStatus("browsing");
+                setSelectedItem(null);
+              }}
+              className="fixed inset-0 bg-black/80 backdrop-blur-[2px] z-40"
+            />
+            {/* Sheet */}
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 220 }}
+              drag="y"
+              dragConstraints={{ top: 0, bottom: 0 }}
+              dragElastic={{ top: 0, bottom: 1 }}
+              onDragEnd={(e, info) => {
+                if (info.offset.y > 150) {
+                  setStatus("browsing");
+                  setSelectedItem(null);
+                }
+              }}
+              className="fixed bottom-0 left-0 right-0 max-h-[85vh] bg-[#120D09] border-t border-[#2A1E15] rounded-t-2xl z-50 flex flex-col overflow-hidden"
+            >
+              {/* Drag Handle */}
+              <div className="w-12 h-1 bg-[#2A1E15] rounded-full mx-auto my-3 flex-shrink-0" />
+              
+              {/* Header */}
+              <div className="px-4 pb-3 flex items-center justify-between border-b border-[#2A1E15]/30">
+                <span className="font-serif font-bold text-base text-[#E5D5C5]">{t.customOptions}</span>
+                <button
+                  onClick={() => {
+                    setStatus("browsing");
+                    setSelectedItem(null);
+                  }}
+                  className="text-xs text-[#8E7E70] hover:text-white cursor-pointer"
+                >
+                  {lang === "fr" ? "Fermer" : "Close"}
+                </button>
+              </div>
+
+              {/* Scrollable content */}
+              <div className="flex-1 overflow-y-auto pb-28 px-4 pt-4">
+                <div className="relative h-48 overflow-hidden bg-[#1A130E] border border-[#2A1E15] rounded-xl mb-6">
+                  <ImageWithFallback src={selectedItem.image} alt={selectedItem.name} className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#120D09] via-transparent to-transparent" />
+                </div>
+
+                <div className="flex justify-between items-start mb-2">
+                  <h2 className="font-serif font-bold text-xl text-white">{selectedItem.name}</h2>
+                  <span className="font-mono font-bold text-base text-[#E5D5C5]">€{selectedItem.price.toFixed(2)}</span>
+                </div>
+                <p className="text-[11px] text-[#8E7E70] mb-6 leading-relaxed">{selectedItem.desc}</p>
+
+                {/* Modifiers */}
+                {Array.isArray(selectedItem.customFields || selectedItem.custom_fields) && (selectedItem.customFields || selectedItem.custom_fields).map((field: any) => (
+                  <div key={field.id} className="mb-6 bg-[#120D09]/40 border border-[#2A1E15] p-5 rounded-2xl backdrop-blur-sm shadow-sm">
+                    <div className="flex items-center gap-2 mb-4">
+                      <span className="font-bold text-sm text-white">{field.name}</span>
+                      {field.required && (
+                        <span className="px-2 py-0.5 border border-[#C8102E]/30 bg-[#C8102E]/10 text-[#C8102E] text-[9px] font-black rounded-full tracking-wider ml-1 font-mono uppercase">
+                          {lang === "fr" ? "Requis" : "Required"}
+                        </span>
+                      )}
+                    </div>
+                    {field.type === "radio" && (
+                      <div className="flex flex-wrap gap-2.5">
+                        {field.options.map((opt: string) => {
+                          const selected = customizations[field.id] === opt;
+                          return (
+                            <button key={opt} onClick={() => setCustomizations(p => ({ ...p, [field.id]: opt }))}
+                              className="px-5 py-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 border cursor-pointer flex-1 min-w-[90px] sm:flex-initial text-center"
+                              style={{
+                                borderColor: selected ? "#C8102E" : "#2A1E15",
+                                background: selected ? "rgba(200,16,46,0.2)" : "#120D09",
+                                color: selected ? "#FFFFFF" : "#E5D5C5",
+                                boxShadow: selected ? "0 0 12px rgba(200, 16, 46, 0.15)" : "none"
+                              }}>
+                              <span>{opt}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                    {field.type === "checkbox" && (
+                      <div className="flex flex-col gap-2.5">
+                        {field.options.map((opt: string) => {
+                          const arr = (customizations[field.id] as string[] | undefined) || [];
+                          const checked = arr.includes(opt);
+                          return (
+                            <button key={opt} onClick={() => setCustomizations(p => {
+                              const prev = (p[field.id] as string[] | undefined) || [];
+                              return { ...p, [field.id]: checked ? prev.filter(x => x !== opt) : [...prev, opt] };
+                            })}
+                              className="flex items-center gap-3.5 px-4.5 py-3.5 text-xs text-left rounded-xl transition-all cursor-pointer border select-none duration-150"
+                              style={{ 
+                                borderColor: checked ? "#C8102E" : "#2A1E15", 
+                                background: checked ? "rgba(200,16,46,0.06)" : "#120D09",
+                                color: checked ? "#FFFFFF" : "#E5D5C5"
+                              }}>
+                              <div className="w-5 h-5 flex items-center justify-center flex-shrink-0 rounded-md border transition-all"
+                                style={{ 
+                                  borderColor: checked ? "#C8102E" : "#2A1E15", 
+                                  background: checked ? "#C8102E" : "transparent" 
+                                }}>
+                                {checked && <Check size={12} className="text-white stroke-[3px]" />}
+                              </div>
+                              <span className="flex-1 font-semibold">{opt}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Drawer Footer */}
+              <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-[#2A1E15] bg-[#120D09] z-10">
+                <button onClick={addToCart}
+                  className="w-full py-4 text-xs font-black tracking-widest bg-[#C8102E] text-white rounded-xl hover:opacity-90 active:scale-[0.98] transition-all cursor-pointer shadow-lg shadow-[#C8102E]/20">
+                  {t.addToCart.toUpperCase()} — €{getItemPriceWithModifiers().toFixed(2)}
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+
+        {/* Cart Bottom Sheet */}
+        {status === "cart" && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setStatus("browsing")}
+              className="fixed inset-0 bg-black/80 backdrop-blur-[2px] z-40"
+            />
+            {/* Sheet */}
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 220 }}
+              drag="y"
+              dragConstraints={{ top: 0, bottom: 0 }}
+              dragElastic={{ top: 0, bottom: 1 }}
+              onDragEnd={(e, info) => {
+                if (info.offset.y > 150) {
+                  setStatus("browsing");
+                }
+              }}
+              className="fixed bottom-0 left-0 right-0 max-h-[85vh] bg-[#120D09] border-t border-[#2A1E15] rounded-t-2xl z-50 flex flex-col overflow-hidden"
+            >
+              {/* Drag Handle */}
+              <div className="w-12 h-1 bg-[#2A1E15] rounded-full mx-auto my-3 flex-shrink-0" />
+              
+              {/* Header */}
+              <div className="px-4 pb-3 flex items-center justify-between border-b border-[#2A1E15]/30">
+                <span className="font-serif font-bold text-base text-[#E5D5C5]">{t.cartTitle} · Table {tableId}</span>
+                <button onClick={() => setStatus("browsing")} className="text-xs text-[#8E7E70] hover:text-white transition-colors cursor-pointer">
+                  {lang === "fr" ? "Fermer" : "Close"}
+                </button>
+              </div>
+
+              {/* Scrollable Content */}
+              <div className="flex-1 overflow-y-auto px-4 py-4 pb-28">
+                {cart.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16">
+                    <ShoppingCart size={40} className="text-[#2A1E15] mb-3" />
+                    <p className="text-xs text-[#8E7E70]">{t.cartEmpty}</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex flex-col gap-2.5 mb-6">
+                      {cart.map(item => (
+                        <div key={item.itemKey} className="p-3.5 bg-[#1A130E]/50 border border-[#2A1E15] rounded-xl">
+                          <div className="flex items-center justify-between mb-1.5">
+                            <span className="font-bold text-[#E5D5C5] text-xs">{item.name}</span>
+                            <span className="font-mono text-xs font-bold text-[#C8102E]">€{(item.price * item.quantity).toFixed(2)}</span>
+                          </div>
+                          {Object.entries(item.customizations).map(([k, v]) => v && (Array.isArray(v) ? v.length > 0 : true) && (
+                            <div key={k} className="text-[10px] text-[#8E7E70] mb-0.5">
+                              {Array.isArray(v) ? v.join(", ") : v}
+                            </div>
+                          ))}
+                          <div className="flex items-center gap-3 mt-3 pt-2.5 border-t border-[#2A1E15]/30 select-none">
+                            <button onClick={() => adjustQty(item.itemKey, -1)}
+                              className="w-8 h-8 flex items-center justify-center border border-[#2A1E15] rounded-lg text-white hover:bg-[#1A130E] transition-all cursor-pointer">
+                              <Minus size={12} />
+                            </button>
+                            <span className="font-mono text-xs font-bold text-[#E5D5C5] w-5 text-center">{item.quantity}</span>
+                            <button onClick={() => adjustQty(item.itemKey, 1)}
+                              className="w-8 h-8 flex items-center justify-center bg-[#C8102E] text-white rounded-lg hover:opacity-90 transition-all cursor-pointer">
+                              <Plus size={12} />
+                            </button>
+                            <button onClick={() => adjustQty(item.itemKey, -item.quantity)} className="ml-auto text-[#8E7E70] hover:text-white cursor-pointer p-1.5" title="Remove">
+                              <X size={14} />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="p-4 bg-[#1A130E]/50 border border-[#2A1E15] rounded-xl mb-6">
+                      <div className="flex justify-between mb-1.5 text-[11px] text-[#8E7E70]">
+                        <span>Subtotal</span>
+                        <span className="font-mono">€{cartTotal.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between mb-1.5 text-[11px] text-[#8E7E70]">
+                        <span>Service</span>
+                        <span>Included</span>
+                      </div>
+                      <div className="flex justify-between pt-2.5 mt-2.5 border-t border-[#2A1E15]/30 font-black text-xs text-white">
+                        <span>Total</span>
+                        <span className="font-mono text-sm text-[#C8102E]">€{cartTotal.toFixed(2)}</span>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Footer */}
+              {cart.length > 0 && (
+                <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-[#2A1E15] bg-[#120D09] z-10">
+                  <button onClick={() => setStatus("checkout")}
+                    className="w-full py-4 text-xs font-bold tracking-widest bg-[#C8102E] hover:opacity-95 text-white rounded-xl transition-all active:scale-98 cursor-pointer shadow-lg shadow-[#C8102E]/20">
+                    {t.checkoutBtn.toUpperCase()}
+                  </button>
+                </div>
+              )}
+            </motion.div>
+          </>
+        )}
+
+        {/* Checkout Bottom Sheet */}
+        {(status === "checkout" || status === "ordering") && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => {
+                if (status !== "ordering") setStatus("cart");
+              }}
+              className="fixed inset-0 bg-black/80 backdrop-blur-[2px] z-40"
+            />
+            {/* Sheet */}
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 220 }}
+              drag={status === "ordering" ? false : "y"}
+              dragConstraints={{ top: 0, bottom: 0 }}
+              dragElastic={{ top: 0, bottom: 1 }}
+              onDragEnd={(e, info) => {
+                if (info.offset.y > 150) {
+                  setStatus("cart");
+                }
+              }}
+              className="fixed bottom-0 left-0 right-0 max-h-[85vh] bg-[#120D09] border-t border-[#2A1E15] rounded-t-2xl z-50 flex flex-col overflow-hidden"
+            >
+              {/* Drag Handle */}
+              <div className="w-12 h-1 bg-[#2A1E15] rounded-full mx-auto my-3 flex-shrink-0" />
+              
+              {/* Header */}
+              <div className="px-4 pb-3 flex items-center justify-between border-b border-[#2A1E15]/30">
+                <span className="font-serif font-bold text-base text-[#E5D5C5]">{t.paymentTitle}</span>
+                <button
+                  disabled={status === "ordering"}
+                  onClick={() => setStatus("cart")}
+                  className="text-xs text-[#8E7E70] hover:text-white transition-colors disabled:opacity-50 cursor-pointer"
+                >
+                  {lang === "fr" ? "Retour" : "Back"}
+                </button>
+              </div>
+
+              {/* Scrollable Content */}
+              <div className="flex-1 overflow-y-auto px-4 py-4 pb-28">
+                {tableId?.toUpperCase() === "DELIVERY" && (
+                  <div className="mb-6 p-4 bg-[#1A130E]/50 border border-[#2A1E15] rounded-xl">
+                    <h3 className="font-serif font-bold text-white text-sm mb-3">{t.deliveryDetails}</h3>
+                    <div className="flex flex-col gap-2.5">
+                      <input
+                        type="text"
+                        placeholder={t.showsFullName || "Full Name"}
+                        value={deliveryName}
+                        onChange={(e) => setDeliveryName(e.target.value)}
+                        className="w-full px-3.5 py-2.5 text-xs bg-[#1A130E] border border-[#2A1E15] rounded-xl text-white outline-none focus:border-[#C8102E]"
+                      />
+                      <input
+                        type="email"
+                        placeholder={t.deliveryEmail || "Email Address (Optional)"}
+                        value={deliveryEmail}
+                        onChange={(e) => setDeliveryEmail(e.target.value)}
+                        className="w-full px-3.5 py-2.5 text-xs bg-[#1A130E] border border-[#2A1E15] rounded-xl text-white outline-none focus:border-[#C8102E]"
+                      />
+                      <input
+                        type="tel"
+                        placeholder={t.deliveryPhone || "Phone Number"}
+                        value={deliveryPhone}
+                        onChange={(e) => setDeliveryPhone(e.target.value)}
+                        className="w-full px-3.5 py-2.5 text-xs bg-[#1A130E] border border-[#2A1E15] rounded-xl text-white outline-none focus:border-[#C8102E]"
+                      />
+                      <textarea
+                        placeholder={t.deliveryAddress || "Full Address"}
+                        value={deliveryAddress}
+                        onChange={(e) => setDeliveryAddress(e.target.value)}
+                        rows={2}
+                        className="w-full px-3.5 py-2.5 text-xs bg-[#1A130E] border border-[#2A1E15] rounded-xl text-white outline-none focus:border-[#C8102E] resize-none"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Expandable Note panel (Dine-in or Delivery) */}
+                <div className="mb-6 bg-[#1A130E]/30 border border-[#2A1E15] p-3.5 rounded-xl">
+                  <button
+                    onClick={() => setNoteExpanded(!noteExpanded)}
+                    className="w-full flex items-center justify-between text-xs text-[#8E7E70] hover:text-[#E5D5C5] transition-colors font-mono uppercase tracking-wider cursor-pointer"
+                  >
+                    <span>{lang === "fr" ? "+ Ajouter une note (allergies, etc.)" : "+ Add a note (allergies, etc.)"}</span>
+                    <ChevronDown size={14} className={`transform transition-transform duration-200 ${noteExpanded ? "rotate-180" : ""}`} />
+                  </button>
+                  <AnimatePresence initial={false}>
+                    {noteExpanded && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0, marginTop: 0 }}
+                        animate={{ height: "auto", opacity: 1, marginTop: 10 }}
+                        exit={{ height: 0, opacity: 0, marginTop: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="overflow-hidden"
+                      >
+                        <textarea
+                          value={orderNote}
+                          onChange={e => setOrderNote(e.target.value)}
+                          rows={2}
+                          placeholder={lang === "fr" ? "Allergies, demandes spéciales..." : "Allergies, special requests..."}
+                          className="w-full px-3.5 py-2.5 text-xs bg-[#1A130E] border border-[#2A1E15] rounded-xl text-white outline-none focus:border-[#C8102E] transition-colors resize-none"
+                        />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+
+                <p className="text-[11px] text-[#8E7E70] mb-4">{t.paymentDesc}</p>
+                
+                <div className="flex flex-col gap-2.5 mb-6">
+                  {[
+                    { id: "visa" as const, label: t.paymentVisa, disabled: true },
+                    { id: "apple" as const, label: t.paymentApplePay, disabled: true },
+                    { 
+                      id: "cash" as const, 
+                      label: tableId?.toUpperCase() === "DELIVERY" 
+                        ? (lang === "fr" ? "Paiement en espèces à la livraison" : "Cash on delivery (Pay at door)")
+                        : t.paymentCash, 
+                      disabled: false 
+                    }
+                  ].map(method => (
+                    <button
+                      key={method.id}
+                      disabled={method.disabled}
+                      onClick={() => setSelectedPayment(method.id)}
+                      className={`flex items-center justify-between p-3.5 rounded-xl border transition-all text-left ${
+                        method.disabled ? "opacity-30 cursor-not-allowed border-[#2A1E15] bg-zinc-950/20" :
+                        selectedPayment === method.id ? "border-[#C8102E] bg-red-950/10 cursor-pointer" : "border-[#2A1E15] bg-[#120D09] hover:bg-[#1A130E] cursor-pointer"
+                      }`}
+                    >
+                      <span className={`text-xs font-semibold ${selectedPayment === method.id ? "text-white" : "text-[#8E7E70]"}`}>{method.label}</span>
+                      <div className="w-4 h-4 rounded-full border flex items-center justify-center" style={{ borderColor: selectedPayment === method.id ? "#C8102E" : "#2A1E15" }}>
+                        {selectedPayment === method.id && <div className="w-2 h-2 rounded-full bg-[#C8102E]" />}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Submit Action */}
+              <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-[#2A1E15] bg-[#120D09] z-10">
+                <button onClick={placeOrder}
+                  disabled={status === "ordering"}
+                  className="w-full py-4 text-xs font-black tracking-widest bg-[#C8102E] hover:opacity-95 text-white rounded-xl transition-all active:scale-98 cursor-pointer shadow-lg shadow-[#C8102E]/25">
+                  {status === "ordering" ? (lang === "fr" ? "TRANSMISSION DU TICKET..." : "TRANSMITTING TICKET...") : `${lang === "fr" ? "COMMANDER" : "PLACE ORDER"} · ${cartTotal.toFixed(2)}€`}
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

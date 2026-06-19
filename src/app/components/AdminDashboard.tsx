@@ -8,6 +8,10 @@ import {
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { supabase } from "../../lib/supabase";
+import WaiterCallAlert, { usePendingCallsCount } from "./WaiterCallAlert";
+import { OrderStatusBadge } from "./OrderStatusBadge";
+import { ConfirmButton } from "./ConfirmButton";
+import { toast } from "sonner";
 
 // — TypeScript Interfaces
 interface CustomField {
@@ -71,7 +75,8 @@ const STATIC_TABLE_IDS = ["T01", "T02", "T03", "T04", "T05", "T06", "T07", "T08"
 
 type AdminSection = "dashboard" | "products" | "orders" | "tables" | "settings" | "shows" | "counter" | "delivery" | "staff";
 
-export function AdminDashboard({ onLogout }: { onLogout?: () => void } = {}) {
+export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () => void; language?: "fr" | "en" } = {}) {
+  const pendingCount = usePendingCallsCount();
   const [section, setSection] = useState<AdminSection>("dashboard");
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -87,6 +92,24 @@ export function AdminDashboard({ onLogout }: { onLogout?: () => void } = {}) {
   const [newWaiterTables, setNewWaiterTables] = useState("");
   const [waiterSubmitting, setWaiterSubmitting] = useState(false);
   const [waiterError, setWaiterError] = useState<string | null>(null);
+
+  // Edit Waiter States
+  const [editingWaiter, setEditingWaiter] = useState<any | null>(null);
+  const [editWaiterName, setEditWaiterName] = useState("");
+  const [editWaiterEmail, setEditWaiterEmail] = useState("");
+  const [editWaiterPin, setEditWaiterPin] = useState("");
+  const [editWaiterTables, setEditWaiterTables] = useState("");
+  const [editWaiterIsActive, setEditWaiterIsActive] = useState(true);
+  const [editWaiterSubmitting, setEditWaiterSubmitting] = useState(false);
+  const [editWaiterError, setEditWaiterError] = useState<string | null>(null);
+
+  // Delete Waiter States
+  const [deletingWaiter, setDeletingWaiter] = useState<any | null>(null);
+  const [deleteWaiterSubmitting, setDeleteWaiterSubmitting] = useState(false);
+  const [deleteWaiterError, setDeleteWaiterError] = useState<string | null>(null);
+
+  // KDS / TV Display states
+  const [showQRModal, setShowQRModal] = useState(false);
 
   const isMock = !supabase || supabase.isMock || !supabase.auth;
 
@@ -295,7 +318,7 @@ export function AdminDashboard({ onLogout }: { onLogout?: () => void } = {}) {
           ...heroConfig
         });
       if (error) throw error;
-      alert("Hero settings saved successfully!");
+      toast.success("Paramètres de la bannière enregistrés avec succès !");
       loadHeroConfig();
     } catch (err) {
       console.error("Failed to save hero config to database, saving to local storage fallback:", err);
@@ -303,7 +326,7 @@ export function AdminDashboard({ onLogout }: { onLogout?: () => void } = {}) {
         localStorage.setItem("ldf_hero_config", JSON.stringify([heroConfig]));
         window.dispatchEvent(new CustomEvent("ldf-db-update", { detail: { table: "hero_config" } }));
       }
-      alert("Enregistré localement avec succès (mode simulation suite à une erreur base de données).");
+      toast.success("Enregistré localement avec succès (mode simulation suite à une erreur base de données).");
     }
   }
 
@@ -357,7 +380,7 @@ export function AdminDashboard({ onLogout }: { onLogout?: () => void } = {}) {
         setHeroConfig((p: any) => ({ ...p, [field]: base64String }));
       } catch (fallbackErr) {
         console.error("Local image fallback failed:", fallbackErr);
-        alert(`Failed to load image locally: ${err.message || err}`);
+        toast.error(`Impossible de charger l'image localement : ${err.message || err}`);
       }
     } finally {
       setUploadingHero(false);
@@ -584,11 +607,11 @@ export function AdminDashboard({ onLogout }: { onLogout?: () => void } = {}) {
           })
         });
       if (error) throw error;
-      alert("Coordonnées du restaurant enregistrées avec succès !");
+      toast.success("Coordonnées du restaurant enregistrées avec succès !");
       loadTables();
     } catch (err) {
       console.error("Failed to save restaurant preferences:", err);
-      alert("Erreur lors de l'enregistrement des préférences.");
+      toast.error("Erreur lors de l'enregistrement des préférences.");
     } finally {
       setSavingPrefs(false);
     }
@@ -728,6 +751,127 @@ export function AdminDashboard({ onLogout }: { onLogout?: () => void } = {}) {
       setWaiterError(err?.message || "Failed to create waiter.");
     } finally {
       setWaiterSubmitting(false);
+    }
+  };
+
+  const openEditWaiter = (waiter: any) => {
+    setEditingWaiter(waiter);
+    setEditWaiterName(waiter.name || "");
+    setEditWaiterEmail(waiter.email || "");
+    setEditWaiterPin(""); // Keep empty so they don't have to re-enter it unless they want to change it
+    setEditWaiterTables(waiter.assigned_tables?.join(", ") || "");
+    setEditWaiterIsActive(waiter.is_active !== false);
+    setEditWaiterError(null);
+  };
+
+  const handleUpdateWaiter = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingWaiter) return;
+    setEditWaiterError(null);
+    setEditWaiterSubmitting(true);
+
+    const assigned_tables = editWaiterTables
+      .split(",")
+      .map(x => x.trim().toUpperCase())
+      .filter(x => x.length > 0);
+
+    if (isMock) {
+      setTimeout(() => {
+        const localWaiters = JSON.parse(localStorage.getItem("ldf_waiters") || "[]");
+        const updated = localWaiters.map((w: any) => 
+          w.id === editingWaiter.id 
+            ? { 
+                ...w, 
+                name: editWaiterName, 
+                email: editWaiterEmail, 
+                assigned_tables, 
+                is_active: editWaiterIsActive 
+              } 
+            : w
+        );
+        localStorage.setItem("ldf_waiters", JSON.stringify(updated));
+        setEditWaiterSubmitting(false);
+        setEditingWaiter(null);
+        setEditWaiterName("");
+        setEditWaiterEmail("");
+        setEditWaiterPin("");
+        setEditWaiterTables("");
+        loadWaiters();
+        window.dispatchEvent(new CustomEvent("ldf-db-update", { detail: { table: "waiters" } }));
+      }, 800);
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase.functions.invoke("create-waiter", {
+        body: {
+          action: "update",
+          waiter_id: editingWaiter.id,
+          name: editWaiterName,
+          email: editWaiterEmail,
+          pin: editWaiterPin || undefined,
+          assigned_tables,
+          is_active: editWaiterIsActive
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.error) {
+        setEditWaiterError(data.error);
+      } else {
+        setEditingWaiter(null);
+        setEditWaiterName("");
+        setEditWaiterEmail("");
+        setEditWaiterPin("");
+        setEditWaiterTables("");
+        loadWaiters();
+      }
+    } catch (err: any) {
+      setEditWaiterError(err?.message || "Failed to update waiter.");
+    } finally {
+      setEditWaiterSubmitting(false);
+    }
+  };
+
+  const handleDeleteWaiter = async () => {
+    if (!deletingWaiter) return;
+    setDeleteWaiterError(null);
+    setDeleteWaiterSubmitting(true);
+
+    if (isMock) {
+      setTimeout(() => {
+        const localWaiters = JSON.parse(localStorage.getItem("ldf_waiters") || "[]");
+        const updated = localWaiters.filter((w: any) => w.id !== deletingWaiter.id);
+        localStorage.setItem("ldf_waiters", JSON.stringify(updated));
+        setDeleteWaiterSubmitting(false);
+        setDeletingWaiter(null);
+        loadWaiters();
+        window.dispatchEvent(new CustomEvent("ldf-db-update", { detail: { table: "waiters" } }));
+      }, 800);
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase.functions.invoke("create-waiter", {
+        body: {
+          action: "delete",
+          waiter_id: deletingWaiter.id
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.error) {
+        setDeleteWaiterError(data.error);
+      } else {
+        setDeletingWaiter(null);
+        loadWaiters();
+      }
+    } catch (err: any) {
+      setDeleteWaiterError(err?.message || "Failed to delete waiter.");
+    } finally {
+      setDeleteWaiterSubmitting(false);
     }
   };
 
@@ -873,7 +1017,6 @@ export function AdminDashboard({ onLogout }: { onLogout?: () => void } = {}) {
   }
 
   async function turnOffAllTerrace() {
-    if (!confirm("Are you sure you want to deactivate the terrace? Terrace tables will be hidden from ordering.")) return;
     const terraceTableIds = dbTables.filter(t => t.is_terrace).map(t => t.id);
     if (terraceTableIds.length === 0) return;
 
@@ -881,6 +1024,7 @@ export function AdminDashboard({ onLogout }: { onLogout?: () => void } = {}) {
       const { error } = await supabase.from("restaurant_tables").update({ active: false }).in("id", terraceTableIds);
       if (error) throw error;
       setDbTables(prev => prev.map(t => t.is_terrace ? { ...t, active: false } : t));
+      toast.success("Terrasse désactivée avec succès !");
     } catch (err) {
       console.warn("Offline fallback for turning off terrace", err);
       setDbTables(prev => prev.map(t => t.is_terrace ? { ...t, active: false } : t));
@@ -991,7 +1135,7 @@ export function AdminDashboard({ onLogout }: { onLogout?: () => void } = {}) {
   // Process counter checkout sale
   async function handleCounterCheckout() {
     if (counterCart.length === 0) {
-      alert("Votre panier est vide.");
+      toast.error("Votre panier est vide.");
       return;
     }
 
@@ -1028,12 +1172,14 @@ export function AdminDashboard({ onLogout }: { onLogout?: () => void } = {}) {
         .insert(lineItems);
 
       if (itemsError) throw itemsError;
-
-      const shouldPrint = confirm("Voulez-vous imprimer le ticket de caisse pour cette vente ?");
-      if (shouldPrint) {
-        printCounterInvoice(orderId, cartTotal, lineItems, counterNote);
-      }
-      alert("Vente enregistrée avec succès !");
+      toast.success("Vente enregistrée avec succès !", {
+        description: "Imprimez le ticket si nécessaire.",
+        action: {
+          label: "Imprimer 🖨️",
+          onClick: () => printCounterInvoice(orderId, cartTotal, lineItems, counterNote)
+        },
+        duration: 8000
+      });
       setCounterCart([]);
       setCounterNote("");
       loadOrders();
@@ -1047,11 +1193,14 @@ export function AdminDashboard({ onLogout }: { onLogout?: () => void } = {}) {
         quantity: item.quantity,
         customizations: item.customizations || {}
       }));
-      const shouldPrint = confirm("Voulez-vous imprimer le ticket de caisse (mode simulation) ?");
-      if (shouldPrint) {
-        printCounterInvoice(orderId, cartTotal, simulatedItems, counterNote);
-      }
-      alert("Ticket enregistré en mode simulation hors-ligne.");
+      toast.success("Ticket enregistré en mode simulation hors-ligne.", {
+        description: "Imprimez le ticket de simulation si nécessaire.",
+        action: {
+          label: "Imprimer 🖨️",
+          onClick: () => printCounterInvoice(orderId, cartTotal, simulatedItems, counterNote)
+        },
+        duration: 8000
+      });
       setCounterCart([]);
       setCounterNote("");
     }
@@ -1059,7 +1208,7 @@ export function AdminDashboard({ onLogout }: { onLogout?: () => void } = {}) {
 
   // Print QR Template
   const printQrCode = (tableId: string, area: string) => {
-    const tableUrl = `${window.location.origin}/?table=${tableId}`;
+    const tableUrl = `${window.location.origin}/?view=order&table=${tableId}&area=${encodeURIComponent(area)}`;
     const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(tableUrl)}`;
     
     const printWindow = window.open("", "_blank");
@@ -1149,8 +1298,8 @@ export function AdminDashboard({ onLogout }: { onLogout?: () => void } = {}) {
     printWindow.document.close();
   };
 
-  const downloadQrCode = (tableId: string) => {
-    const tableUrl = `${window.location.origin}/?table=${tableId}`;
+  const downloadQrCode = (tableId: string, area: string) => {
+    const tableUrl = `${window.location.origin}/?view=order&table=${tableId}&area=${encodeURIComponent(area)}`;
     const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(tableUrl)}`;
     
     const link = document.createElement("a");
@@ -1193,7 +1342,6 @@ export function AdminDashboard({ onLogout }: { onLogout?: () => void } = {}) {
   }
 
   async function handleDeleteProduct(id: string) {
-    if (!confirm("Are you sure you want to delete this product?")) return;
     try {
       const { error } = await supabase
         .from("menu_items")
@@ -1202,9 +1350,11 @@ export function AdminDashboard({ onLogout }: { onLogout?: () => void } = {}) {
 
       if (error) throw error;
       loadProducts();
+      toast.success("Produit supprimé avec succès !");
     } catch (err) {
       console.error("Failed to delete product:", err);
       setProducts(prev => prev.filter(p => p.id !== id));
+      toast.success("Produit supprimé localement (mode simulation).");
     }
   }
 
@@ -1253,7 +1403,6 @@ export function AdminDashboard({ onLogout }: { onLogout?: () => void } = {}) {
   }
 
   async function deleteTable(id: string) {
-    if (!confirm(`Are you sure you want to remove table ${id}?`)) return;
     try {
       const { error } = await supabase.from("restaurant_tables").delete().eq("id", id);
       if (error) throw error;
@@ -1262,6 +1411,7 @@ export function AdminDashboard({ onLogout }: { onLogout?: () => void } = {}) {
         if (typeof window !== "undefined") localStorage.setItem("ldf_restaurant_tables", JSON.stringify(next));
         return next;
       });
+      toast.success("Table supprimée avec succès !");
     } catch (err) {
       console.warn("Offline: deleting table from local storage", err);
       setDbTables(prev => {
@@ -1269,6 +1419,7 @@ export function AdminDashboard({ onLogout }: { onLogout?: () => void } = {}) {
         if (typeof window !== "undefined") localStorage.setItem("ldf_restaurant_tables", JSON.stringify(next));
         return next;
       });
+      toast.success("Table supprimée localement (mode simulation).");
     }
   }
 
@@ -1311,16 +1462,16 @@ export function AdminDashboard({ onLogout }: { onLogout?: () => void } = {}) {
   }
 
   async function clearRevenue() {
-    if (!confirm("Are you sure you want to delete all delivered orders and reset total revenue to 0? This cannot be undone!")) return;
     try {
       const deliveredIds = orders.filter(o => o.status === "delivered").map(o => o.id);
       if (deliveredIds.length === 0) {
-        alert("No delivered orders to clear.");
+        toast.error("Aucune commande livrée à effacer.");
         return;
       }
       const { error } = await supabase.from("orders").delete().in("id", deliveredIds);
       if (error) throw error;
       setOrders(prev => prev.filter(o => o.status !== "delivered"));
+      toast.success("Historique des commandes livrées effacé !");
     } catch (err) {
       console.warn("Offline: clearing local delivered orders", err);
       if (typeof window !== "undefined") {
@@ -1329,11 +1480,11 @@ export function AdminDashboard({ onLogout }: { onLogout?: () => void } = {}) {
         localStorage.setItem("ldf_orders", JSON.stringify(next));
         setOrders(prev => prev.filter(o => o.status !== "delivered"));
       }
+      toast.success("Commandes effacées localement (simulation).");
     }
   }
 
   async function deleteShow(id: string) {
-    if (!confirm("Are you sure you want to delete this show?")) return;
     try {
       const { error } = await supabase
         .from("shows")
@@ -1341,9 +1492,11 @@ export function AdminDashboard({ onLogout }: { onLogout?: () => void } = {}) {
         .eq("id", id);
       if (error) throw error;
       loadShows();
+      toast.success("Spectacle supprimé avec succès !");
     } catch (err) {
       console.error("Failed to delete show:", err);
       setShows(prev => prev.filter(s => s.id !== id));
+      toast.success("Spectacle supprimé localement (simulation).");
     }
   }
 
@@ -1447,8 +1600,29 @@ export function AdminDashboard({ onLogout }: { onLogout?: () => void } = {}) {
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
         <header className="px-6 py-4 bg-[#120D09] border-b border-[#2A1E15] flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-[#8E7E70] font-mono text-xs uppercase tracking-widest">{section} console</span>
+          <div className="flex items-center gap-3">
+            <span className="text-[#8E7E70] font-mono text-xs uppercase tracking-widest mr-2">{section} console</span>
+            {pendingCount > 0 && (
+              <span className="bg-[#C8102E] text-white text-[9px] font-mono font-bold px-2 py-0.5 rounded-full animate-pulse mr-2">
+                {pendingCount}
+              </span>
+            )}
+            
+            <button
+              onClick={() => window.open("?view=kitchen", "_blank")}
+              className="flex items-center gap-1.5 px-2.5 py-1 bg-[#1A130E] border border-[#2A1E15] hover:bg-white/5 hover:border-[#C8102E]/40 text-[#E5D5C5] rounded text-[9.5px] font-mono font-bold transition-all cursor-pointer"
+              title="Open KDS Kitchen Display Screen in new tab"
+            >
+              <span>🍳 KITCHEN SCREEN</span>
+            </button>
+
+            <button
+              onClick={() => setShowQRModal(true)}
+              className="flex items-center gap-1.5 px-2.5 py-1 bg-[#1A130E] border border-[#2A1E15] hover:bg-white/5 hover:border-[#C8102E]/40 text-[#E5D5C5] rounded text-[9.5px] font-mono font-bold transition-all cursor-pointer"
+              title="Display QR code for customer TV board"
+            >
+              <span>📺 CUSTOMER BOARD</span>
+            </button>
           </div>
           <div className="flex items-center gap-6 text-xs font-mono">
             <div className="flex items-center gap-1.5">
@@ -1572,7 +1746,14 @@ export function AdminDashboard({ onLogout }: { onLogout?: () => void } = {}) {
                             <div>
                               <div className="flex justify-between items-start mb-2 pb-2 border-b border-[#2A1E15]/30">
                                 <div>
-                                  <div className="font-serif font-black text-xs text-white">{order.id}</div>
+                                  <div className="flex items-center gap-2">
+                                    <div className="font-serif font-black text-xs text-white">{order.id}</div>
+                                    <OrderStatusBadge
+                                      orderId={order.id}
+                                      currentStatus={order.order_status || order.status}
+                                      onStatusChange={loadOrders}
+                                    />
+                                  </div>
                                   <div className="font-mono text-[8px] text-[#8E7E70] uppercase mt-0.5">Table {order.table_id} · {order.area}</div>
                                 </div>
                                 <span className="font-mono text-[9px] text-[#8E7E70]">{order.time}</span>
@@ -1664,7 +1845,14 @@ export function AdminDashboard({ onLogout }: { onLogout?: () => void } = {}) {
                         {stageOrders.map(order => (
                           <div key={order.id} className="bg-[#1A130E] border border-[#2A1E15] rounded-lg p-3 hover:border-[#C8102E]/30 transition-colors">
                             <div className="flex justify-between items-start mb-2">
-                              <span className="text-[#C8102E] font-bold text-sm tracking-wider">#{order.id.slice(-6)}</span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-[#C8102E] font-bold text-sm tracking-wider">#{order.id.slice(-6)}</span>
+                                <OrderStatusBadge
+                                  orderId={order.id}
+                                  currentStatus={order.order_status || order.status}
+                                  onStatusChange={loadOrders}
+                                />
+                              </div>
                               <span className="text-[#8E7E70] text-[10px] font-mono">{order.time}</span>
                             </div>
                             
@@ -1782,10 +1970,15 @@ export function AdminDashboard({ onLogout }: { onLogout?: () => void } = {}) {
                             className="p-1 border border-[#2A1E15] hover:bg-[#1A130E] rounded text-white cursor-pointer">
                             <Edit2 size={12} />
                           </button>
-                          <button onClick={() => handleDeleteProduct(p.id)}
-                            className="p-1 border border-[#2A1E15] hover:bg-red-950/20 text-[#C8102E] rounded cursor-pointer">
-                            <Trash2 size={12} />
-                          </button>
+                          <ConfirmButton
+                            label={<Trash2 size={12} />}
+                            onConfirm={() => handleDeleteProduct(p.id)}
+                            confirmLabel="Oui"
+                            cancelLabel="Non"
+                            className="p-1 border border-[#2A1E15] hover:bg-red-950/20 text-[#C8102E] rounded cursor-pointer"
+                            confirmClassName="px-2 py-0.5 bg-[#C8102E] text-white text-[10px] font-bold rounded"
+                            cancelClassName="px-2 py-0.5 bg-transparent border border-[#2A1E15] text-[#8E7E70] text-[10px] font-bold rounded"
+                          />
                         </div>
                       </div>
                     </div>
@@ -1818,7 +2011,7 @@ export function AdminDashboard({ onLogout }: { onLogout?: () => void } = {}) {
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                   {tablesToRender.filter(t => !t.is_terrace).map(table => {
                     const activeOrder = orders.find(o => o.table_id === table.id && o.status !== "delivered");
-                    const tableUrl = `${window.location.origin}/?table=${table.id}`;
+                    const tableUrl = `${window.location.origin}/?view=order&table=${table.id}&area=${encodeURIComponent(table.area)}`;
                     const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(tableUrl)}`;
                     
                     return (
@@ -1873,17 +2066,20 @@ export function AdminDashboard({ onLogout }: { onLogout?: () => void } = {}) {
                               PRINT
                             </button>
                             <button
-                              onClick={() => downloadQrCode(table.id)}
+                              onClick={() => downloadQrCode(table.id, table.area)}
                               className="flex-1 py-1 border border-[#2A1E15] hover:bg-[#1A130E] text-[#8E7E70] hover:text-white rounded text-[8px] font-bold cursor-pointer"
                             >
                               DL
                             </button>
-                            <button
-                              onClick={() => deleteTable(table.id)}
-                              className="flex-1 py-1 border border-[#2A1E15] hover:bg-red-950/20 text-[#C8102E] rounded text-[8px] font-bold cursor-pointer"
-                            >
-                              DEL
-                            </button>
+                            <ConfirmButton
+                              label="DEL"
+                              onConfirm={() => deleteTable(table.id)}
+                              confirmLabel="Oui"
+                              cancelLabel="Non"
+                              className="flex-1 py-1 border border-[#2A1E15] hover:bg-red-950/20 text-[#C8102E] rounded text-[8px] font-bold cursor-pointer text-center"
+                              confirmClassName="px-2 py-0.5 bg-[#C8102E] text-white text-[9px] font-bold rounded"
+                              cancelClassName="px-2 py-0.5 bg-transparent border border-[#2A1E15] text-[#8E7E70] text-[9px] font-bold rounded"
+                            />
                           </div>
                         </div>
                       </div>
@@ -1900,12 +2096,19 @@ export function AdminDashboard({ onLogout }: { onLogout?: () => void } = {}) {
                   </h3>
                   <div className="flex gap-2">
                     {tablesToRender.filter(t => t.is_terrace).length > 0 && (
-                      <button
-                        onClick={turnOffAllTerrace}
+                      <ConfirmButton
+                        label={
+                          <span className="flex items-center gap-1">
+                            <X size={10} /> Désactiver
+                          </span>
+                        }
+                        onConfirm={turnOffAllTerrace}
+                        confirmLabel="Confirmer"
+                        cancelLabel="Annuler"
                         className="px-2.5 py-1 bg-[#C8102E]/10 hover:bg-[#C8102E]/20 text-[#C8102E] border border-[#C8102E]/30 rounded text-[9px] font-mono font-bold tracking-wider transition-all uppercase flex items-center gap-1 cursor-pointer"
-                      >
-                        <X size={10} /> Désactiver
-                      </button>
+                        confirmClassName="px-2 py-0.5 bg-[#C8102E] text-white text-[9px] font-mono rounded"
+                        cancelClassName="px-2 py-0.5 bg-transparent border border-[#2A1E15] text-[#8E7E70] text-[9px] font-mono rounded"
+                      />
                     )}
                     <button onClick={() => addTable(true)}
                       className="bg-[#C8102E] hover:opacity-90 text-white font-bold py-1 px-3 rounded text-[10px] flex items-center gap-1 cursor-pointer">
@@ -1922,7 +2125,7 @@ export function AdminDashboard({ onLogout }: { onLogout?: () => void } = {}) {
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {tablesToRender.filter(t => t.is_terrace).map(table => {
                       const activeOrder = orders.find(o => o.table_id === table.id && o.status !== "delivered");
-                      const tableUrl = `${window.location.origin}/?table=${table.id}`;
+                      const tableUrl = `${window.location.origin}/?view=order&table=${table.id}&area=${encodeURIComponent(table.area)}`;
                       const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(tableUrl)}`;
                       
                       return (
@@ -1977,17 +2180,20 @@ export function AdminDashboard({ onLogout }: { onLogout?: () => void } = {}) {
                                 PRINT
                               </button>
                               <button
-                                onClick={() => downloadQrCode(table.id)}
+                                onClick={() => downloadQrCode(table.id, table.area)}
                                 className="flex-1 py-1 border border-[#2A1E15] hover:bg-[#1A130E] text-[#8E7E70] hover:text-white rounded text-[8px] font-bold cursor-pointer"
                               >
                                 DL
                               </button>
-                              <button
-                                onClick={() => deleteTable(table.id)}
-                                className="flex-1 py-1 border border-[#2A1E15] hover:bg-red-950/20 text-[#C8102E] rounded text-[8px] font-bold cursor-pointer"
-                              >
-                                DEL
-                              </button>
+                            <ConfirmButton
+                              label="DEL"
+                              onConfirm={() => deleteTable(table.id)}
+                              confirmLabel="Oui"
+                              cancelLabel="Non"
+                              className="flex-1 py-1 border border-[#2A1E15] hover:bg-red-950/20 text-[#C8102E] rounded text-[8px] font-bold cursor-pointer text-center"
+                              confirmClassName="px-2 py-0.5 bg-[#C8102E] text-white text-[9px] font-bold rounded"
+                              cancelClassName="px-2 py-0.5 bg-transparent border border-[#2A1E15] text-[#8E7E70] text-[9px] font-bold rounded"
+                            />
                             </div>
                           </div>
                         </div>
@@ -2340,7 +2546,15 @@ export function AdminDashboard({ onLogout }: { onLogout?: () => void } = {}) {
                             setEditingShow(show);
                             setShowShowForm(true);
                           }} className="text-[#8E7E70] hover:text-white text-[10px] font-bold cursor-pointer">Edit</button>
-                          <button onClick={() => deleteShow(show.id)} className="text-[#C8102E] hover:text-red-500 text-[10px] font-bold cursor-pointer">Delete</button>
+                          <ConfirmButton
+                            label="Delete"
+                            onConfirm={() => deleteShow(show.id)}
+                            confirmLabel="Oui"
+                            cancelLabel="Non"
+                            className="text-[#C8102E] hover:text-red-500 text-[10px] font-bold cursor-pointer"
+                            confirmClassName="px-2 py-0.5 bg-[#C8102E] text-white text-[9px] font-bold rounded"
+                            cancelClassName="px-2 py-0.5 bg-transparent border border-[#2A1E15] text-[#8E7E70] text-[9px] font-bold rounded"
+                          />
                         </div>
                       </div>
                     ))}
@@ -2384,9 +2598,19 @@ export function AdminDashboard({ onLogout }: { onLogout?: () => void } = {}) {
               <div className="bg-[#120D09] border border-[#2A1E15] p-5 rounded-xl self-start relative">
                 <div className="flex justify-between items-center mb-5">
                   <h3 className="text-xs font-mono tracking-widest text-[#C8102E] uppercase">Restaurant Coordinates</h3>
-                  <button onClick={clearRevenue} className="bg-red-950/40 hover:bg-red-900/60 text-[#C8102E] border border-[#C8102E]/30 font-bold py-1 px-3 rounded text-[9px] uppercase tracking-wider transition-colors cursor-pointer flex items-center gap-1">
-                    <Trash2 size={10} /> Reset Balance
-                  </button>
+                  <ConfirmButton
+                    label={
+                      <span className="flex items-center gap-1">
+                        <Trash2 size={10} /> Reset Balance
+                      </span>
+                    }
+                    onConfirm={clearRevenue}
+                    confirmLabel="Confirmer"
+                    cancelLabel="Annuler"
+                    className="bg-red-950/40 hover:bg-red-900/60 text-[#C8102E] border border-[#C8102E]/30 font-bold py-1 px-3 rounded text-[9px] uppercase tracking-wider transition-colors cursor-pointer flex items-center gap-1"
+                    confirmClassName="px-2 py-0.5 bg-[#C8102E] text-white text-[9px] font-mono rounded"
+                    cancelClassName="px-2 py-0.5 bg-transparent border border-[#2A1E15] text-[#8E7E70] text-[9px] font-mono rounded"
+                  />
                 </div>
                 <div className="flex flex-col gap-4">
                   {[
@@ -2665,7 +2889,8 @@ export function AdminDashboard({ onLogout }: { onLogout?: () => void } = {}) {
                       <th className="px-4 py-3 text-[10px] font-mono text-[#8E7E70] uppercase">Waiter Details</th>
                       <th className="px-4 py-3 text-[10px] font-mono text-[#8E7E70] uppercase">Assigned Tables</th>
                       <th className="px-4 py-3 text-[10px] font-mono text-[#8E7E70] uppercase">Online Status</th>
-                      <th className="px-4 py-3 text-[10px] font-mono text-[#8E7E70] uppercase text-right">Service Status</th>
+                      <th className="px-4 py-3 text-[10px] font-mono text-[#8E7E70] uppercase text-center">Service Status</th>
+                      <th className="px-4 py-3 text-[10px] font-mono text-[#8E7E70] uppercase text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#2A1E15]/50">
@@ -2687,7 +2912,7 @@ export function AdminDashboard({ onLogout }: { onLogout?: () => void } = {}) {
                                 ))}
                               </div>
                             ) : (
-                              <span className="text-[10px] text-[#8E7E70] italic">No tables assigned</span>
+                              <span className="bg-[#10B981]/10 border border-[#10B981]/30 text-[#10B981] text-[9px] font-mono font-bold px-2.5 py-0.5 rounded tracking-wide uppercase">All Tables</span>
                             )}
                           </td>
                           <td className="px-4 py-3.5 text-xs">
@@ -2699,7 +2924,7 @@ export function AdminDashboard({ onLogout }: { onLogout?: () => void } = {}) {
                               )}
                             </div>
                           </td>
-                          <td className="px-4 py-3.5 text-xs text-right">
+                          <td className="px-4 py-3.5 text-xs text-center">
                             <button
                               onClick={() => toggleWaiterActive(w)}
                               className={`px-2.5 py-1 rounded text-[9px] font-mono font-bold tracking-wider cursor-pointer border ${
@@ -2711,13 +2936,31 @@ export function AdminDashboard({ onLogout }: { onLogout?: () => void } = {}) {
                               {w.is_active ? "ACTIVE" : "INACTIVE"}
                             </button>
                           </td>
+                          <td className="px-4 py-3.5 text-xs text-right">
+                            <div className="flex justify-end gap-2">
+                              <button
+                                onClick={() => openEditWaiter(w)}
+                                className="p-1.5 bg-white/5 border border-white/10 hover:bg-white/10 text-white rounded-lg transition-colors cursor-pointer"
+                                title="Modify Waiter"
+                              >
+                                <Edit2 size={13} />
+                              </button>
+                              <button
+                                onClick={() => setDeletingWaiter(w)}
+                                className="p-1.5 bg-[#C8102E]/15 border border-[#C8102E]/30 hover:bg-[#C8102E]/25 text-[#C8102E] rounded-lg transition-colors cursor-pointer"
+                                title="Delete Waiter"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          </td>
                         </tr>
                       );
                     })}
 
                     {waiters.length === 0 && (
                       <tr>
-                        <td colSpan={4} className="px-4 py-12 text-center text-xs text-[#8E7E70] italic">
+                        <td colSpan={5} className="px-4 py-12 text-center text-xs text-[#8E7E70] italic">
                           No floor waiters registered in system yet.
                         </td>
                       </tr>
@@ -2778,14 +3021,19 @@ export function AdminDashboard({ onLogout }: { onLogout?: () => void } = {}) {
                       </div>
 
                       <div>
-                        <label className="block text-[9px] font-mono text-[#8E7E70] uppercase mb-1">Assigned Tables (Comma Separated)</label>
+                        <label className="block text-[9px] font-mono text-[#8E7E70] uppercase mb-1">
+                          Assigned Tables <span className="text-[8px] text-[#8E7E70] lowercase italic">(leave empty for ALL tables)</span>
+                        </label>
                         <input
                           type="text"
                           value={newWaiterTables}
                           onChange={(e) => setNewWaiterTables(e.target.value)}
-                          placeholder="e.g. T01, T02, T03"
+                          placeholder="e.g. T01, T02, T03 (leave empty to assign all tables)"
                           className="w-full px-3 py-2 text-xs bg-[#1A130E] border border-[#2A1E15] rounded-xl text-white outline-none focus:border-[#C8102E]"
                         />
+                        <span className="text-[9px] text-[#8E7E70] italic mt-1 block">
+                          * If left empty, the waiter will be responsible for all tables.
+                        </span>
                       </div>
 
                       <div className="flex gap-3 pt-4 border-t border-[#2A1E15]/30">
@@ -2818,6 +3066,226 @@ export function AdminDashboard({ onLogout }: { onLogout?: () => void } = {}) {
                   </div>
                 </div>
               )}
+
+              {/* Edit Waiter Modal */}
+              {editingWaiter && (
+                <div className="fixed inset-0 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 z-50 text-white select-none">
+                  <div className="bg-[#120D09] border border-[#2A1E15] p-8 rounded-2xl max-w-md w-full shadow-2xl relative">
+                    <h4 className="font-serif font-bold text-xl mb-1 text-white">Modify Floor Waiter</h4>
+                    <p className="text-[10px] text-[#8E7E70] uppercase font-mono mb-6">Edit Staff Access & Assignments</p>
+
+                    {editWaiterError && (
+                      <div className="mb-5 p-3.5 bg-[#C8102E]/10 border border-[#C8102E]/30 rounded-xl text-xs text-white">
+                        {editWaiterError}
+                      </div>
+                    )}
+
+                    <form onSubmit={handleUpdateWaiter} className="space-y-4">
+                      <div>
+                        <label className="block text-[9px] font-mono text-[#8E7E70] uppercase mb-1">Full Name</label>
+                        <input
+                          type="text"
+                          required
+                          value={editWaiterName}
+                          onChange={(e) => setEditWaiterName(e.target.value)}
+                          placeholder="e.g. Jean Dupont"
+                          className="w-full px-3 py-2 text-xs bg-[#1A130E] border border-[#2A1E15] rounded-xl text-white outline-none focus:border-[#C8102E]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[9px] font-mono text-[#8E7E70] uppercase mb-1">Email Address</label>
+                        <input
+                          type="email"
+                          required
+                          value={editWaiterEmail}
+                          onChange={(e) => setEditWaiterEmail(e.target.value)}
+                          placeholder="e.g. jean@ledoubleface.com"
+                          className="w-full px-3 py-2 text-xs bg-[#1A130E] border border-[#2A1E15] rounded-xl text-white outline-none focus:border-[#C8102E]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[9px] font-mono text-[#8E7E70] uppercase mb-1">
+                          4-Digit Access PIN <span className="text-[8px] text-[#8E7E70] lowercase italic">(leave empty to keep current PIN)</span>
+                        </label>
+                        <input
+                          type="password"
+                          maxLength={4}
+                          value={editWaiterPin}
+                          onChange={(e) => setEditWaiterPin(e.target.value.replace(/\D/g, ""))}
+                          placeholder="••••"
+                          className="w-full px-3 py-2 text-xs bg-[#1A130E] border border-[#2A1E15] rounded-xl text-white outline-none focus:border-[#C8102E] tracking-widest font-bold text-center text-lg"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[9px] font-mono text-[#8E7E70] uppercase mb-1">
+                          Assigned Tables <span className="text-[8px] text-[#8E7E70] lowercase italic">(leave empty for ALL tables)</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={editWaiterTables}
+                          onChange={(e) => setEditWaiterTables(e.target.value)}
+                          placeholder="e.g. T01, T02, T03 (leave empty to assign all tables)"
+                          className="w-full px-3 py-2 text-xs bg-[#1A130E] border border-[#2A1E15] rounded-xl text-white outline-none focus:border-[#C8102E]"
+                        />
+                        <span className="text-[9px] text-[#8E7E70] italic mt-1 block">
+                          * If left empty, the waiter will be responsible for all tables.
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between py-2 border-t border-b border-[#2A1E15]/30">
+                        <span className="text-[9px] font-mono text-[#8E7E70] uppercase">Service Status</span>
+                        <button
+                          type="button"
+                          onClick={() => setEditWaiterIsActive(!editWaiterIsActive)}
+                          className={`px-3 py-1.5 rounded text-[10px] font-mono font-bold tracking-wider border cursor-pointer ${
+                            editWaiterIsActive 
+                              ? "bg-[#10B981]/15 text-[#10B981] border-[#10B981]/30 hover:bg-[#10B981]/25" 
+                              : "bg-[#1A130E] text-[#8E7E70] border-[#2A1E15] hover:text-white"
+                          }`}
+                        >
+                          {editWaiterIsActive ? "ACTIVE" : "INACTIVE"}
+                        </button>
+                      </div>
+
+                      <div className="flex gap-3 pt-4">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingWaiter(null);
+                            setEditWaiterError(null);
+                          }}
+                          className="flex-1 py-2.5 bg-white/5 border border-white/10 hover:bg-white/10 text-white font-bold rounded-xl text-xs cursor-pointer active:scale-95 transition-all text-center"
+                        >
+                          CANCEL
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={editWaiterSubmitting}
+                          className="flex-1 py-2.5 bg-[#C8102E] text-white font-bold rounded-xl text-xs hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                        >
+                          {editWaiterSubmitting ? (
+                            <>
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              <span>SAVING...</span>
+                            </>
+                          ) : (
+                            <span>SAVE CHANGES</span>
+                          )}
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
+
+              {/* Delete Waiter Confirmation Modal */}
+              {deletingWaiter && (
+                <div className="fixed inset-0 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 z-50 text-white select-none">
+                  <div className="bg-[#120D09] border border-[#2A1E15] p-8 rounded-2xl max-w-md w-full shadow-2xl relative">
+                    <h4 className="font-serif font-bold text-xl mb-1 text-white flex items-center gap-2">
+                      <AlertCircle className="text-[#C8102E] w-5 h-5" /> Delete Staff Member
+                    </h4>
+                    <p className="text-[10px] text-[#8E7E70] uppercase font-mono mb-6">Dangerous Action</p>
+
+                    {deleteWaiterError && (
+                      <div className="mb-5 p-3.5 bg-[#C8102E]/10 border border-[#C8102E]/30 rounded-xl text-xs text-white">
+                        {deleteWaiterError}
+                      </div>
+                    )}
+
+                    <div className="mb-6 space-y-2">
+                      <p className="text-xs text-[#E5D5C5]">
+                        Are you sure you want to permanently delete <strong className="text-white font-bold">{deletingWaiter.name}</strong> ({deletingWaiter.email})?
+                      </p>
+                      <p className="text-[11px] text-[#8E7E70] leading-relaxed">
+                        This action will immediately revoke their access PIN and remove them from the database. This cannot be undone.
+                      </p>
+                    </div>
+
+                    <div className="flex gap-3 pt-4 border-t border-[#2A1E15]/30">
+                      <button
+                        type="button"
+                        disabled={deleteWaiterSubmitting}
+                        onClick={() => {
+                          setDeletingWaiter(null);
+                          setDeleteWaiterError(null);
+                        }}
+                        className="flex-1 py-2.5 bg-white/5 border border-white/10 hover:bg-white/10 text-white font-bold rounded-xl text-xs cursor-pointer active:scale-95 transition-all text-center disabled:opacity-50"
+                      >
+                        CANCEL
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleDeleteWaiter}
+                        disabled={deleteWaiterSubmitting}
+                        className="flex-1 py-2.5 bg-[#C8102E] text-white font-bold rounded-xl text-xs hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                      >
+                        {deleteWaiterSubmitting ? (
+                          <>
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            <span>DELETING...</span>
+                          </>
+                        ) : (
+                          <span>DELETE ACCOUNT</span>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Customer Display Board QR Code Modal */}
+              {showQRModal && (
+                <div className="fixed inset-0 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 z-50 text-white select-none">
+                  <div className="bg-[#120D09] border border-[#2A1E15] p-8 rounded-2xl max-w-md w-full shadow-2xl relative text-center">
+                    <h4 className="font-serif font-bold text-xl mb-1 text-white">Order Display Board</h4>
+                    <p className="text-[10px] text-[#8E7E70] uppercase font-mono mb-6">Customer TV Screen Setup</p>
+
+                    {/* QR Code Container */}
+                    <div className="bg-white p-4 rounded-xl inline-block mb-6 shadow-md">
+                      <img
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(window.location.origin + window.location.pathname + "?view=display")}`}
+                        alt="Customer Display Board Link"
+                        className="w-[180px] h-[180px] object-contain"
+                      />
+                    </div>
+
+                    <div className="space-y-4 mb-8 text-left">
+                      <p className="text-xs text-[#E5D5C5] text-center font-mono break-all font-bold select-text p-2 bg-[#1A130E] border border-[#2A1E15] rounded-lg">
+                        {window.location.origin + window.location.pathname + "?view=display"}
+                      </p>
+                      <div className="text-[11px] text-[#8E7E70] leading-relaxed space-y-2">
+                        <p>• Scan this QR code with a phone, tablet, or TV web browser to display the live order number queue.</p>
+                        <p>• To display this on a TV, open this link in the TV's browser and toggle fullscreen mode.</p>
+                        <p>• No login required. It updates automatically in real-time when order statuses change.</p>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setShowQRModal(false)}
+                        className="flex-1 py-2.5 bg-white/5 border border-white/10 hover:bg-white/10 text-white font-bold rounded-xl text-xs cursor-pointer active:scale-95 transition-all"
+                      >
+                        CLOSE
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          window.open("?view=display", "_blank");
+                          setShowQRModal(false);
+                        }}
+                        className="flex-1 py-2.5 bg-[#C8102E] text-white font-bold rounded-xl text-xs hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-1 cursor-pointer"
+                      >
+                        OPEN VIEW
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -2846,6 +3314,8 @@ export function AdminDashboard({ onLogout }: { onLogout?: () => void } = {}) {
           ))}
         </div>
       )}
+
+      <WaiterCallAlert language={language} />
     </div>
   );
 }
@@ -2933,7 +3403,7 @@ function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
         setForm(p => ({ ...p, image: base64String }));
       } catch (fallbackErr) {
         console.error("Local image fallback failed:", fallbackErr);
-        alert(`Failed to load image locally: ${err.message || err}`);
+        toast.error(`Impossible de charger l'image localement : ${err.message || err}`);
       }
     } finally {
       setUploading(false);

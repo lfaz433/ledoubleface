@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ChevronDown, Star, MapPin, Phone, Clock, Instagram, Facebook, Twitter, ArrowRight, Flame, Award, Utensils, Users, X, Check } from "lucide-react";
+import { ChevronDown, Star, MapPin, Phone, Clock, Instagram, Facebook, Twitter, ArrowRight, Flame, Award, Utensils, Users, X, Check, Tv } from "lucide-react";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { supabase } from "../../lib/supabase";
 import { translations, Language } from "../../lib/translations";
@@ -800,6 +800,18 @@ export function LandingPage({ onNavigate, tableId }: { onNavigate: (view: string
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Floating Customer Display Button */}
+      <div className="fixed bottom-6 right-6 z-40">
+        <button
+          onClick={() => window.open("?view=display", "_blank")}
+          className="flex items-center gap-2.5 px-4 py-2.5 bg-[#120D09] hover:bg-[#1A130E] text-[#E5D5C5] hover:text-white border border-[#2A1E15] hover:border-[#C8102E]/40 rounded-full shadow-lg shadow-black/80 cursor-pointer active:scale-95 transition-all text-xs font-bold tracking-wider uppercase font-mono"
+          title="Open Customer Order Display Board in new tab"
+        >
+          <Tv size={14} className="text-[#C8102E]" />
+          <span>{t.orderDisplayBoard}</span>
+        </button>
+      </div>
     </div>
   );
 }
