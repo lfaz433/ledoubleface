@@ -5,7 +5,7 @@ import {
   MessageSquare, User, Wifi, WifiOff, Bell, Loader2, AlertCircle
 } from "lucide-react";
 import { translations, Language } from "../../lib/translations";
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 
 interface OrderItem {
   id: string;
