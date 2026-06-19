@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase as oe } from "../../lib/supabase";
 import { toast } from "sonner";
 import { Lock, Loader2 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 
 interface OrderStatusBadgeProps {
   orderId: string;
