@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase as oe } from "../../lib/supabase";
 import { Clock, Check, Bell, RefreshCw } from "lucide-react";
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 
 interface OrderTrackerProps {
   orderId: string;
