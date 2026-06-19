@@ -392,26 +392,26 @@ export function LandingPage({ onNavigate, tableId }: { onNavigate: (view: string
               <Flame size={14} style={{ color: "var(--accent)" }} />
               <span style={{ fontFamily: "'DM Mono', monospace", fontSize: "11px", color: "var(--accent)", letterSpacing: "0.12em" }}>PARIS · EST. 2019</span>
             </div>
-            <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(3rem, 6vw, 5.5rem)", fontWeight: 900, lineHeight: 1.0, letterSpacing: "-0.02em", color: "#f5f0e8" }}>
+            <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(2rem, 6vw, 5.5rem)", fontWeight: 900, lineHeight: 1.0, letterSpacing: "-0.02em", color: "#f5f0e8" }}>
               {lang === "fr" ? heroConfig.title1_fr : heroConfig.title1_en}<br />
               <span style={{ color: "var(--primary)", fontStyle: "italic" }}>{lang === "fr" ? heroConfig.title2_fr : heroConfig.title2_en}</span>
             </h1>
             <p className="mt-6 text-lg leading-relaxed max-w-md" style={{ color: "var(--muted-foreground)" }}>
               {lang === "fr" ? heroConfig.subtitle_fr : heroConfig.subtitle_en}
             </p>
-            <div className="mt-10 flex flex-wrap gap-4">
+            <div className="mt-10 flex flex-col sm:flex-row flex-wrap gap-4">
               <button onClick={() => onNavigate("client", "DELIVERY")}
-                className="flex items-center gap-2 px-8 py-4 text-base transition-all hover:opacity-90 active:scale-95 cursor-pointer"
+                className="flex items-center justify-center gap-2 w-full sm:w-auto px-8 py-4 text-base transition-all hover:opacity-90 active:scale-95 cursor-pointer"
                 style={{ background: "var(--primary)", color: "#fff", borderRadius: "var(--radius)", fontWeight: 700, letterSpacing: "0.06em" }}>
                 {lang === "fr" ? "LIVRAISON" : "DELIVERY"} <ArrowRight size={18} />
               </button>
               <button onClick={() => onNavigate("client", (!tableId || tableId === "DELIVERY" || tableId === "T07") ? "DELIVERY" : tableId)}
-                className="flex items-center gap-2 px-8 py-4 text-base transition-all hover:bg-white/5 cursor-pointer"
+                className="flex items-center justify-center gap-2 w-full sm:w-auto px-8 py-4 text-base transition-all hover:bg-white/5 cursor-pointer"
                 style={{ border: "1px solid rgba(245,240,232,0.2)", color: "var(--foreground)", borderRadius: "var(--radius)", fontWeight: 600 }}>
                 {t.viewMenu}
               </button>
             </div>
-            <div className="mt-12 flex items-center gap-8">
+            <div className="mt-10 flex flex-wrap items-center gap-6 md:gap-8">
               {[{ n: "4.9", l: "Rating" }, { n: "50K+", l: "Served" }, { n: "12", l: "Signature Burgers" }].map(s => (
                 <div key={s.l}>
                   <div style={{ fontFamily: "'Playfair Display', serif", fontSize: "1.75rem", fontWeight: 800, color: "var(--accent)" }}>{s.n}</div>
@@ -639,17 +639,17 @@ export function LandingPage({ onNavigate, tableId }: { onNavigate: (view: string
               <span style={{ fontSize: "14px", color: "var(--muted-foreground)" }}>4.9 · 2,400+ reviews</span>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="hidden sm:grid grid-cols-2 gap-4">
             <ImageWithFallback
               src="https://images.unsplash.com/photo-1590846406792-0adc7f938f1d?w=300&h=400&fit=crop&auto=format"
               alt="Chef cooking"
-              className="w-full h-52 object-cover"
+              className="w-full h-40 md:h-52 object-cover"
               style={{ borderRadius: "var(--radius)", border: "1px solid var(--border)" }}
             />
             <ImageWithFallback
               src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=300&h=400&fit=crop&auto=format"
               alt="Restaurant interior"
-              className="w-full h-52 object-cover mt-8"
+              className="w-full h-40 md:h-52 object-cover mt-8"
               style={{ borderRadius: "var(--radius)", border: "1px solid var(--border)" }}
             />
           </div>

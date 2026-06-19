@@ -238,17 +238,17 @@ export function CustomerDisplay() {
         </button>
       </div>
 
-      {/* Retro Brand Header (Burger King Signature Dark BBQ Brown & Flame accents) */}
-      <header className="px-12 py-5 bg-[#120603] border-b border-[#3D1E16] flex items-center justify-between shrink-0 shadow-lg">
-        <div className="flex items-center gap-5">
+      {/* Retro Brand Header */}
+      <header className="px-4 md:px-12 py-3 md:py-5 bg-[#120603] border-b border-[#3D1E16] flex items-center justify-between flex-wrap gap-3 shrink-0 shadow-lg">
+        <div className="flex items-center gap-3 md:gap-5">
           {/* Stylized Logo Badge */}
-          <div className="w-14 h-14 rounded-full bg-[#FFAA00] border-4 border-[#D62300] flex items-center justify-center font-serif font-black text-2xl text-[#1E0B07] shadow-inner rotate-[-4deg]">
+          <div className="w-10 h-10 md:w-14 md:h-14 rounded-full bg-[#FFAA00] border-4 border-[#D62300] flex items-center justify-center font-serif font-black text-lg md:text-2xl text-[#1E0B07] shadow-inner rotate-[-4deg]">
             LDF
           </div>
           <div>
             <h1 
               style={{ fontFamily: "Fraunces, serif" }}
-              className="text-4xl font-[900] tracking-tight text-[#F5EBDC] leading-none"
+              className="text-2xl md:text-4xl font-[900] tracking-tight text-[#F5EBDC] leading-none"
             >
               LE DOUBLE FACE
             </h1>
@@ -262,7 +262,7 @@ export function CustomerDisplay() {
         </div>
 
         {/* Status Indicators & Clock */}
-        <div className="flex items-center gap-8">
+        <div className="flex items-center gap-3 md:gap-8">
           <div className="flex items-center gap-2 px-3 py-1.5 bg-[#1E0B07] rounded-lg border border-[#3D1E16]">
             {online ? (
               <>
@@ -277,11 +277,11 @@ export function CustomerDisplay() {
             )}
           </div>
 
-          <div className="flex items-center gap-3">
-            <Clock className="w-6 h-6 text-[#FFAA00]" />
+          <div className="flex items-center gap-2 md:gap-3">
+            <Clock className="w-4 h-4 md:w-6 md:h-6 text-[#FFAA00]" />
             <div 
               style={{ fontFamily: "Fredoka, sans-serif" }}
-              className="text-3xl font-black tracking-widest text-[#FFAA00]"
+              className="text-xl md:text-3xl font-black tracking-widest text-[#FFAA00]"
             >
               {new Date(timeNow).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </div>
@@ -289,8 +289,8 @@ export function CustomerDisplay() {
         </div>
       </header>
 
-      {/* Columns Board (Dine-In / Takeaway) */}
-      <main className="flex-1 w-full p-10 gap-10 grid grid-cols-2 overflow-hidden bg-[#1E0B07]">
+      {/* Columns Board (Dine-In / Takeaway) — stacks on mobile, 2-col on md+ */}
+      <main className="flex-1 w-full p-4 md:p-10 gap-4 md:gap-10 grid grid-cols-1 md:grid-cols-2 overflow-y-auto md:overflow-hidden bg-[#1E0B07]">
         
         {/* Left Column: À table (Dine-in) */}
         <div className="flex flex-col bg-[#120603] border-4 border-[#2D120A] rounded-[32px] overflow-hidden shadow-2xl relative">
@@ -329,7 +329,7 @@ export function CustomerDisplay() {
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
                 <AnimatePresence initial={false}>
                   {dineInOrders.map(order => {
                     const code = order.id.replace("ORD-", "");
@@ -401,7 +401,7 @@ export function CustomerDisplay() {
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
                 <AnimatePresence initial={false}>
                   {takeawayOrders.map(order => {
                     const code = order.id.replace("ORD-", "");
@@ -439,7 +439,7 @@ export function CustomerDisplay() {
       </main>
 
       {/* Footer Branding Bar */}
-      <footer className="px-12 py-3 bg-[#120603] border-t border-[#3D1E16] flex items-center justify-between shrink-0">
+      <footer className="px-4 md:px-12 py-3 bg-[#120603] border-t border-[#3D1E16] flex items-center justify-between shrink-0">
         <span 
           style={{ fontFamily: "Fredoka, sans-serif" }}
           className="text-xs font-black uppercase tracking-[0.2em] text-[#FF8732]"

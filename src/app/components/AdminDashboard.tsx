@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   LayoutDashboard, Package, ShoppingBag, Tv, QrCode, Settings,
   Plus, Trash2, Edit2, Check, X, Bell, TrendingUp, Users, DollarSign,
@@ -1561,110 +1561,145 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
     );
   }
 
-  return (
-    <div className="flex h-full bg-[#0A0704] text-white">
-      {/* Sidebar */}
-      <div className="w-56 flex-shrink-0 flex flex-col bg-[#120D09] border-r border-[#2A1E15]">
-        <div className="px-4 py-4 border-b border-[#2A1E15] flex items-center gap-2">
-          <div className="w-7 h-7 rounded bg-[#C8102E] flex items-center justify-center font-serif font-black text-xs text-white">L</div>
-          <div>
-            <div className="font-serif font-bold text-xs">Le Double Face</div>
-            <div className="font-mono text-[8px] text-[#8E7E70] tracking-widest">KITCHEN WORKSPACE</div>
-          </div>
+  // ── Mobile nav state ──────────────────────────────────────────────────────
+  const [navOpen, setNavOpen] = useState(false);
+  const closeNav = useCallback(() => setNavOpen(false), []);
+
+  const NavContent = () => (
+    <>
+      <div className="px-4 py-4 border-b border-[#2A1E15] flex items-center gap-2">
+        <div className="w-7 h-7 rounded bg-[#C8102E] flex items-center justify-center font-serif font-black text-xs text-white">L</div>
+        <div>
+          <div className="font-serif font-bold text-xs">Le Double Face</div>
+          <div className="font-mono text-[8px] text-[#8E7E70] tracking-widest">KITCHEN WORKSPACE</div>
         </div>
-        <nav className="flex-1 px-2 py-4 flex flex-col gap-1">
-          {navItems.map(item => {
-            const active = section === item.id;
-            return (
-              <button key={item.id} onClick={() => setSection(item.id)}
-                className="w-full flex items-center gap-2.5 px-3 py-2 text-left rounded text-xs transition-all relative border cursor-pointer"
-                style={{
-                  background: active ? "rgba(200,16,46,0.12)" : "transparent",
-                  borderColor: active ? "rgba(200,16,46,0.2)" : "transparent",
-                  color: active ? "#fff" : "#8E7E70",
-                  fontWeight: active ? 700 : 500,
-                }}>
-                {item.icon}
-                <span className="flex-1">{item.label}</span>
-                {item.badge ? (
-                  <span className="bg-[#C8102E] text-white font-mono font-bold text-[9px] w-4 h-4 rounded-full flex items-center justify-center">{item.badge}</span>
-                ) : null}
-              </button>
-            );
-          })}
-        </nav>
-        {onLogout && (
-          <div className="p-3 border-t border-[#2A1E15] mt-auto">
-            <button
-              onClick={onLogout}
-              className="w-full flex items-center gap-2.5 px-3 py-2 text-left rounded text-xs transition-all text-[#8E7E70] hover:text-white hover:bg-white/5 border border-transparent cursor-pointer"
-            >
-              <LogOut size={16} className="text-[#C8102E]" />
-              <span className="font-mono uppercase tracking-wider text-[10px]">Log Out</span>
+      </div>
+      <nav className="flex-1 px-2 py-4 flex flex-col gap-1 overflow-y-auto">
+        {navItems.map(item => {
+          const active = section === item.id;
+          return (
+            <button key={item.id} onClick={() => { setSection(item.id); closeNav(); }}
+              className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left rounded text-xs transition-all relative border cursor-pointer"
+              style={{
+                background: active ? "rgba(200,16,46,0.12)" : "transparent",
+                borderColor: active ? "rgba(200,16,46,0.2)" : "transparent",
+                color: active ? "#fff" : "#8E7E70",
+                fontWeight: active ? 700 : 500,
+              }}>
+              {item.icon}
+              <span className="flex-1">{item.label}</span>
+              {item.badge ? (
+                <span className="bg-[#C8102E] text-white font-mono font-bold text-[9px] w-4 h-4 rounded-full flex items-center justify-center">{item.badge}</span>
+              ) : null}
             </button>
-          </div>
-        )}
+          );
+        })}
+      </nav>
+      {onLogout && (
+        <div className="p-3 border-t border-[#2A1E15]">
+          <button
+            onClick={onLogout}
+            className="w-full flex items-center gap-2.5 px-3 py-2 text-left rounded text-xs transition-all text-[#8E7E70] hover:text-white hover:bg-white/5 border border-transparent cursor-pointer"
+          >
+            <LogOut size={16} className="text-[#C8102E]" />
+            <span className="font-mono uppercase tracking-wider text-[10px]">Log Out</span>
+          </button>
+        </div>
+      )}
+    </>
+  );
+
+  return (
+    <div className="flex h-full bg-[#0A0704] text-white relative">
+
+      {/* ── Desktop Sidebar (md+) ─────────────────────────────── */}
+      <div className="hidden md:flex w-56 flex-shrink-0 flex-col bg-[#120D09] border-r border-[#2A1E15]">
+        <NavContent />
       </div>
 
-      {/* Main Panel Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      {/* ── Mobile Drawer Overlay ─────────────────────────────── */}
+      {navOpen && (
+        <div
+          className="fixed inset-0 z-50 flex md:hidden"
+          onClick={closeNav}
+        >
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+          {/* Drawer */}
+          <div
+            className="relative z-10 w-64 max-w-[80vw] flex flex-col bg-[#120D09] border-r border-[#2A1E15] h-full"
+            onClick={e => e.stopPropagation()}
+          >
+            <NavContent />
+          </div>
+        </div>
+      )}
+
+      {/* ── Main Panel Content ────────────────────────────────── */}
+      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         {/* Header */}
-        <header className="px-6 py-4 bg-[#120D09] border-b border-[#2A1E15] flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <span className="text-[#8E7E70] font-mono text-xs uppercase tracking-widest mr-2">{section} console</span>
+        <header className="px-4 md:px-6 py-3 md:py-4 bg-[#120D09] border-b border-[#2A1E15] flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            {/* Hamburger — mobile only */}
+            <button
+              onClick={() => setNavOpen(o => !o)}
+              className="md:hidden flex-shrink-0 p-1.5 rounded border border-[#2A1E15] bg-[#1A130E] text-[#E5D5C5] cursor-pointer active:scale-95 transition-all"
+              aria-label="Open navigation"
+            >
+              <span className="block w-4 h-0.5 bg-current mb-1" />
+              <span className="block w-4 h-0.5 bg-current mb-1" />
+              <span className="block w-4 h-0.5 bg-current" />
+            </button>
+
+            <span className="text-[#8E7E70] font-mono text-[10px] md:text-xs uppercase tracking-widest truncate">{section}</span>
             {pendingCount > 0 && (
-              <span className="bg-[#C8102E] text-white text-[9px] font-mono font-bold px-2 py-0.5 rounded-full animate-pulse mr-2">
+              <span className="bg-[#C8102E] text-white text-[9px] font-mono font-bold px-2 py-0.5 rounded-full animate-pulse flex-shrink-0">
                 {pendingCount}
               </span>
             )}
-            
+
+            {/* Kitchen / Board shortcuts — icon-only on mobile */}
             <button
               onClick={() => window.open("?view=kitchen", "_blank")}
-              className="flex items-center gap-1.5 px-2.5 py-1 bg-[#1A130E] border border-[#2A1E15] hover:bg-white/5 hover:border-[#C8102E]/40 text-[#E5D5C5] rounded text-[9.5px] font-mono font-bold transition-all cursor-pointer"
-              title="Open KDS Kitchen Display Screen in new tab"
+              className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 bg-[#1A130E] border border-[#2A1E15] hover:bg-white/5 hover:border-[#C8102E]/40 text-[#E5D5C5] rounded text-[9.5px] font-mono font-bold transition-all cursor-pointer"
+              title="Kitchen Screen"
             >
-              <span>🍳 KITCHEN SCREEN</span>
+              🍳 <span className="hidden lg:inline">KITCHEN SCREEN</span>
             </button>
-
             <button
               onClick={() => setShowQRModal(true)}
-              className="flex items-center gap-1.5 px-2.5 py-1 bg-[#1A130E] border border-[#2A1E15] hover:bg-white/5 hover:border-[#C8102E]/40 text-[#E5D5C5] rounded text-[9.5px] font-mono font-bold transition-all cursor-pointer"
-              title="Display QR code for customer TV board"
+              className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 bg-[#1A130E] border border-[#2A1E15] hover:bg-white/5 hover:border-[#C8102E]/40 text-[#E5D5C5] rounded text-[9.5px] font-mono font-bold transition-all cursor-pointer"
+              title="Customer Board"
             >
-              <span>📺 CUSTOMER BOARD</span>
+              📺 <span className="hidden lg:inline">CUSTOMER BOARD</span>
             </button>
           </div>
-          <div className="flex items-center gap-6 text-xs font-mono">
-            <div className="flex items-center gap-1.5">
-              <span className="text-[#8E7E70]">DB URL:</span>
-              <span className="text-white font-bold">{import.meta.env.VITE_SUPABASE_URL ? import.meta.env.VITE_SUPABASE_URL.replace("https://", "") : "NOT DEFINED"}</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-1.5">
-                <span className="text-[#8E7E70]">STATUS:</span>
-                {(!supabase || supabase.isMock || dbError) ? (
-                  <span className="flex items-center gap-1.5 font-bold text-[#EF4444]">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#EF4444]" /> OFFLINE
-                  </span>
-                ) : (
-                  <span className="flex items-center gap-1.5 font-bold text-[#10B981]">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]" /> ONLINE
-                  </span>
-                )}
-              </div>
-              <button
-                onClick={forceReload}
-                className="px-2 py-1 bg-white/5 border border-white/10 hover:bg-white/10 active:scale-95 text-[#E5D5C5] rounded text-[9px] font-mono transition-all cursor-pointer"
-                title="Refresh Console Connection (Clear Cache)"
-              >
-                🔄 REFRESH
-              </button>
-            </div>
+
+          <div className="flex items-center gap-2 md:gap-3 text-[10px] md:text-xs font-mono flex-shrink-0">
+            {/* DB status dot — always visible */}
+            {(!supabase || supabase.isMock || dbError) ? (
+              <span className="flex items-center gap-1 font-bold text-[#EF4444]">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#EF4444]" />
+                <span className="hidden sm:inline">OFFLINE</span>
+              </span>
+            ) : (
+              <span className="flex items-center gap-1 font-bold text-[#10B981]">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]" />
+                <span className="hidden sm:inline">ONLINE</span>
+              </span>
+            )}
+            <button
+              onClick={forceReload}
+              className="px-2 py-1 bg-white/5 border border-white/10 hover:bg-white/10 active:scale-95 text-[#E5D5C5] rounded text-[9px] font-mono transition-all cursor-pointer"
+              title="Refresh"
+            >
+              🔄
+            </button>
           </div>
         </header>
 
         {/* Content Body */}
-        <div className="flex-1 p-6 overflow-y-auto">
+        <div className="flex-1 p-4 md:p-6 overflow-y-auto">
           {dbError && (
             <div className="mb-6 p-4 bg-red-950/20 border border-[#C8102E]/30 rounded-lg text-xs text-[#8E7E70] flex items-center gap-2">
               <AlertCircle size={14} className="text-[#C8102E]" />
@@ -1748,7 +1783,7 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
           {/* 2.5 DELIVERY PIPELINE */}
           {section === "delivery" && (
             <div className="flex flex-col gap-6">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                 {(["pending", "preparing", "ready", "delivered"] as const).map(stage => {
                   const stageOrders = orders.filter(o => o.status === stage && o.table_id?.toUpperCase() === "DELIVERY");
                   return (

@@ -358,13 +358,12 @@ export function KitchenDisplay() {
   return (
     <div className="h-screen w-screen bg-[#070503] text-white flex flex-col font-sans select-none overflow-hidden">
       {/* KDS Header */}
-      <header className="px-6 py-3.5 bg-[#100B07] border-b border-[#23170F] flex items-center justify-between z-30 shrink-0">
+      <header className="px-4 md:px-6 py-3 bg-[#100B07] border-b border-[#23170F] flex items-center justify-between gap-2 flex-wrap z-30 shrink-0">
         <div className="flex items-center gap-3">
           <div className="w-7 h-7 rounded-lg bg-[#C8102E] flex items-center justify-center font-serif font-black text-xs text-white animate-pulse">L</div>
           <div>
             <h1 className="font-serif font-bold text-sm tracking-tight text-white">{t.kdsTitle}</h1>
             <div className="flex items-center gap-1.5 mt-0.5">
-              {/* Online/Offline Diagnostic Status */}
               <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-black/30 border border-white/5 text-[9px] font-mono uppercase text-[#8E7E70]">
                 {online ? (
                   <>
@@ -378,7 +377,7 @@ export function KitchenDisplay() {
                   </>
                 )}
               </div>
-              <span className="text-[9px] font-mono text-[#8E7E70] uppercase">
+              <span className="hidden sm:inline text-[9px] font-mono text-[#8E7E70] uppercase">
                 {isMock ? "LOCAL SIMULATION" : "LIVE CLOUD CONNECTED"}
               </span>
             </div>
@@ -386,8 +385,8 @@ export function KitchenDisplay() {
         </div>
 
         {/* Header Controls */}
-        <div className="flex items-center gap-4">
-          <div className="text-right">
+        <div className="flex items-center gap-2 md:gap-4">
+          <div className="hidden sm:block text-right">
             <div className="text-xs font-mono font-bold tracking-wider text-[#E5D5C5]">
               {new Date(timeNow).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
             </div>
@@ -396,7 +395,7 @@ export function KitchenDisplay() {
             </div>
           </div>
 
-          <div className="h-6 w-px bg-[#23170F]" />
+          <div className="hidden sm:block h-6 w-px bg-[#23170F]" />
 
           <div className="flex gap-2">
             <button
@@ -412,16 +411,16 @@ export function KitchenDisplay() {
                 setIsPinVerified(false);
                 setPinInput("");
               }}
-              className="px-3 py-1.5 bg-white/5 border border-white/10 hover:bg-white/10 text-white rounded-lg text-[10px] font-mono uppercase transition-all cursor-pointer flex items-center gap-1.5"
+              className="px-2 md:px-3 py-1.5 bg-white/5 border border-white/10 hover:bg-white/10 text-white rounded-lg text-[10px] font-mono uppercase transition-all cursor-pointer flex items-center gap-1.5"
             >
-              <Lock size={10} /> Lock Screen
+              <Lock size={10} /> <span className="hidden sm:inline">Lock Screen</span>
             </button>
           </div>
         </div>
       </header>
 
-      {/* Main Board Workspace */}
-      <main className="flex-1 w-full p-4 gap-4 grid grid-cols-3 overflow-hidden">
+      {/* Main Board Workspace — 3 cols on desktop, stacks vertically on mobile */}
+      <main className="flex-1 w-full p-3 md:p-4 gap-3 md:gap-4 grid grid-cols-1 md:grid-cols-3 overflow-y-auto md:overflow-hidden">
         {/* Column 1: Pending Orders */}
         <div className="flex flex-col bg-[#0C0805] border border-red-950/20 rounded-xl overflow-hidden shadow-inner">
           <div className="px-4 py-3 bg-red-950/15 border-b border-red-950/40 flex items-center justify-between shrink-0">
