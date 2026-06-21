@@ -114,6 +114,30 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
   const [deleteWaiterSubmitting, setDeleteWaiterSubmitting] = useState(false);
   const [deleteWaiterError, setDeleteWaiterError] = useState<string | null>(null);
 
+  // Drivers Management States
+  const [drivers, setDrivers] = useState<any[]>([]);
+  const [staffTab, setStaffTab] = useState<"waiters" | "drivers">("waiters");
+  const [showDriverModal, setShowDriverModal] = useState(false);
+  const [newDriverName, setNewDriverName] = useState("");
+  const [newDriverEmail, setNewDriverEmail] = useState("");
+  const [newDriverPin, setNewDriverPin] = useState("");
+  const [driverSubmitting, setDriverSubmitting] = useState(false);
+  const [driverError, setDriverError] = useState<string | null>(null);
+
+  // Edit Driver States
+  const [editingDriver, setEditingDriver] = useState<any | null>(null);
+  const [editDriverName, setEditDriverName] = useState("");
+  const [editDriverEmail, setEditDriverEmail] = useState("");
+  const [editDriverPin, setEditDriverPin] = useState("");
+  const [editDriverIsActive, setEditDriverIsActive] = useState(true);
+  const [editDriverSubmitting, setEditDriverSubmitting] = useState(false);
+  const [editDriverError, setEditDriverError] = useState<string | null>(null);
+
+  // Delete Driver States
+  const [deletingDriver, setDeletingDriver] = useState<any | null>(null);
+  const [deleteDriverSubmitting, setDeleteDriverSubmitting] = useState(false);
+  const [deleteDriverError, setDeleteDriverError] = useState<string | null>(null);
+
   // KDS / TV Display states
   const [showQRModal, setShowQRModal] = useState(false);
 
@@ -678,6 +702,258 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
     }
   };
 
+  const loadDrivers = async () => {
+    try {
+      let data: any[] | null = null;
+      let error: any = null;
+
+      if (isMock) {
+        data = JSON.parse(localStorage.getItem("ldf_drivers") || "[]");
+      } else {
+        const response = await supabase
+          .from("drivers")
+          .select("*")
+          .order("created_at", { ascending: false });
+        data = response.data;
+        error = response.error;
+      }
+      if (error) throw error;
+      if (data) setDrivers(data);
+    } catch (err) {
+      console.error("Error loading drivers:", err);
+    }
+  };
+
+  async function assignDriver(orderId: string, driverId: string | null) {
+    try {
+      if (isMock) {
+        const localOrders = JSON.parse(localStorage.getItem("ldf_orders") || "[]");
+        const updated = localOrders.map((o: any) => 
+          o.id === orderId 
+            ? { 
+                ...o, 
+                assigned_driver_id: driverId, 
+                delivery_status: driverId ? "assigned" : "pending" 
+              } 
+            : o
+        );
+        localStorage.setItem("ldf_orders", JSON.stringify(updated));
+        loadOrders();
+        window.dispatchEvent(new CustomEvent("ldf-db-update", { detail: { table: "orders" } }));
+        toast.success(driverId ? "Livreur attribué localement." : "Livreur retiré localement.");
+      } else {
+        const { error } = await supabase
+          .from("orders")
+          .update({ 
+            assigned_driver_id: driverId, 
+            delivery_status: driverId ? "assigned" : "pending" 
+          })
+          .eq("id", orderId);
+        
+        if (error) throw error;
+        loadOrders();
+        toast.success(driverId ? "Livreur attribué avec succès !" : "Livreur retiré avec succès !");
+      }
+    } catch (err: any) {
+      console.error("Failed to assign driver:", err);
+      toast.error("Erreur lors de l'attribution du livreur.");
+    }
+  }
+
+  const toggleDriverActive = async (driver: any) => {
+    const nextActive = !driver.is_active;
+    try {
+      if (isMock) {
+        const localDrivers = JSON.parse(localStorage.getItem("ldf_drivers") || "[]");
+        const updated = localDrivers.map((w: any) => w.id === driver.id ? { ...w, is_active: nextActive } : w);
+        localStorage.setItem("ldf_drivers", JSON.stringify(updated));
+        window.dispatchEvent(new CustomEvent("ldf-db-update", { detail: { table: "drivers" } }));
+      } else {
+        const { error } = await supabase
+          .from("drivers")
+          .update({ is_active: nextActive })
+          .eq("id", driver.id);
+        if (error) throw error;
+      }
+      loadDrivers();
+    } catch (err) {
+      console.error("Failed to toggle driver status:", err);
+    }
+  };
+
+  const handleCreateDriver = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setDriverError(null);
+    setDriverSubmitting(true);
+
+    if (isMock) {
+      setTimeout(() => {
+        const localDrivers = JSON.parse(localStorage.getItem("ldf_drivers") || "[]");
+        const newId = `mock-driver-${Date.now()}`;
+        const newRec = {
+          id: newId,
+          name: newDriverName,
+          email: newDriverEmail,
+          is_active: true,
+          created_at: new Date().toISOString(),
+          last_seen: new Date().toISOString()
+        };
+        localStorage.setItem("ldf_drivers", JSON.stringify([...localDrivers, newRec]));
+        setDriverSubmitting(false);
+        setShowDriverModal(false);
+        setNewDriverName("");
+        setNewDriverEmail("");
+        setNewDriverPin("");
+        loadDrivers();
+        window.dispatchEvent(new CustomEvent("ldf-db-update", { detail: { table: "drivers" } }));
+        toast.success("Livreur enregistré localement !");
+      }, 800);
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase.functions.invoke("create-driver", {
+        body: {
+          name: newDriverName,
+          email: newDriverEmail,
+          pin: newDriverPin
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.error) {
+        setDriverError(data.error);
+      } else {
+        setShowDriverModal(false);
+        setNewDriverName("");
+        setNewDriverEmail("");
+        setNewDriverPin("");
+        loadDrivers();
+        toast.success("Livreur enregistré avec succès !");
+      }
+    } catch (err: any) {
+      setDriverError(err?.message || "Impossible de créer le compte livreur.");
+    } finally {
+      setDriverSubmitting(false);
+    }
+  };
+
+  const openEditDriver = (driver: any) => {
+    setEditingDriver(driver);
+    setEditDriverName(driver.name || "");
+    setEditDriverEmail(driver.email || "");
+    setEditDriverPin("");
+    setEditDriverIsActive(driver.is_active !== false);
+    setEditDriverError(null);
+  };
+
+  const handleUpdateDriver = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingDriver) return;
+    setEditDriverError(null);
+    setEditDriverSubmitting(true);
+
+    if (isMock) {
+      setTimeout(() => {
+        const localDrivers = JSON.parse(localStorage.getItem("ldf_drivers") || "[]");
+        const updated = localDrivers.map((w: any) => 
+          w.id === editingDriver.id 
+            ? { 
+                ...w, 
+                name: editDriverName, 
+                email: editDriverEmail, 
+                is_active: editDriverIsActive 
+              } 
+            : w
+        );
+        localStorage.setItem("ldf_drivers", JSON.stringify(updated));
+        setEditDriverSubmitting(false);
+        setEditingDriver(null);
+        setEditDriverName("");
+        setEditDriverEmail("");
+        setEditDriverPin("");
+        loadDrivers();
+        window.dispatchEvent(new CustomEvent("ldf-db-update", { detail: { table: "drivers" } }));
+        toast.success("Livreur mis à jour localement !");
+      }, 800);
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase.functions.invoke("create-driver", {
+        body: {
+          action: "update",
+          driver_id: editingDriver.id,
+          name: editDriverName,
+          email: editDriverEmail,
+          pin: editDriverPin || undefined,
+          is_active: editDriverIsActive
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.error) {
+        setEditDriverError(data.error);
+      } else {
+        setEditingDriver(null);
+        setEditDriverName("");
+        setEditDriverEmail("");
+        setEditDriverPin("");
+        loadDrivers();
+        toast.success("Livreur mis à jour avec succès !");
+      }
+    } catch (err: any) {
+      setEditDriverError(err?.message || "Impossible de modifier le compte livreur.");
+    } finally {
+      setEditDriverSubmitting(false);
+    }
+  };
+
+  const handleDeleteDriver = async () => {
+    if (!deletingDriver) return;
+    setDeleteDriverError(null);
+    setDeleteDriverSubmitting(true);
+
+    if (isMock) {
+      setTimeout(() => {
+        const localDrivers = JSON.parse(localStorage.getItem("ldf_drivers") || "[]");
+        const updated = localDrivers.filter((w: any) => w.id !== deletingDriver.id);
+        localStorage.setItem("ldf_drivers", JSON.stringify(updated));
+        setDeleteDriverSubmitting(false);
+        setDeletingDriver(null);
+        loadDrivers();
+        window.dispatchEvent(new CustomEvent("ldf-db-update", { detail: { table: "drivers" } }));
+        toast.success("Livreur supprimé localement !");
+      }, 800);
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase.functions.invoke("create-driver", {
+        body: {
+          action: "delete",
+          driver_id: deletingDriver.id
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.error) {
+        setDeleteDriverError(data.error);
+      } else {
+        setDeletingDriver(null);
+        loadDrivers();
+        toast.success("Livreur supprimé avec succès !");
+      }
+    } catch (err: any) {
+      setDeleteDriverError(err?.message || "Impossible de supprimer le compte livreur.");
+    } finally {
+      setDeleteDriverSubmitting(false);
+    }
+  };
+
   const toggleWaiterActive = async (waiter: any) => {
     const nextActive = !waiter.is_active;
     try {
@@ -900,6 +1176,7 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
     loadTickets();
     loadHeroConfig();
     loadWaiters();
+    loadDrivers();
 
     // Subscribe to waiters table in real-time
     const waitersChannel = supabase
@@ -909,6 +1186,18 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
         { event: "*", schema: "public", table: "waiters" },
         () => {
           loadWaiters();
+        }
+      )
+      .subscribe();
+
+    // Subscribe to drivers table in real-time
+    const driversChannel = supabase
+      .channel("drivers-admin-sync")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "drivers" },
+        () => {
+          loadDrivers();
         }
       )
       .subscribe();
@@ -954,6 +1243,7 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
       supabase.removeChannel(tablesChannel);
       supabase.removeChannel(heroChannel);
       supabase.removeChannel(waitersChannel);
+      supabase.removeChannel(driversChannel);
     };
   }, []);
 
@@ -1831,6 +2121,30 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
                                 {order.note}
                               </div>
                             )}
+
+                             {/* Driver Assignment details */}
+                             {order.assigned_driver_id && (
+                               <div className="mb-3 flex items-center gap-1.5 text-[9px] font-mono text-[#D4A017] uppercase tracking-wider">
+                                 <span>Livreur:</span>
+                                 <span className="font-bold text-[#E5D5C5]">{drivers.find(d => d.id === order.assigned_driver_id)?.name || "Livreur"}</span>
+                                 <span className="text-[#8E7E70] text-[8px]">({order.delivery_status || "assigned"})</span>
+                               </div>
+                             )}
+
+                             {/* Driver Selector Dropdown */}
+                             <div className="mb-3 pt-2.5 border-t border-[#2A1E15]/30">
+                               <label className="block text-[8px] font-mono text-[#8E7E70] uppercase mb-1">Attribuer un livreur</label>
+                               <select
+                                 value={order.assigned_driver_id || ""}
+                                 onChange={(e) => assignDriver(order.id, e.target.value || null)}
+                                 className="w-full bg-[#1A130E] border border-[#2A1E15] text-[#E5D5C5] text-[9.5px] py-1 px-1.5 rounded outline-none focus:border-[#C8102E]/60 cursor-pointer font-mono"
+                               >
+                                 <option value="">-- NON ATTRIBUÉ --</option>
+                                 {drivers.filter(d => d.is_active).map(d => (
+                                   <option key={d.id} value={d.id}>{d.name}</option>
+                                 ))}
+                               </select>
+                             </div>
 
                             <div className="flex gap-2 mt-2">
                               <button onClick={() => downloadInvoicePNG(order)}
@@ -2822,106 +3136,223 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
           {/* 7. STAFF MANAGEMENT (ÉQUIPE) */}
           {section === "staff" && (
             <div className="flex flex-col gap-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-serif font-black text-lg text-white">Waiter Registry</h3>
-                  <p className="text-xs text-[#8E7E70] mt-1 font-mono">Manage floor service credentials and table assignments.</p>
-                </div>
+              {/* Tab Selector */}
+              <div className="flex border-b border-[#2A1E15] gap-4 mb-2 shrink-0">
                 <button
-                  onClick={() => setShowWaiterModal(true)}
-                  className="bg-[#C8102E] hover:opacity-90 text-white font-bold py-2 px-4 rounded text-xs flex items-center gap-1.5 cursor-pointer shadow-md shadow-[#C8102E]/20"
+                  onClick={() => setStaffTab("waiters")}
+                  className={`pb-2.5 text-xs font-mono tracking-widest uppercase transition-all relative cursor-pointer ${
+                    staffTab === "waiters" ? "text-white font-bold border-b border-[#C8102E]" : "text-[#8E7E70] hover:text-white"
+                  }`}
                 >
-                  <Plus size={14} /> ADD NEW WAITER
+                  Serveurs (Floor)
+                </button>
+                <button
+                  onClick={() => setStaffTab("drivers")}
+                  className={`pb-2.5 text-xs font-mono tracking-widest uppercase transition-all relative cursor-pointer ${
+                    staffTab === "drivers" ? "text-white font-bold border-b border-[#C8102E]" : "text-[#8E7E70] hover:text-white"
+                  }`}
+                >
+                  Livreurs (Drivers)
                 </button>
               </div>
 
+              {staffTab === "waiters" && (
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-serif font-black text-lg text-white">Waiter Registry</h3>
+                    <p className="text-xs text-[#8E7E70] mt-1 font-mono">Manage floor service credentials and table assignments.</p>
+                  </div>
+                  <button
+                    onClick={() => setShowWaiterModal(true)}
+                    className="bg-[#C8102E] hover:opacity-90 text-white font-bold py-2 px-4 rounded text-xs flex items-center gap-1.5 cursor-pointer shadow-md shadow-[#C8102E]/20"
+                  >
+                    <Plus size={14} /> ADD NEW WAITER
+                  </button>
+                </div>
+              )}
+
               {/* Waiters Registry Table */}
-              <div className="bg-[#120D09] border border-[#2A1E15] rounded-xl overflow-hidden">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="border-b border-[#2A1E15] bg-[#1A130E]/30">
-                      <th className="px-4 py-3 text-[10px] font-mono text-[#8E7E70] uppercase">Waiter Details</th>
-                      <th className="px-4 py-3 text-[10px] font-mono text-[#8E7E70] uppercase">Assigned Tables</th>
-                      <th className="px-4 py-3 text-[10px] font-mono text-[#8E7E70] uppercase">Online Status</th>
-                      <th className="px-4 py-3 text-[10px] font-mono text-[#8E7E70] uppercase text-center">Service Status</th>
-                      <th className="px-4 py-3 text-[10px] font-mono text-[#8E7E70] uppercase text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#2A1E15]/50">
-                    {waiters.map((w) => {
-                      const isOnline = w.last_seen && (Date.now() - new Date(w.last_seen).getTime() < 300000);
-                      const timeStr = w.last_seen ? new Date(w.last_seen).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "N/A";
-                      
-                      return (
-                        <tr key={w.id} className="hover:bg-white/[0.01]">
-                          <td className="px-4 py-3.5 text-xs">
-                            <div className="font-bold text-white">{w.name}</div>
-                            <div className="text-[10px] text-[#8E7E70] font-mono mt-0.5">{w.email}</div>
-                          </td>
-                          <td className="px-4 py-3.5 text-xs">
-                            {w.assigned_tables && w.assigned_tables.length > 0 ? (
-                              <div className="flex flex-wrap gap-1">
-                                {w.assigned_tables.map((t: string) => (
-                                  <span key={t} className="bg-[#1A130E] border border-[#2A1E15] text-[#E5D5C5] text-[9px] font-mono px-2 py-0.5 rounded">{t}</span>
-                                ))}
-                              </div>
-                            ) : (
-                              <span className="bg-[#10B981]/10 border border-[#10B981]/30 text-[#10B981] text-[9px] font-mono font-bold px-2.5 py-0.5 rounded tracking-wide uppercase">All Tables</span>
-                            )}
-                          </td>
-                          <td className="px-4 py-3.5 text-xs">
-                            <div className="flex items-center gap-1.5">
-                              <span className={`w-2 h-2 rounded-full ${isOnline ? "bg-[#10B981] animate-pulse" : "bg-[#8E7E70]/30"}`} />
-                              <span className="font-bold text-white text-[10px] font-mono">{isOnline ? "ONLINE" : "OFFLINE"}</span>
-                              {w.last_seen && (
-                                <span className="text-[10px] text-[#8E7E70] font-mono">({timeStr})</span>
+              {staffTab === "waiters" && (
+                <div className="bg-[#120D09] border border-[#2A1E15] rounded-xl overflow-hidden">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-[#2A1E15] bg-[#1A130E]/30">
+                        <th className="px-4 py-3 text-[10px] font-mono text-[#8E7E70] uppercase">Waiter Details</th>
+                        <th className="px-4 py-3 text-[10px] font-mono text-[#8E7E70] uppercase">Assigned Tables</th>
+                        <th className="px-4 py-3 text-[10px] font-mono text-[#8E7E70] uppercase">Online Status</th>
+                        <th className="px-4 py-3 text-[10px] font-mono text-[#8E7E70] uppercase text-center">Service Status</th>
+                        <th className="px-4 py-3 text-[10px] font-mono text-[#8E7E70] uppercase text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#2A1E15]/50">
+                      {waiters.map((w) => {
+                        const isOnline = w.last_seen && (Date.now() - new Date(w.last_seen).getTime() < 300000);
+                        const timeStr = w.last_seen ? new Date(w.last_seen).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "N/A";
+                        
+                        return (
+                          <tr key={w.id} className="hover:bg-white/[0.01]">
+                            <td className="px-4 py-3.5 text-xs">
+                              <div className="font-bold text-white">{w.name}</div>
+                              <div className="text-[10px] text-[#8E7E70] font-mono mt-0.5">{w.email}</div>
+                            </td>
+                            <td className="px-4 py-3.5 text-xs">
+                              {w.assigned_tables && w.assigned_tables.length > 0 ? (
+                                <div className="flex flex-wrap gap-1">
+                                  {w.assigned_tables.map((t: string) => (
+                                    <span key={t} className="bg-[#1A130E] border border-[#2A1E15] text-[#E5D5C5] text-[9px] font-mono px-2 py-0.5 rounded">{t}</span>
+                                  ))}
+                                </div>
+                              ) : (
+                                <span className="bg-[#10B981]/10 border border-[#10B981]/30 text-[#10B981] text-[9px] font-mono font-bold px-2.5 py-0.5 rounded tracking-wide uppercase">All Tables</span>
                               )}
-                            </div>
-                          </td>
-                          <td className="px-4 py-3.5 text-xs text-center">
-                            <button
-                              onClick={() => toggleWaiterActive(w)}
-                              className={`px-2.5 py-1 rounded text-[9px] font-mono font-bold tracking-wider cursor-pointer border ${
-                                w.is_active 
-                                  ? "bg-[#10B981]/15 text-[#10B981] border-[#10B981]/30 hover:bg-[#10B981]/25" 
-                                  : "bg-[#1A130E] text-[#8E7E70] border-[#2A1E15] hover:text-white"
-                              }`}
-                            >
-                              {w.is_active ? "ACTIVE" : "INACTIVE"}
-                            </button>
-                          </td>
-                          <td className="px-4 py-3.5 text-xs text-right">
-                            <div className="flex justify-end gap-2">
+                            </td>
+                            <td className="px-4 py-3.5 text-xs">
+                              <div className="flex items-center gap-1.5">
+                                <span className={`w-2 h-2 rounded-full ${isOnline ? "bg-[#10B981] animate-pulse" : "bg-[#8E7E70]/30"}`} />
+                                <span className="font-bold text-white text-[10px] font-mono">{isOnline ? "ONLINE" : "OFFLINE"}</span>
+                                {w.last_seen && (
+                                  <span className="text-[10px] text-[#8E7E70] font-mono">({timeStr})</span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-4 py-3.5 text-xs text-center">
                               <button
-                                onClick={() => openEditWaiter(w)}
-                                className="p-1.5 bg-white/5 border border-white/10 hover:bg-white/10 text-white rounded-lg transition-colors cursor-pointer"
-                                title="Modify Waiter"
+                                onClick={() => toggleWaiterActive(w)}
+                                className={`px-2.5 py-1 rounded text-[9px] font-mono font-bold tracking-wider cursor-pointer border ${
+                                  w.is_active 
+                                    ? "bg-[#10B981]/15 text-[#10B981] border-[#10B981]/30 hover:bg-[#10B981]/25" 
+                                    : "bg-[#1A130E] text-[#8E7E70] border-[#2A1E15] hover:text-white"
+                                }`}
                               >
-                                <Edit2 size={13} />
+                                {w.is_active ? "ACTIVE" : "INACTIVE"}
                               </button>
-                              <button
-                                onClick={() => setDeletingWaiter(w)}
-                                className="p-1.5 bg-[#C8102E]/15 border border-[#C8102E]/30 hover:bg-[#C8102E]/25 text-[#C8102E] rounded-lg transition-colors cursor-pointer"
-                                title="Delete Waiter"
-                              >
-                                <Trash2 size={13} />
-                              </button>
-                            </div>
+                            </td>
+                            <td className="px-4 py-3.5 text-xs text-right">
+                              <div className="flex justify-end gap-2">
+                                <button
+                                  onClick={() => openEditWaiter(w)}
+                                  className="p-1.5 bg-white/5 border border-white/10 hover:bg-white/10 text-white rounded-lg transition-colors cursor-pointer"
+                                  title="Modify Waiter"
+                                >
+                                  <Edit2 size={13} />
+                                </button>
+                                <button
+                                  onClick={() => setDeletingWaiter(w)}
+                                  className="p-1.5 bg-[#C8102E]/15 border border-[#C8102E]/30 hover:bg-[#C8102E]/25 text-[#C8102E] rounded-lg transition-colors cursor-pointer"
+                                  title="Delete Waiter"
+                                >
+                                  <Trash2 size={13} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+
+                      {waiters.length === 0 && (
+                        <tr>
+                          <td colSpan={5} className="px-4 py-12 text-center text-xs text-[#8E7E70] italic">
+                            No floor waiters registered in system yet.
                           </td>
                         </tr>
-                      );
-                    })}
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
 
-                    {waiters.length === 0 && (
-                      <tr>
-                        <td colSpan={5} className="px-4 py-12 text-center text-xs text-[#8E7E70] italic">
-                          No floor waiters registered in system yet.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
+              {/* Drivers Registry Section */}
+              {staffTab === "drivers" && (
+                <>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-serif font-black text-lg text-white">Driver Registry</h3>
+                      <p className="text-xs text-[#8E7E70] mt-1 font-mono">Manage home delivery driver accounts and credentials.</p>
+                    </div>
+                    <button
+                      onClick={() => setShowDriverModal(true)}
+                      className="bg-[#C8102E] hover:opacity-90 text-white font-bold py-2 px-4 rounded text-xs flex items-center gap-1.5 cursor-pointer shadow-md shadow-[#C8102E]/20"
+                    >
+                      <Plus size={14} /> ADD NEW DRIVER
+                    </button>
+                  </div>
+
+                  <div className="bg-[#120D09] border border-[#2A1E15] rounded-xl overflow-hidden">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="border-b border-[#2A1E15] bg-[#1A130E]/30">
+                          <th className="px-4 py-3 text-[10px] font-mono text-[#8E7E70] uppercase">Driver Details</th>
+                          <th className="px-4 py-3 text-[10px] font-mono text-[#8E7E70] uppercase">Online Status</th>
+                          <th className="px-4 py-3 text-[10px] font-mono text-[#8E7E70] uppercase text-center">Service Status</th>
+                          <th className="px-4 py-3 text-[10px] font-mono text-[#8E7E70] uppercase text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#2A1E15]/50">
+                        {drivers.map((d) => {
+                          const isOnline = d.last_seen && (Date.now() - new Date(d.last_seen).getTime() < 300000);
+                          const timeStr = d.last_seen ? new Date(d.last_seen).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "N/A";
+                          
+                          return (
+                            <tr key={d.id} className="hover:bg-white/[0.01]">
+                              <td className="px-4 py-3.5 text-xs">
+                                <div className="font-bold text-white">{d.name}</div>
+                                <div className="text-[10px] text-[#8E7E70] font-mono mt-0.5">{d.email}</div>
+                              </td>
+                              <td className="px-4 py-3.5 text-xs">
+                                <div className="flex items-center gap-1.5">
+                                  <span className={`w-2 h-2 rounded-full ${isOnline ? "bg-[#10B981] animate-pulse" : "bg-[#8E7E70]/30"}`} />
+                                  <span className="font-bold text-white text-[10px] font-mono">{isOnline ? "ONLINE" : "OFFLINE"}</span>
+                                  {d.last_seen && (
+                                    <span className="text-[10px] text-[#8E7E70] font-mono">({timeStr})</span>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="px-4 py-3.5 text-xs text-center">
+                                <button
+                                  onClick={() => toggleDriverActive(d)}
+                                  className={`px-2.5 py-1 rounded text-[9px] font-mono font-bold tracking-wider cursor-pointer border ${
+                                    d.is_active 
+                                      ? "bg-[#10B981]/15 text-[#10B981] border-[#10B981]/30 hover:bg-[#10B981]/25" 
+                                      : "bg-[#1A130E] text-[#8E7E70] border-[#2A1E15] hover:text-white"
+                                  }`}
+                                >
+                                  {d.is_active ? "ACTIVE" : "INACTIVE"}
+                                </button>
+                              </td>
+                              <td className="px-4 py-3.5 text-xs text-right">
+                                <div className="flex justify-end gap-2">
+                                  <button
+                                    onClick={() => openEditDriver(d)}
+                                    className="p-1.5 bg-white/5 border border-white/10 hover:bg-white/10 text-white rounded-lg transition-colors cursor-pointer"
+                                    title="Modify Driver"
+                                  >
+                                    <Edit2 size={13} />
+                                  </button>
+                                  <button
+                                    onClick={() => setDeletingDriver(d)}
+                                    className="p-1.5 bg-[#C8102E]/15 border border-[#C8102E]/30 hover:bg-[#C8102E]/25 text-[#C8102E] rounded-lg transition-colors cursor-pointer"
+                                    title="Delete Driver"
+                                  >
+                                    <Trash2 size={13} />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+
+                        {drivers.length === 0 && (
+                          <tr>
+                            <td colSpan={4} className="px-4 py-12 text-center text-xs text-[#8E7E70] italic">
+                              No delivery drivers registered in system yet.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )}
 
               {/* Add Waiter Modal */}
               {showWaiterModal && (
@@ -3178,6 +3609,242 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
                         className="flex-1 py-2.5 bg-[#C8102E] text-white font-bold rounded-xl text-xs hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
                       >
                         {deleteWaiterSubmitting ? (
+                          <>
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            <span>DELETING...</span>
+                          </>
+                        ) : (
+                          <span>DELETE ACCOUNT</span>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Add Driver Modal */}
+              {showDriverModal && (
+                <div className="fixed inset-0 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 z-50 text-white select-none">
+                  <div className="bg-[#120D09] border border-[#2A1E15] p-8 rounded-2xl max-w-md w-full shadow-2xl relative">
+                    <h4 className="font-serif font-bold text-xl mb-1 text-white">Register Delivery Driver</h4>
+                    <p className="text-[10px] text-[#8E7E70] uppercase font-mono mb-6">Staff Access Credentials</p>
+
+                    {driverError && (
+                      <div className="mb-5 p-3.5 bg-[#C8102E]/10 border border-[#C8102E]/30 rounded-xl text-xs text-white">
+                        {driverError}
+                      </div>
+                    )}
+
+                    <form onSubmit={handleCreateDriver} className="space-y-4">
+                      <div>
+                        <label className="block text-[9px] font-mono text-[#8E7E70] uppercase mb-1">Full Name</label>
+                        <input
+                          type="text"
+                          required
+                          value={newDriverName}
+                          onChange={(e) => setNewDriverName(e.target.value)}
+                          placeholder="e.g. Marc Tremblay"
+                          className="w-full px-3 py-2 text-xs bg-[#1A130E] border border-[#2A1E15] rounded-xl text-white outline-none focus:border-[#C8102E]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[9px] font-mono text-[#8E7E70] uppercase mb-1">Email Address</label>
+                        <input
+                          type="email"
+                          required
+                          value={newDriverEmail}
+                          onChange={(e) => setNewDriverEmail(e.target.value)}
+                          placeholder="e.g. marc@ledoubleface.com"
+                          className="w-full px-3 py-2 text-xs bg-[#1A130E] border border-[#2A1E15] rounded-xl text-white outline-none focus:border-[#C8102E]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[9px] font-mono text-[#8E7E70] uppercase mb-1">4-Digit Access PIN</label>
+                        <input
+                          type="password"
+                          required
+                          maxLength={4}
+                          value={newDriverPin}
+                          onChange={(e) => setNewDriverPin(e.target.value.replace(/\D/g, ""))}
+                          placeholder="e.g. 5678"
+                          className="w-full px-3 py-2 text-xs bg-[#1A130E] border border-[#2A1E15] rounded-xl text-white outline-none focus:border-[#C8102E] tracking-widest font-bold text-center text-lg"
+                        />
+                      </div>
+
+                      <div className="flex gap-3 pt-4 border-t border-[#2A1E15]/30">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowDriverModal(false);
+                            setDriverError(null);
+                          }}
+                          className="flex-1 py-2.5 bg-white/5 border border-white/10 hover:bg-white/10 text-white font-bold rounded-xl text-xs cursor-pointer active:scale-95 transition-all text-center"
+                        >
+                          CANCEL
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={driverSubmitting}
+                          className="flex-1 py-2.5 bg-[#C8102E] text-white font-bold rounded-xl text-xs hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                        >
+                          {driverSubmitting ? (
+                            <>
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              <span>CREATING...</span>
+                            </>
+                          ) : (
+                            <span>REGISTER DRIVER</span>
+                          )}
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
+
+              {/* Edit Driver Modal */}
+              {editingDriver && (
+                <div className="fixed inset-0 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 z-50 text-white select-none">
+                  <div className="bg-[#120D09] border border-[#2A1E15] p-8 rounded-2xl max-w-md w-full shadow-2xl relative">
+                    <h4 className="font-serif font-bold text-xl mb-1 text-white">Modify Delivery Driver</h4>
+                    <p className="text-[10px] text-[#8E7E70] uppercase font-mono mb-6">Edit Staff Access & Status</p>
+
+                    {editDriverError && (
+                      <div className="mb-5 p-3.5 bg-[#C8102E]/10 border border-[#C8102E]/30 rounded-xl text-xs text-white">
+                        {editDriverError}
+                      </div>
+                    )}
+
+                    <form onSubmit={handleUpdateDriver} className="space-y-4">
+                      <div>
+                        <label className="block text-[9px] font-mono text-[#8E7E70] uppercase mb-1">Full Name</label>
+                        <input
+                          type="text"
+                          required
+                          value={editDriverName}
+                          onChange={(e) => setEditDriverName(e.target.value)}
+                          placeholder="e.g. Marc Tremblay"
+                          className="w-full px-3 py-2 text-xs bg-[#1A130E] border border-[#2A1E15] rounded-xl text-white outline-none focus:border-[#C8102E]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[9px] font-mono text-[#8E7E70] uppercase mb-1">Email Address</label>
+                        <input
+                          type="email"
+                          required
+                          value={editDriverEmail}
+                          onChange={(e) => setEditDriverEmail(e.target.value)}
+                          placeholder="e.g. marc@ledoubleface.com"
+                          className="w-full px-3 py-2 text-xs bg-[#1A130E] border border-[#2A1E15] rounded-xl text-white outline-none focus:border-[#C8102E]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[9px] font-mono text-[#8E7E70] uppercase mb-1">
+                          4-Digit Access PIN <span className="text-[8px] text-[#8E7E70] lowercase italic">(leave empty to keep current PIN)</span>
+                        </label>
+                        <input
+                          type="password"
+                          maxLength={4}
+                          value={editDriverPin}
+                          onChange={(e) => setEditDriverPin(e.target.value.replace(/\D/g, ""))}
+                          placeholder="••••"
+                          className="w-full px-3 py-2 text-xs bg-[#1A130E] border border-[#2A1E15] rounded-xl text-white outline-none focus:border-[#C8102E] tracking-widest font-bold text-center text-lg"
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between py-2 border-t border-b border-[#2A1E15]/30">
+                        <span className="text-[9px] font-mono text-[#8E7E70] uppercase">Service Status</span>
+                        <button
+                          type="button"
+                          onClick={() => setEditDriverIsActive(!editDriverIsActive)}
+                          className={`px-3 py-1.5 rounded text-[10px] font-mono font-bold tracking-wider border cursor-pointer ${
+                            editDriverIsActive 
+                              ? "bg-[#10B981]/15 text-[#10B981] border-[#10B981]/30 hover:bg-[#10B981]/25" 
+                              : "bg-[#1A130E] text-[#8E7E70] border-[#2A1E15] hover:text-white"
+                          }`}
+                        >
+                          {editDriverIsActive ? "ACTIVE" : "INACTIVE"}
+                        </button>
+                      </div>
+
+                      <div className="flex gap-3 pt-4">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingDriver(null);
+                            setEditDriverError(null);
+                          }}
+                          className="flex-1 py-2.5 bg-white/5 border border-white/10 hover:bg-white/10 text-white font-bold rounded-xl text-xs cursor-pointer active:scale-95 transition-all text-center"
+                        >
+                          CANCEL
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={editDriverSubmitting}
+                          className="flex-1 py-2.5 bg-[#C8102E] text-white font-bold rounded-xl text-xs hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                        >
+                          {editDriverSubmitting ? (
+                            <>
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              <span>SAVING...</span>
+                            </>
+                          ) : (
+                            <span>SAVE CHANGES</span>
+                          )}
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
+
+              {/* Delete Driver Confirmation Modal */}
+              {deletingDriver && (
+                <div className="fixed inset-0 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 z-50 text-white select-none">
+                  <div className="bg-[#120D09] border border-[#2A1E15] p-8 rounded-2xl max-w-md w-full shadow-2xl relative">
+                    <h4 className="font-serif font-bold text-xl mb-1 text-white flex items-center gap-2">
+                      <AlertCircle className="text-[#C8102E] w-5 h-5" /> Delete Driver Account
+                    </h4>
+                    <p className="text-[10px] text-[#8E7E70] uppercase font-mono mb-6">Dangerous Action</p>
+
+                    {deleteDriverError && (
+                      <div className="mb-5 p-3.5 bg-[#C8102E]/10 border border-[#C8102E]/30 rounded-xl text-xs text-white">
+                        {deleteDriverError}
+                      </div>
+                    )}
+
+                    <div className="mb-6 space-y-2">
+                      <p className="text-xs text-[#E5D5C5]">
+                        Are you sure you want to permanently delete <strong className="text-white font-bold">{deletingDriver.name}</strong> ({deletingDriver.email})?
+                      </p>
+                      <p className="text-[11px] text-[#8E7E70] leading-relaxed">
+                        This action will immediately revoke their access PIN and remove them from the database. This cannot be undone.
+                      </p>
+                    </div>
+
+                    <div className="flex gap-3 pt-4 border-t border-[#2A1E15]/30">
+                      <button
+                        type="button"
+                        disabled={deleteDriverSubmitting}
+                        onClick={() => {
+                          setDeletingDriver(null);
+                          setDeleteDriverError(null);
+                        }}
+                        className="flex-1 py-2.5 bg-white/5 border border-white/10 hover:bg-white/10 text-white font-bold rounded-xl text-xs cursor-pointer active:scale-95 transition-all text-center disabled:opacity-50"
+                      >
+                        CANCEL
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleDeleteDriver}
+                        disabled={deleteDriverSubmitting}
+                        className="flex-1 py-2.5 bg-[#C8102E] text-white font-bold rounded-xl text-xs hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                      >
+                        {deleteDriverSubmitting ? (
                           <>
                             <Loader2 className="w-3.5 h-3.5 animate-spin" />
                             <span>DELETING...</span>

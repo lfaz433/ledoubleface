@@ -3,12 +3,13 @@ import { ClientOrdering } from "./components/ClientOrdering";
 import { AdminDashboard } from "./components/AdminDashboard";
 import { AdminAuthGate } from "./components/AdminAuthGate";
 import { WaiterAuthGate } from "./components/WaiterAuthGate";
+import { DriverAuthGate } from "./components/DriverAuthGate";
 import { LandingPage } from "./components/LandingPage";
 import { KitchenDisplay } from "./components/KitchenDisplay";
 import { CustomerDisplay } from "./components/CustomerDisplay";
 import { Monitor, Smartphone, Columns, ArrowLeft } from "lucide-react";
 
-type RouteView = "landing" | "menu" | "admin" | "waiter" | "simulator" | "kitchen" | "display";
+type RouteView = "landing" | "menu" | "admin" | "waiter" | "driver" | "simulator" | "kitchen" | "display";
 
 export default function App() {
   const [view, setView] = useState<RouteView>("landing");
@@ -29,6 +30,7 @@ export default function App() {
       const isSimulator = params.get("simulator") === "true" || path === "/simulator";
       const isAdmin = params.get("view") === "admin" || path === "/admin";
       const isWaiter = params.get("view") === "waiter" || path === "/waiter";
+      const isDriver = params.get("view") === "driver" || path === "/driver";
       const isKitchen = params.get("view") === "kitchen" || path === "/kitchen";
       const isDisplay = params.get("view") === "display" || path === "/display";
       const isMenu = params.get("view") === "menu" || params.get("view") === "order" || path === "/menu" || path === "/order" || params.has("table");
@@ -45,6 +47,8 @@ export default function App() {
         setView("admin");
       } else if (isWaiter) {
         setView("waiter");
+      } else if (isDriver) {
+        setView("driver");
       } else if (isKitchen) {
         setView("kitchen");
       } else if (isDisplay) {
@@ -77,6 +81,8 @@ export default function App() {
       url.searchParams.set("view", "admin");
     } else if (newView === "waiter") {
       url.searchParams.set("view", "waiter");
+    } else if (newView === "driver") {
+      url.searchParams.set("view", "driver");
     } else if (newView === "menu") {
       url.searchParams.set("view", "order");
       if (targetTableId) {
@@ -108,6 +114,8 @@ export default function App() {
       navigateTo("admin");
     } else if (viewStr === "waiter") {
       navigateTo("waiter");
+    } else if (viewStr === "driver") {
+      navigateTo("driver");
     } else if (viewStr === "kitchen") {
       navigateTo("kitchen");
     } else if (viewStr === "display") {
@@ -184,6 +192,24 @@ export default function App() {
           <ArrowLeft size={14} /> HOME
         </button>
         <WaiterAuthGate 
+          onLogout={() => navigateTo("landing")} 
+          onAdminRedirect={() => navigateTo("admin")}
+        />
+      </div>
+    );
+  }
+
+  // Render Standalone Driver Dashboard View
+  if (view === "driver") {
+    return (
+      <div className="min-h-screen bg-[#0A0704] text-white relative">
+        <button
+          onClick={() => navigateTo("landing")}
+          className="fixed top-4 left-4 z-50 flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono tracking-widest text-[#E5D5C5] bg-black/40 border border-white/10 hover:bg-black/60 rounded-lg backdrop-blur-md transition-all cursor-pointer"
+        >
+          <ArrowLeft size={14} /> HOME
+        </button>
+        <DriverAuthGate 
           onLogout={() => navigateTo("landing")} 
           onAdminRedirect={() => navigateTo("admin")}
         />
