@@ -1556,7 +1556,7 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
 
   if (loading) {
     return (
-      <div className="h-full w-full flex flex-col items-center justify-center bg-[#0A0704] text-[#8E7E70] p-6">
+      <div className="h-screen w-full flex flex-col items-center justify-center bg-[#0A0704] text-[#8E7E70] p-6">
         <div className="relative w-12 h-12 mb-4">
           <div className="absolute inset-0 rounded-full border-2 border-t-[#C8102E] border-r-transparent border-b-transparent border-l-transparent animate-spin" />
         </div>
@@ -1565,7 +1565,7 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
     );
   }
 
-  const NavContent = () => (
+  const renderNavContent = () => (
     <>
       <div className="px-4 py-4 border-b border-[#2A1E15] flex items-center gap-2">
         <div className="w-7 h-7 rounded bg-[#C8102E] flex items-center justify-center font-serif font-black text-xs text-white">L</div>
@@ -1610,11 +1610,11 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
   );
 
   return (
-    <div className="flex h-full bg-[#0A0704] text-white relative">
+    <div className="flex h-screen bg-[#0A0704] text-white relative overflow-hidden">
 
       {/* ── Desktop Sidebar (md+) ─────────────────────────────── */}
       <div className="hidden md:flex w-56 flex-shrink-0 flex-col bg-[#120D09] border-r border-[#2A1E15]">
-        <NavContent />
+        {renderNavContent()}
       </div>
 
       {/* ── Mobile Drawer Overlay ─────────────────────────────── */}
@@ -1630,7 +1630,7 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
             className="relative z-10 w-64 max-w-[80vw] flex flex-col bg-[#120D09] border-r border-[#2A1E15] h-full"
             onClick={e => e.stopPropagation()}
           >
-            <NavContent />
+            {renderNavContent()}
           </div>
         </div>
       )}
