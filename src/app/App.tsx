@@ -11,7 +11,9 @@ import { Monitor, Smartphone, Columns, ArrowLeft } from "lucide-react";
 
 type RouteView = "landing" | "menu" | "admin" | "waiter" | "driver" | "simulator" | "kitchen" | "display";
 
-export default function App() {
+import { ErrorBoundary } from "./components/ErrorBoundary";
+
+function AppCore() {
   const [view, setView] = useState<RouteView>("landing");
   const [tableId, setTableId] = useState("DELIVERY");
   const [area, setArea] = useState("Terrace Patio");
@@ -349,5 +351,13 @@ export default function App() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <ErrorBoundary>
+      <AppCore />
+    </ErrorBoundary>
   );
 }

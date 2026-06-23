@@ -4,7 +4,7 @@ import {
   Maximize2, Minimize2, Clock, Loader2, Utensils, ShoppingBag, Wifi, WifiOff
 } from "lucide-react";
 import { translations, Language } from "../../lib/translations";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 
 interface Order {
   id: string;

@@ -3,7 +3,7 @@ import { ChevronDown, Star, MapPin, Phone, Clock, Instagram, Facebook, Twitter, 
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { supabase } from "../../lib/supabase";
 import { translations, Language } from "../../lib/translations";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 
 const FALLBACK_MENU_ITEMS = [
   { id: "B1", name: "Le Double Face Burger", price: 14.90, category: "Signature", desc: "Double wagyu patty, truffle mayo, aged cheddar, brioche bun", image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400&h=300&fit=crop&auto=format", popular: true },
