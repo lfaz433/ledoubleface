@@ -165,12 +165,6 @@ function AppCore() {
   if (view === "menu") {
     return (
       <div className="min-h-screen bg-background text-foreground relative">
-        <button
-          onClick={() => navigateTo("landing")}
-          className="fixed top-4 left-4 z-50 flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono tracking-widest text-foreground bg-background/60 border border-border hover:bg-black/60 rounded backdrop-blur-md transition-all cursor-pointer"
-        >
-          <ArrowLeft size={14} /> HOME
-        </button>
         <ClientOrdering tableId={tableId} area={area} />
       </div>
     );
@@ -180,12 +174,6 @@ function AppCore() {
   if (view === "admin") {
     return (
       <div className="min-h-screen bg-background text-foreground relative">
-        <button
-          onClick={() => navigateTo("landing")}
-          className="fixed top-4 left-4 z-50 flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono tracking-widest text-foreground bg-background/60 border border-border hover:bg-black/60 rounded-lg backdrop-blur-md transition-all cursor-pointer"
-        >
-          <ArrowLeft size={14} /> HOME
-        </button>
         <AdminAuthGate onLogout={() => navigateTo("landing")} />
       </div>
     );
@@ -195,12 +183,6 @@ function AppCore() {
   if (view === "waiter") {
     return (
       <div className="min-h-screen bg-background text-foreground relative">
-        <button
-          onClick={() => navigateTo("landing")}
-          className="fixed top-4 left-4 z-50 flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono tracking-widest text-foreground bg-background/60 border border-border hover:bg-black/60 rounded-lg backdrop-blur-md transition-all cursor-pointer"
-        >
-          <ArrowLeft size={14} /> HOME
-        </button>
         <WaiterAuthGate 
           onLogout={() => navigateTo("landing")} 
           onAdminRedirect={() => navigateTo("admin")}
@@ -213,12 +195,6 @@ function AppCore() {
   if (view === "driver") {
     return (
       <div className="min-h-screen bg-background text-foreground relative">
-        <button
-          onClick={() => navigateTo("landing")}
-          className="fixed top-4 left-4 z-50 flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono tracking-widest text-foreground bg-background/60 border border-border hover:bg-black/60 rounded-lg backdrop-blur-md transition-all cursor-pointer"
-        >
-          <ArrowLeft size={14} /> HOME
-        </button>
         <DriverAuthGate 
           onLogout={() => navigateTo("landing")} 
           onAdminRedirect={() => navigateTo("admin")}
