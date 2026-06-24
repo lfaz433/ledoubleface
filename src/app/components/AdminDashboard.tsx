@@ -20,6 +20,7 @@ interface CustomField {
   name: string;
   type: "radio" | "checkbox" | "text";
   options: string[];
+  optionImages?: Record<string, string>;
   required: boolean;
 }
 
@@ -4156,13 +4157,35 @@ function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
 
               {field.type !== "text" && (
                 <div>
-                  <div className="flex flex-wrap gap-1.5 mb-3">
+                  <div className="flex flex-col gap-2 mb-3">
                     {field.options.map((opt, i) => (
-                      <div key={i} className="flex items-center gap-1.5 px-2 py-1 text-[10px] bg-card border border-border rounded text-foreground">
-                        <span>{opt}</span>
+                      <div key={i} className="flex items-center gap-3 p-2 bg-card/50 border border-border rounded">
+                        <div className="flex-1 flex flex-col gap-1.5">
+                          <span className="text-xs font-bold text-foreground">{opt}</span>
+                          <input
+                            placeholder="Image URL for this option (Optional)"
+                            value={field.optionImages?.[opt] || ""}
+                            onChange={e => {
+                              const val = e.target.value;
+                              setForm(p => ({
+                                ...p,
+                                customFields: p.customFields.map(f => f.id === field.id ? {
+                                  ...f,
+                                  optionImages: { ...(f.optionImages || {}), [opt]: val }
+                                } : f)
+                              }));
+                            }}
+                            className="w-full px-2 py-1 text-[10px] bg-background border border-border rounded text-foreground outline-none focus:border-primary transition-colors"
+                          />
+                        </div>
+                        {field.optionImages?.[opt] && (
+                          <div className="w-8 h-8 rounded bg-secondary border border-border overflow-hidden flex-shrink-0">
+                            <img src={field.optionImages[opt]} alt="" className="w-full h-full object-cover" />
+                          </div>
+                        )}
                         <button onClick={() => setForm(p => ({ ...p, customFields: p.customFields.map(f => f.id === field.id ? { ...f, options: f.options.filter((_, idx) => idx !== i) } : f) }))}
-                          className="text-muted-foreground hover:text-foreground cursor-pointer">
-                          <X size={9} />
+                          className="p-1.5 text-muted-foreground hover:bg-red-500/10 hover:text-red-500 rounded cursor-pointer transition-colors">
+                          <X size={12} />
                         </button>
                       </div>
                     ))}

@@ -272,7 +272,14 @@ export function ProductWizard({ item, lang, onClose, onAddToCart }: ProductWizar
                             }}
                             className={`p-4 rounded-xl border-2 transition-all text-left flex items-center justify-between group ${selected ? 'border-primary bg-primary/5' : 'border-border bg-card hover:border-primary/50'}`}
                           >
-                            <span className="font-bold text-foreground">{opt}</span>
+                            <div className="flex items-center gap-3">
+                              {currentStep.field.optionImages?.[opt] && (
+                                <div className="w-10 h-10 rounded-lg overflow-hidden border border-border bg-secondary flex-shrink-0 shadow-sm">
+                                  <img src={currentStep.field.optionImages[opt]} alt={opt} className="w-full h-full object-cover" />
+                                </div>
+                              )}
+                              <span className="font-bold text-foreground">{opt}</span>
+                            </div>
                             <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${selected ? 'border-primary bg-primary' : 'border-muted-foreground group-hover:border-primary/50'}`}>
                               {selected && <Check size={12} className="text-primary-foreground stroke-[3px]" />}
                             </div>
@@ -298,7 +305,14 @@ export function ProductWizard({ item, lang, onClose, onAddToCart }: ProductWizar
                             }}
                             className={`p-4 rounded-xl border-2 transition-all text-left flex items-center justify-between group ${checked ? 'border-primary bg-primary/5' : 'border-border bg-card hover:border-primary/50'}`}
                           >
-                            <span className="font-bold text-foreground">{opt}</span>
+                            <div className="flex items-center gap-3">
+                              {currentStep.field.optionImages?.[opt] && (
+                                <div className="w-10 h-10 rounded-lg overflow-hidden border border-border bg-secondary flex-shrink-0 shadow-sm">
+                                  <img src={currentStep.field.optionImages[opt]} alt={opt} className="w-full h-full object-cover" />
+                                </div>
+                              )}
+                              <span className="font-bold text-foreground">{opt}</span>
+                            </div>
                             <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center ${checked ? 'border-primary bg-primary' : 'border-muted-foreground group-hover:border-primary/50'}`}>
                               {checked && <Check size={12} className="text-primary-foreground stroke-[3px]" />}
                             </div>
@@ -356,10 +370,17 @@ export function ProductWizard({ item, lang, onClose, onAddToCart }: ProductWizar
 
         {/* Footer Navigation */}
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-border bg-card z-20 flex gap-3">
+          <button 
+            onClick={goBack}
+            className="px-5 py-4 text-sm font-bold text-foreground bg-secondary hover:bg-secondary/80 rounded-xl transition-colors border border-border"
+          >
+            {lang === "fr" ? "RETOUR" : "BACK"}
+          </button>
+
           {currentStep.type !== "summary" && !currentStep.field?.required && currentStep.type !== "upsell" && (
             <button 
               onClick={skipStep}
-              className="px-6 py-4 text-sm font-bold text-muted-foreground bg-secondary hover:bg-secondary/80 rounded-xl transition-colors"
+              className="px-5 py-4 text-sm font-bold text-muted-foreground hover:text-foreground transition-colors"
             >
               {lang === "fr" ? "Passer" : "Skip"}
             </button>
