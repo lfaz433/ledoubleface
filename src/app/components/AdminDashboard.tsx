@@ -1887,8 +1887,15 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
           );
         })}
       </nav>
-      {onLogout && (
-        <div className="p-3 border-t border-border">
+      <div className="p-3 border-t border-border flex flex-col gap-1">
+        <button
+          onClick={() => window.location.href = '/'}
+          className="w-full flex items-center gap-2.5 px-3 py-2 text-left rounded text-xs transition-all text-muted-foreground hover:text-foreground hover:bg-secondary border border-transparent cursor-pointer"
+        >
+          <ArrowLeft size={16} />
+          <span className="flex-1">Back to Website</span>
+        </button>
+        {onLogout && (
           <button
             onClick={onLogout}
             className="w-full flex items-center gap-2.5 px-3 py-2 text-left rounded text-xs transition-all text-muted-foreground hover:text-foreground hover:bg-secondary border border-transparent cursor-pointer"
@@ -1896,8 +1903,8 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
             <LogOut size={16} className="text-primary" />
             <span className="font-mono uppercase tracking-wider text-[10px]">Log Out</span>
           </button>
-        </div>
-      )}
+        )}
+      </div>
     </>
   );
 

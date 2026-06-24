@@ -1054,7 +1054,12 @@ Note: ${orderNote}`;
       <div className="sticky top-0 z-10 bg-secondary border-b border-border backdrop-blur-xl shadow-lg">
         <div className="px-4 py-4 flex items-center justify-between">
           <div className="flex flex-col gap-1.5">
-            <span className="font-serif font-black text-lg text-foreground leading-tight">Le Double Face</span>
+            <div className="flex items-center gap-2">
+              <button onClick={() => window.location.href = '/'} className="p-1 -ml-1 rounded-full hover:bg-black/10 text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
+                <ChevronLeft size={20} />
+              </button>
+              <span className="font-serif font-black text-lg text-foreground leading-tight">Le Double Face</span>
+            </div>
             <div className="flex items-center flex-wrap gap-1.5">
               {/* Permanent Context Pill */}
               <div className="flex items-center gap-1.5 px-2.5 py-1 bg-primary/10 border border-primary/25 rounded-full text-[9px] text-primary font-mono font-black tracking-wider uppercase">
