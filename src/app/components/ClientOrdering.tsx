@@ -119,6 +119,8 @@ export function ClientOrdering({ tableId, area, isKiosk = false }: { tableId: st
   const [showMapPicker, setShowMapPicker] = useState(false);
   const [deliveryTimeMode, setDeliveryTimeMode] = useState<"ASAP" | "SCHEDULED">("ASAP");
   const [deliveryTime, setDeliveryTime] = useState("");
+  const [isLocating, setIsLocating] = useState(false);
+  const [mapCoords, setMapCoords] = useState<{lat: number, lon: number} | null>(null);
   const [orderId, setOrderId] = useState("");
   const [tableActive, setTableActive] = useState(true);
   const [waiterCallPending, setWaiterCallPending] = useState(false);
@@ -1013,6 +1015,36 @@ Note: ${orderNote}`;
     // Actually, we've removed the early exit, so let's delete this block completely.
   }
 
+  const handleFindLocation = () => {
+    setIsLocating(true);
+    if (!navigator.geolocation) {
+      alert("Geolocation is not supported by your browser");
+      setIsLocating(false);
+      return;
+    }
+    
+    navigator.geolocation.getCurrentPosition(async (position) => {
+      const lat = position.coords.latitude;
+      const lon = position.coords.longitude;
+      setMapCoords({ lat, lon });
+      
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`);
+        const data = await res.json();
+        if (data && data.display_name) {
+          setDeliveryAddress(data.display_name);
+        }
+      } catch (err) {
+        console.error("Geocoding failed", err);
+      } finally {
+        setIsLocating(false);
+      }
+    }, () => {
+      alert("Unable to retrieve your location. Please check your browser permissions.");
+      setIsLocating(false);
+    });
+  };
+
   return (
     <motion.div 
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -1835,35 +1867,57 @@ Note: ${orderNote}`;
               </div>
             </div>
 
-            {/* Interactive Map Area (Visual Demo) */}
+            {/* Interactive Map Area */}
             <div className="flex-1 relative bg-[#E5E3DF]">
-              <img 
-                src="https://images.unsplash.com/photo-1524661135-423995f22d0b?w=800&q=80" 
-                alt="Map Background" 
-                className="w-full h-full object-cover opacity-80"
-              />
-              
-              {/* Map Overlay & Pin */}
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <motion.div
-                  animate={{ y: [0, -10, 0] }}
-                  transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
-                  className="flex flex-col items-center pointer-events-auto cursor-pointer"
-                >
-                  <div className="bg-primary text-white text-[10px] font-bold px-3 py-1.5 rounded-full shadow-lg mb-1 relative">
-                    {lang === "fr" ? "Je suis ici" : "Deliver here"}
-                    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 border-solid border-t-primary border-t-4 border-x-transparent border-x-4 border-b-0"></div>
+              {mapCoords ? (
+                <iframe 
+                  width="100%" 
+                  height="100%" 
+                  frameBorder="0" 
+                  scrolling="no" 
+                  marginHeight={0} 
+                  marginWidth={0} 
+                  src={`https://www.openstreetmap.org/export/embed.html?bbox=${mapCoords.lon - 0.005}%2C${mapCoords.lat - 0.005}%2C${mapCoords.lon + 0.005}%2C${mapCoords.lat + 0.005}&layer=mapnik&marker=${mapCoords.lat}%2C${mapCoords.lon}`} 
+                  className="w-full h-full border-none"
+                ></iframe>
+              ) : (
+                <>
+                  <img 
+                    src="https://images.unsplash.com/photo-1524661135-423995f22d0b?w=800&q=80" 
+                    alt="Map Background" 
+                    className="w-full h-full object-cover opacity-80"
+                  />
+                  {/* Map Overlay & Pin */}
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <motion.div
+                      animate={{ y: [0, -10, 0] }}
+                      transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
+                      className="flex flex-col items-center pointer-events-auto cursor-pointer"
+                    >
+                      <div className="bg-primary text-white text-[10px] font-bold px-3 py-1.5 rounded-full shadow-lg mb-1 relative">
+                        {lang === "fr" ? "Je suis ici" : "Deliver here"}
+                        <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 border-solid border-t-primary border-t-4 border-x-transparent border-x-4 border-b-0"></div>
+                      </div>
+                      <div className="w-8 h-8 bg-black text-white rounded-full flex items-center justify-center shadow-xl shadow-black/40 border-2 border-white">
+                        <MapPin size={16} />
+                      </div>
+                      <div className="w-4 h-1 bg-black/30 rounded-full blur-[1px] mt-1"></div>
+                    </motion.div>
                   </div>
-                  <div className="w-8 h-8 bg-black text-white rounded-full flex items-center justify-center shadow-xl shadow-black/40 border-2 border-white">
-                    <MapPin size={16} />
-                  </div>
-                  <div className="w-4 h-1 bg-black/30 rounded-full blur-[1px] mt-1"></div>
-                </motion.div>
-              </div>
+                </>
+              )}
 
               {/* Find my location button */}
-              <button className="absolute bottom-6 right-4 w-10 h-10 bg-white border border-gray-200 rounded-full flex items-center justify-center shadow-lg text-black cursor-pointer hover:bg-gray-50 active:scale-95 transition-all">
-                <Navigation size={18} className="fill-black" />
+              <button 
+                onClick={handleFindLocation}
+                disabled={isLocating}
+                className="absolute bottom-6 right-4 w-10 h-10 bg-white border border-gray-200 rounded-full flex items-center justify-center shadow-lg text-black cursor-pointer hover:bg-gray-50 active:scale-95 transition-all disabled:opacity-70"
+              >
+                {isLocating ? (
+                  <RefreshCw size={18} className="text-black animate-spin" />
+                ) : (
+                  <Navigation size={18} className="fill-black text-black" />
+                )}
               </button>
             </div>
 
