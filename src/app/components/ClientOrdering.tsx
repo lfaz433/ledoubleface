@@ -817,13 +817,13 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
   // Check table status
   if (!tableActive) {
     return (
-      <div className="min-h-screen bg-[#0A0704] flex items-center justify-center p-6 text-center">
-        <div className="bg-[#120D09] border border-[#2A1E15] rounded-2xl p-8 max-w-sm w-full">
-          <div className="w-16 h-16 bg-[#C8102E]/20 rounded-full flex items-center justify-center mx-auto mb-6 text-[#C8102E]">
+      <div className="min-h-screen bg-background flex items-center justify-center p-6 text-center">
+        <div className="bg-card border border-border rounded-2xl p-8 max-w-sm w-full">
+          <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-6 text-primary">
             <X size={32} />
           </div>
-          <h2 className="font-serif font-black text-white text-2xl mb-4">Section Fermée</h2>
-          <p className="text-[#8E7E70] font-mono text-sm leading-relaxed">
+          <h2 className="font-serif font-black text-foreground text-2xl mb-4">Section Fermée</h2>
+          <p className="text-muted-foreground font-mono text-sm leading-relaxed">
             Prenez place dans le salon intérieur pour passer votre commande.
           </p>
         </div>
@@ -833,12 +833,12 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
 
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-[#0A0704]">
+      <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-background">
         <div className="relative w-16 h-16 mb-4">
           <div className="absolute inset-0 rounded-full border-2 border-t-[#C8102E] border-r-transparent border-b-transparent border-l-transparent animate-spin" />
           <div className="absolute inset-2 rounded-full border border-t-transparent border-r-[#E5D5C5] border-b-transparent border-l-transparent animate-spin-reverse" />
         </div>
-        <p className="text-xs font-mono tracking-widest text-[#8E7E70] animate-pulse">CONNECTING TO MATRIX...</p>
+        <p className="text-xs font-mono tracking-widest text-muted-foreground animate-pulse">CONNECTING TO MATRIX...</p>
       </div>
     );
   }
@@ -852,7 +852,7 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
     }));
 
     return (
-      <div className="min-h-screen bg-[#0A0704] flex flex-col items-center justify-center p-4 w-full">
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 w-full">
         <OrderTracker
           orderId={orderId}
           orderNumber={orderId}
@@ -882,23 +882,23 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
   return (
     <motion.div 
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="min-h-screen pb-28 bg-transparent text-white relative"
+      className="min-h-screen pb-28 bg-transparent text-foreground relative"
     >
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-white/5 border-b border-white/10 backdrop-blur-xl shadow-lg">
+      <div className="sticky top-0 z-10 bg-secondary border-b border-border backdrop-blur-xl shadow-lg">
         <div className="px-4 py-4 flex items-center justify-between">
           <div className="flex flex-col gap-1.5">
-            <span className="font-serif font-black text-lg text-white leading-tight">Le Double Face</span>
+            <span className="font-serif font-black text-lg text-foreground leading-tight">Le Double Face</span>
             <div className="flex items-center flex-wrap gap-1.5">
               {/* Permanent Context Pill */}
-              <div className="flex items-center gap-1.5 px-2.5 py-1 bg-[#C8102E]/10 border border-[#C8102E]/25 rounded-full text-[9px] text-[#C8102E] font-mono font-black tracking-wider uppercase">
+              <div className="flex items-center gap-1.5 px-2.5 py-1 bg-primary/10 border border-primary/25 rounded-full text-[9px] text-primary font-mono font-black tracking-wider uppercase">
                 <span>🍽️ {tableId?.toUpperCase() === "DELIVERY" ? (lang === "fr" ? "LIVRAISON" : "DELIVERY") : `TABLE ${tableId}`}</span>
                 <span className="opacity-40">•</span>
                 <span>{area}</span>
               </div>
-              <div className="flex items-center gap-1 bg-[#1A130E] border border-[#2A1E15] px-2 py-0.5 rounded-full text-[9px] font-mono font-bold">
+              <div className="flex items-center gap-1 bg-muted border border-border px-2 py-0.5 rounded-full text-[9px] font-mono font-bold">
                 <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: (!supabase || supabase.isMock || dbError) ? '#EF4444' : '#10B981' }} />
-                <span className="text-[#8E7E70] uppercase tracking-wider text-[7px]">
+                <span className="text-muted-foreground uppercase tracking-wider text-[7px]">
                   {(!supabase || supabase.isMock || dbError) ? 'Offline' : 'Online'}
                 </span>
               </div>
@@ -912,7 +912,7 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
                 onClick={callServer}
                 disabled={waiterCalled}
                 className={`px-3 py-1.5 rounded-lg text-[10px] font-bold tracking-wider transition-all border flex items-center gap-1 ${
-                  waiterCalled ? "bg-[#C8102E]/20 border-[#C8102E] text-[#C8102E] animate-pulse cursor-not-allowed" : "bg-black/40 border-white/10 text-white cursor-pointer hover:bg-black/60"
+                  waiterCalled ? "bg-primary/20 border-primary text-primary animate-pulse cursor-not-allowed" : "bg-background/60 border-border text-foreground cursor-pointer hover:bg-black/60"
                 }`}
               >
                 <span>🛎️</span>
@@ -923,28 +923,28 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
             {/* Language Switcher */}
             <button
               onClick={() => setLang(l => l === "fr" ? "en" : "fr")}
-              className="p-2 bg-[#120D09] rounded-lg border border-[#2A1E15] transition-all hover:bg-[#1A130E] text-[#8E7E70] hover:text-white cursor-pointer"
+              className="p-2 bg-card rounded-lg border border-border transition-all hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer"
               title="Change Language"
             >
               <span className="text-[10px] font-black font-mono">{lang.toUpperCase()}</span>
             </button>
 
             {/* Cart Button */}
-            <button onClick={() => setStatus("cart")} className="relative p-2 bg-[#120D09] rounded-lg border border-[#2A1E15] transition-all hover:bg-[#1A130E] cursor-pointer">
-              <ShoppingCart size={18} className={cartCount > 0 ? "text-[#C8102E]" : "text-[#8E7E70]"} />
+            <button onClick={() => setStatus("cart")} className="relative p-2 bg-card rounded-lg border border-border transition-all hover:bg-muted cursor-pointer">
+              <ShoppingCart size={18} className={cartCount > 0 ? "text-primary" : "text-muted-foreground"} />
               {cartCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 w-5 h-5 flex items-center justify-center text-[10px] font-black rounded-full bg-[#C8102E] text-white">{cartCount}</span>
+                <span className="absolute -top-1.5 -right-1.5 w-5 h-5 flex items-center justify-center text-[10px] font-black rounded-full bg-primary text-foreground">{cartCount}</span>
               )}
             </button>
           </div>
         </div>
 
         {dbError && (
-          <div className="bg-[#EF4444]/15 border-t border-white/5 px-4 py-2.5 text-[10px] text-[#EF4444] font-mono leading-relaxed flex items-center justify-between gap-4">
+          <div className="bg-[#EF4444]/15 border-t border-border px-4 py-2.5 text-[10px] text-[#EF4444] font-mono leading-relaxed flex items-center justify-between gap-4">
             <span>⚠️ <strong>Connection Error</strong>: Could not connect to the restaurant database. Orders may not sync to the kitchen.</span>
             <button 
               onClick={loadMenu}
-              className="flex-shrink-0 px-2.5 py-1 bg-[#EF4444]/25 border border-[#EF4444]/40 hover:bg-[#EF4444]/35 active:scale-95 text-white rounded text-[9px] font-bold tracking-wide transition-all cursor-pointer whitespace-nowrap"
+              className="flex-shrink-0 px-2.5 py-1 bg-[#EF4444]/25 border border-[#EF4444]/40 hover:bg-[#EF4444]/35 active:scale-95 text-foreground rounded text-[9px] font-bold tracking-wide transition-all cursor-pointer whitespace-nowrap"
             >
               RETRY CONNECTION
             </button>
@@ -953,12 +953,12 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
 
         <div className="px-4 pb-3">
           <div className="relative mb-3">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8E7E70]" />
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder={t.menuSearch}
-              className="w-full pl-9 pr-4 py-2 text-xs bg-[#120D09] border border-[#2A1E15] rounded text-white outline-none focus:border-[#C8102E] transition-colors"
+              className="w-full pl-9 pr-4 py-2 text-xs bg-card border border-border rounded text-foreground outline-none focus:border-primary transition-colors"
             />
           </div>
           <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none" style={{ scrollbarWidth: "none" }}>
@@ -979,15 +979,15 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
 
       {/* Hero Banner CMS Display */}
       {heroConfig?.show_in_menu && (
-        <div className="relative h-48 sm:h-56 overflow-hidden border-b border-[#2A1E15] mb-4 select-none">
+        <div className="relative h-48 sm:h-56 overflow-hidden border-b border-border mb-4 select-none">
           <ImageWithFallback src={heroConfig.image} alt="Hero Banner" className="w-full h-full object-cover" style={{ opacity: 0.35 }} />
           <div className="absolute inset-0 bg-gradient-to-t from-[#0A0704] via-[#0A0704]/40 to-transparent" />
           <div className="absolute inset-x-4 bottom-4 flex flex-col justify-end">
-            <span className="font-mono text-[9px] text-[#C8102E] tracking-widest font-black uppercase mb-1">🛎️ LE DOUBLE FACE</span>
-            <h1 className="font-serif font-black text-xl sm:text-2xl text-white leading-tight">
-              {lang === "fr" ? heroConfig.title1_fr : heroConfig.title1_en} <span className="text-[#C8102E] italic">{lang === "fr" ? heroConfig.title2_fr : heroConfig.title2_en}</span>
+            <span className="font-mono text-[9px] text-primary tracking-widest font-black uppercase mb-1">🛎️ LE DOUBLE FACE</span>
+            <h1 className="font-serif font-black text-xl sm:text-2xl text-foreground leading-tight">
+              {lang === "fr" ? heroConfig.title1_fr : heroConfig.title1_en} <span className="text-primary italic">{lang === "fr" ? heroConfig.title2_fr : heroConfig.title2_en}</span>
             </h1>
-            <p className="text-[10px] sm:text-xs text-[#8E7E70] mt-1 line-clamp-2 max-w-md">
+            <p className="text-[10px] sm:text-xs text-muted-foreground mt-1 line-clamp-2 max-w-md">
               {lang === "fr" ? heroConfig.subtitle_fr : heroConfig.subtitle_en}
             </p>
           </div>
@@ -996,39 +996,39 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
 
       {/* Database Warning indicator */}
       {dbError && (
-        <div className="mx-4 my-2 px-3 py-2 bg-[#1A130E] border border-dashed border-[#8E7E70]/30 rounded text-[10px] text-[#8E7E70] flex items-center justify-between">
+        <div className="mx-4 my-2 px-3 py-2 bg-muted border border-dashed border-[#8E7E70]/30 rounded text-[10px] text-muted-foreground flex items-center justify-between">
           <span>⚠️ Offline simulated mode</span>
-          <button onClick={loadMenu} className="hover:text-white cursor-pointer"><RefreshCw size={10} /></button>
+          <button onClick={loadMenu} className="hover:text-foreground cursor-pointer"><RefreshCw size={10} /></button>
         </div>
       )}
 
       {/* Active Order Progress Banner (Persistence Session Pursuit) */}
       {activeOrder && (
-        <div className="mx-4 my-3 p-4 bg-red-950/15 border border-[#C8102E]/40 rounded-xl glass-panel animate-fade-in">
+        <div className="mx-4 my-3 p-4 bg-red-950/15 border border-primary/40 rounded-xl glass-panel animate-fade-in">
           <div className="flex items-center justify-between mb-2">
-            <span className="font-serif font-bold text-sm text-[#E5D5C5]">{t.activeOrderTitle}</span>
-            <span className="font-mono text-[9px] font-bold text-white bg-[#C8102E] px-2 py-0.5 rounded uppercase tracking-wider">{activeOrder.status}</span>
+            <span className="font-serif font-bold text-sm text-foreground">{t.activeOrderTitle}</span>
+            <span className="font-mono text-[9px] font-bold text-foreground bg-primary px-2 py-0.5 rounded uppercase tracking-wider">{activeOrder.status}</span>
           </div>
-          <p className="text-[10px] text-[#8E7E70] leading-snug mb-3">
-            {t.activeOrderDesc} (<span className="font-mono text-white select-all">{activeOrder.id}</span>)
+          <p className="text-[10px] text-muted-foreground leading-snug mb-3">
+            {t.activeOrderDesc} (<span className="font-mono text-foreground select-all">{activeOrder.id}</span>)
           </p>
-          <div className="flex flex-col gap-1.5 mb-3 border-t border-[#2A1E15]/30 pt-2 pb-2">
+          <div className="flex flex-col gap-1.5 mb-3 border-t border-border/30 pt-2 pb-2">
             {activeOrderItems.map((item: any, idx: number) => (
-              <div key={idx} className="flex justify-between text-[10px] text-[#E5D5C5]">
+              <div key={idx} className="flex justify-between text-[10px] text-foreground">
                 <span>{item.quantity}x {item.name}</span>
                 <span className="font-mono">€{(item.price * item.quantity).toFixed(2)}</span>
               </div>
             ))}
           </div>
-          <div className="text-[10px] text-[#8E7E70] border-t border-[#2A1E15]/40 pt-2 flex justify-between items-center">
+          <div className="text-[10px] text-muted-foreground border-t border-border/40 pt-2 flex justify-between items-center">
             <span>Total: €{activeOrder.total?.toFixed(2)}</span>
             <button 
               onClick={() => downloadInvoicePNG(activeOrder.id, activeOrder.table_id || tableId, activeOrderItems)}
-              className="px-2 py-1 bg-[#D4A017]/10 hover:bg-[#D4A017]/20 border border-[#D4A017]/30 text-[#D4A017] rounded text-[8px] font-bold tracking-wider transition-all cursor-pointer flex items-center gap-1"
+              className="px-2 py-1 bg-accent/10 hover:bg-accent/20 border border-accent/30 text-accent rounded text-[8px] font-bold tracking-wider transition-all cursor-pointer flex items-center gap-1"
             >
               📥 PNG
             </button>
-            <span className="text-[#C8102E] font-extrabold tracking-widest text-[9px] animate-pulse">{t.orderMoreBtn}</span>
+            <span className="text-primary font-extrabold tracking-widest text-[9px] animate-pulse">{t.orderMoreBtn}</span>
           </div>
         </div>
       )}
@@ -1036,7 +1036,7 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
       {/* Popular Section (Horizontal Carousel) */}
       {activeCategory === "All" && !search && (
         <div className="px-4 pt-5 mb-2">
-          <div className="flex items-center gap-1.5 mb-4 text-[#C8102E]">
+          <div className="flex items-center gap-1.5 mb-4 text-primary">
             <Flame size={14} />
             <span className="font-mono text-[9px] tracking-widest font-black uppercase">{t.heroSpecial}</span>
           </div>
@@ -1046,7 +1046,7 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
                 <button 
                   key={item.id} 
                   onClick={() => handleProductCardClick(item)}
-                  className="relative flex-shrink-0 w-36 overflow-hidden text-left bg-[#120D09] border border-[#2A1E15] rounded hover:border-[#C8102E] transition-all cursor-pointer"
+                  className="relative flex-shrink-0 w-36 overflow-hidden text-left bg-card border border-border rounded hover:border-primary transition-all cursor-pointer"
                 >
                   <AnimatePresence>
                     {addingItemIds[item.id] && (
@@ -1061,7 +1061,7 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
                           animate={{ scale: 1, rotate: 0 }}
                           exit={{ scale: 0.8 }}
                           transition={{ type: "spring", damping: 12, stiffness: 200 }}
-                          className="w-10 h-10 rounded-full bg-[#10B981] flex items-center justify-center text-white shadow-lg shadow-[#10B981]/25"
+                          className="w-10 h-10 rounded-full bg-[#10B981] flex items-center justify-center text-foreground shadow-lg shadow-[#10B981]/25"
                         >
                           <Check size={20} className="stroke-[3px]" />
                         </motion.div>
@@ -1069,12 +1069,12 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
                     )}
                   </AnimatePresence>
 
-                  <div className="h-24 bg-[#1A130E] overflow-hidden">
+                  <div className="h-24 bg-muted overflow-hidden">
                     <ImageWithFallback src={item.image} alt={item.name} className="w-full h-full object-cover" />
                   </div>
                   <div className="p-2.5">
-                    <div className="text-xs font-bold text-white truncate">{item.name}</div>
-                    <div className="font-mono text-[10px] text-[#C8102E] font-bold mt-1">€{item.price.toFixed(2)}</div>
+                    <div className="text-xs font-bold text-foreground truncate">{item.name}</div>
+                    <div className="font-mono text-[10px] text-primary font-bold mt-1">€{item.price.toFixed(2)}</div>
                   </div>
                 </button>
               );
@@ -1086,7 +1086,7 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
       {/* Main Grid/List */}
       <div className="px-4 pt-4">
         <div className="flex items-center gap-1.5 mb-3">
-          <span className="font-mono text-[9px] text-[#8E7E70] tracking-widest uppercase">{t.navMenu}</span>
+          <span className="font-mono text-[9px] text-muted-foreground tracking-widest uppercase">{t.navMenu}</span>
         </div>
         
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1114,7 +1114,7 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
                         animate={{ scale: 1, rotate: 0 }}
                         exit={{ scale: 0.8 }}
                         transition={{ type: "spring", damping: 12, stiffness: 200 }}
-                        className="w-12 h-12 rounded-full bg-[#10B981] flex items-center justify-center text-white shadow-lg shadow-[#10B981]/25"
+                        className="w-12 h-12 rounded-full bg-[#10B981] flex items-center justify-center text-foreground shadow-lg shadow-[#10B981]/25"
                       >
                         <Check size={24} className="stroke-[3px]" />
                       </motion.div>
@@ -1122,27 +1122,27 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
                   )}
                 </AnimatePresence>
 
-                <div className="w-24 h-24 bg-black/40 flex-shrink-0 relative">
+                <div className="w-24 h-24 bg-background/60 flex-shrink-0 relative">
                   <ImageWithFallback src={item.image} alt={item.name} className="w-full h-full object-cover" />
                 </div>
                 
                 <div className="flex-1 p-3 flex flex-col justify-between overflow-hidden">
                   <div>
                     <div className="flex items-start justify-between gap-1.5">
-                      <h3 className="font-serif font-bold text-sm text-[#E5D5C5] truncate">{item.name}</h3>
-                      {item.popular && <Star size={11} className="text-[#C8102E] fill-[#C8102E] flex-shrink-0 mt-0.5" />}
+                      <h3 className="font-serif font-bold text-sm text-foreground truncate">{item.name}</h3>
+                      {item.popular && <Star size={11} className="text-primary fill-[#C8102E] flex-shrink-0 mt-0.5" />}
                     </div>
-                    <p className="text-[10px] text-[#8E7E70] leading-snug line-clamp-2 mt-1">{item.desc}</p>
+                    <p className="text-[10px] text-muted-foreground leading-snug line-clamp-2 mt-1">{item.desc}</p>
                   </div>
                   
-                  <div className="flex items-center justify-between mt-2 pt-2 border-t border-[#2A1E15]/30">
-                    <span className="font-mono text-xs font-bold text-[#C8102E]">€{item.price.toFixed(2)}</span>
+                  <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/30">
+                    <span className="font-mono text-xs font-bold text-primary">€{item.price.toFixed(2)}</span>
                     <button
                       onClick={(e) => {
                         e.stopPropagation(); // prevent card double tap trigger
                         handleAddItemDirectly(item);
                       }}
-                      className="flex items-center gap-1.5 px-3.5 py-2 bg-[#C8102E] hover:opacity-90 text-[11px] font-bold text-white rounded transition-all cursor-pointer shadow-sm shadow-[#C8102E]/20">
+                      className="flex items-center gap-1.5 px-3.5 py-2 bg-primary hover:opacity-90 text-[11px] font-bold text-foreground rounded transition-all cursor-pointer shadow-sm shadow-[#C8102E]/20">
                       <Plus size={11} /> {lang === "fr" ? "Ajouter" : "Add"}
                     </button>
                   </div>
@@ -1153,14 +1153,14 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
         </div>
 
         {filtered.length === 0 && (
-          <div className="text-center py-12 text-xs text-[#8E7E70] border border-[#2A1E15] border-dashed rounded mt-4">{t.emptyMenu}</div>
+          <div className="text-center py-12 text-xs text-muted-foreground border border-border border-dashed rounded mt-4">{t.emptyMenu}</div>
         )}
       </div>
 
       {/* Shows section */}
       {shows.length > 0 && (
-        <div className="px-4 pt-6 border-t border-[#2A1E15]/50 mt-8 mb-4">
-          <div className="flex items-center gap-1.5 mb-4 text-[#C8102E]">
+        <div className="px-4 pt-6 border-t border-border/50 mt-8 mb-4">
+          <div className="flex items-center gap-1.5 mb-4 text-primary">
             <Star size={14} className="fill-[#C8102E]" />
             <span className="font-mono text-[9px] tracking-widest font-black uppercase">{t.showsHeader}</span>
           </div>
@@ -1169,24 +1169,24 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
               <div 
                 key={show.id} 
                 onClick={() => setBookingShow(show)}
-                className="p-4 bg-[#120D09] border border-[#2A1E15] rounded-xl flex gap-3.5 cursor-pointer select-none transition-colors duration-200 hover:bg-[#1A130E] active:bg-[#1C1510] hover:border-[#C8102E]/30"
+                className="p-4 bg-card border border-border rounded-xl flex gap-3.5 cursor-pointer select-none transition-colors duration-200 hover:bg-muted active:bg-[#1C1510] hover:border-primary/30"
               >
-                <div className="w-20 h-20 rounded overflow-hidden flex-shrink-0 bg-black/40">
+                <div className="w-20 h-20 rounded overflow-hidden flex-shrink-0 bg-background/60">
                   <ImageWithFallback src={show.image} alt={show.title} className="w-full h-full object-cover" />
                 </div>
                 <div className="flex-1 flex flex-col justify-between">
                   <div>
-                    <h4 className="font-serif font-bold text-sm text-[#E5D5C5]">{show.title}</h4>
-                    <p className="text-[10px] text-[#8E7E70] line-clamp-2 mt-1">{show.description}</p>
+                    <h4 className="font-serif font-bold text-sm text-foreground">{show.title}</h4>
+                    <p className="text-[10px] text-muted-foreground line-clamp-2 mt-1">{show.description}</p>
                   </div>
-                  <div className="flex items-center justify-between mt-2 pt-2 border-t border-[#2A1E15]/30">
-                    <span className="font-mono text-xs font-bold text-[#C8102E]">€{show.price?.toFixed(2)}</span>
+                  <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/30">
+                    <span className="font-mono text-xs font-bold text-primary">€{show.price?.toFixed(2)}</span>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         setBookingShow(show);
                       }}
-                      className="px-3.5 py-1.5 bg-[#C8102E] hover:opacity-90 text-[10px] font-bold text-white rounded cursor-pointer transition-all shadow-sm shadow-[#C8102E]/20"
+                      className="px-3.5 py-1.5 bg-primary hover:opacity-90 text-[10px] font-bold text-foreground rounded cursor-pointer transition-all shadow-sm shadow-[#C8102E]/20"
                     >
                       {t.showsBuyTickets}
                     </button>
@@ -1206,7 +1206,7 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
             animate={{ y: 0, opacity: 1 }} 
             exit={{ y: 100, opacity: 0 }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed bottom-0 left-0 right-0 z-30 bg-[#C8102E] text-white shadow-2xl border-t border-[#C8102E]/20"
+            className="fixed bottom-0 left-0 right-0 z-30 bg-primary text-foreground shadow-2xl border-t border-primary/20"
           >
             <button 
               onClick={() => setStatus("cart")}
@@ -1223,7 +1223,7 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
               <div className="flex items-center gap-2 font-mono text-sm">
                 <span>€</span>
                 <AnimatedPrice value={cartTotal} />
-                <span className="ml-1 text-white/70">→</span>
+                <span className="ml-1 text-foreground/70">→</span>
               </div>
             </button>
           </motion.div>
@@ -1235,15 +1235,15 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
         {bookingShow && (
           <motion.div 
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50 text-white"
+            className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50 text-foreground"
           >
-            <div className="w-full max-w-sm bg-[#120D09] border border-[#2A1E15] p-5 rounded-2xl relative">
-              <button onClick={() => setBookingShow(null)} className="absolute top-4 right-4 text-[#8E7E70] hover:text-white cursor-pointer">
+            <div className="w-full max-w-sm bg-card border border-border p-5 rounded-2xl relative">
+              <button onClick={() => setBookingShow(null)} className="absolute top-4 right-4 text-muted-foreground hover:text-foreground cursor-pointer">
                 <X size={18} />
               </button>
               
-              <h3 className="font-serif font-black text-lg mb-2 text-[#E5D5C5]">{t.showsBookTitle}</h3>
-              <p className="text-xs text-[#8E7E70] mb-4">{bookingShow.title}</p>
+              <h3 className="font-serif font-black text-lg mb-2 text-foreground">{t.showsBookTitle}</h3>
+              <p className="text-xs text-muted-foreground mb-4">{bookingShow.title}</p>
               
               {bookingSuccess ? (
                 <div className="flex flex-col items-center justify-center py-6 text-center animate-fade-in">
@@ -1255,38 +1255,38 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
               ) : (
                 <div className="flex flex-col gap-4">
                   <div>
-                    <label className="text-[9px] font-mono tracking-wider text-[#8E7E70] block mb-1">{t.showsFullName.toUpperCase()}</label>
+                    <label className="text-[9px] font-mono tracking-wider text-muted-foreground block mb-1">{t.showsFullName.toUpperCase()}</label>
                     <input
                       type="text"
                       value={bookingName}
                       onChange={e => setBookingName(e.target.value)}
                       placeholder="Jean Dupont"
-                      className="w-full px-3 py-2 text-xs bg-[#1A130E] border border-[#2A1E15] rounded text-white outline-none focus:border-[#C8102E]"
+                      className="w-full px-3 py-2 text-xs bg-muted border border-border rounded text-foreground outline-none focus:border-primary"
                     />
                   </div>
                   <div>
-                    <label className="text-[9px] font-mono tracking-wider text-[#8E7E70] block mb-1">{t.showsEmail.toUpperCase()}</label>
+                    <label className="text-[9px] font-mono tracking-wider text-muted-foreground block mb-1">{t.showsEmail.toUpperCase()}</label>
                     <input
                       type="email"
                       value={bookingEmail}
                       onChange={e => setBookingEmail(e.target.value)}
                       placeholder="jean.dupont@email.com"
-                      className="w-full px-3 py-2 text-xs bg-[#1A130E] border border-[#2A1E15] rounded text-white outline-none focus:border-[#C8102E]"
+                      className="w-full px-3 py-2 text-xs bg-muted border border-border rounded text-foreground outline-none focus:border-primary"
                     />
                   </div>
 
                   <div>
-                    <label className="text-[9px] font-mono tracking-wider text-[#8E7E70] block mb-1">{t.showsQuantity.toUpperCase()}</label>
+                    <label className="text-[9px] font-mono tracking-wider text-muted-foreground block mb-1">{t.showsQuantity.toUpperCase()}</label>
                     <div className="flex items-center gap-3 select-none">
-                      <button onClick={() => setBookingQty(q => Math.max(1, q - 1))} className="w-10 h-10 flex items-center justify-center border border-[#2A1E15] rounded text-white hover:bg-[#1A130E] transition-all cursor-pointer font-bold">-</button>
+                      <button onClick={() => setBookingQty(q => Math.max(1, q - 1))} className="w-10 h-10 flex items-center justify-center border border-border rounded text-foreground hover:bg-muted transition-all cursor-pointer font-bold">-</button>
                       <span className="font-mono text-sm w-6 text-center">{bookingQty}</span>
-                      <button onClick={() => setBookingQty(q => q + 1)} className="w-10 h-10 flex items-center justify-center border border-[#2A1E15] rounded text-white hover:bg-[#1A130E] transition-all cursor-pointer font-bold">+</button>
-                      <span className="text-xs text-[#E5D5C5] ml-auto font-mono">€{(bookingShow.price * bookingQty).toFixed(2)}</span>
+                      <button onClick={() => setBookingQty(q => q + 1)} className="w-10 h-10 flex items-center justify-center border border-border rounded text-foreground hover:bg-muted transition-all cursor-pointer font-bold">+</button>
+                      <span className="text-xs text-foreground ml-auto font-mono">€{(bookingShow.price * bookingQty).toFixed(2)}</span>
                     </div>
                   </div>
                   
                   <button onClick={bookTicket}
-                    className="w-full py-3 bg-[#C8102E] text-white font-bold rounded text-xs hover:opacity-90 active:scale-95 transition-all mt-2 cursor-pointer"
+                    className="w-full py-3 bg-primary text-foreground font-bold rounded text-xs hover:opacity-90 active:scale-95 transition-all mt-2 cursor-pointer"
                   >
                     {t.showsConfirmBooking.toUpperCase()}
                   </button>
@@ -1298,14 +1298,14 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
       </AnimatePresence>
 
       {/* Diagnostics / Sync Support Footer */}
-      <footer className="mt-16 px-4 py-8 border-t border-[#2A1E15]/30 flex flex-col items-center gap-2 text-center bg-[#0C0805]/50 backdrop-blur-sm">
-        <p className="font-serif italic text-[11px] text-[#8E7E70]">Le Double Face Zero-Friction Dining</p>
-        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[9px] font-mono mt-1 text-[#8E7E70]">
+      <footer className="mt-16 px-4 py-8 border-t border-border/30 flex flex-col items-center gap-2 text-center bg-[#0C0805]/50 backdrop-blur-sm">
+        <p className="font-serif italic text-[11px] text-muted-foreground">Le Double Face Zero-Friction Dining</p>
+        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[9px] font-mono mt-1 text-muted-foreground">
           <div className="flex items-center gap-1">
             <span>DB URL:</span>
-            <span className="text-[#E5D5C5] font-bold">{import.meta.env.VITE_SUPABASE_URL ? import.meta.env.VITE_SUPABASE_URL.replace("https://", "") : "NOT DEFINED"}</span>
+            <span className="text-foreground font-bold">{import.meta.env.VITE_SUPABASE_URL ? import.meta.env.VITE_SUPABASE_URL.replace("https://", "") : "NOT DEFINED"}</span>
           </div>
-          <div className="w-1.5 h-1.5 rounded-full bg-white/10 hidden md:block" />
+          <div className="w-1.5 h-1.5 rounded-full bg-secondary/80 hidden md:block" />
           <div className="flex items-center gap-1">
             <span>STATUS:</span>
             {(!supabase || supabase.isMock || dbError) ? (
@@ -1322,7 +1322,7 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
         
         <button
           onClick={forceReload}
-          className="mt-3 px-3 py-1.5 bg-white/5 border border-white/10 hover:bg-white/10 active:scale-95 text-[#E5D5C5] rounded text-[9px] font-mono transition-all cursor-pointer"
+          className="mt-3 px-3 py-1.5 bg-secondary border border-border hover:bg-secondary/80 active:scale-95 text-foreground rounded text-[9px] font-mono transition-all cursor-pointer"
         >
           🔄 Refresh App Connection (Reset Cache)
         </button>
@@ -1359,20 +1359,20 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
                   setSelectedItem(null);
                 }
               }}
-              className="fixed bottom-0 left-0 right-0 max-h-[85vh] bg-[#120D09] border-t border-[#2A1E15] rounded-t-2xl z-50 flex flex-col overflow-hidden"
+              className="fixed bottom-0 left-0 right-0 max-h-[85vh] bg-card border-t border-border rounded-t-2xl z-50 flex flex-col overflow-hidden"
             >
               {/* Drag Handle */}
               <div className="w-12 h-1 bg-[#2A1E15] rounded-full mx-auto my-3 flex-shrink-0" />
               
               {/* Header */}
-              <div className="px-4 pb-3 flex items-center justify-between border-b border-[#2A1E15]/30">
-                <span className="font-serif font-bold text-base text-[#E5D5C5]">{t.customOptions}</span>
+              <div className="px-4 pb-3 flex items-center justify-between border-b border-border/30">
+                <span className="font-serif font-bold text-base text-foreground">{t.customOptions}</span>
                 <button
                   onClick={() => {
                     setStatus("browsing");
                     setSelectedItem(null);
                   }}
-                  className="text-xs text-[#8E7E70] hover:text-white cursor-pointer"
+                  className="text-xs text-muted-foreground hover:text-foreground cursor-pointer"
                 >
                   {lang === "fr" ? "Fermer" : "Close"}
                 </button>
@@ -1380,24 +1380,24 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
 
               {/* Scrollable content */}
               <div className="flex-1 overflow-y-auto pb-28 px-4 pt-4">
-                <div className="relative h-48 overflow-hidden bg-[#1A130E] border border-[#2A1E15] rounded-xl mb-6">
+                <div className="relative h-48 overflow-hidden bg-muted border border-border rounded-xl mb-6">
                   <ImageWithFallback src={selectedItem.image} alt={selectedItem.name} className="w-full h-full object-cover" />
                   <div className="absolute inset-0 bg-gradient-to-t from-[#120D09] via-transparent to-transparent" />
                 </div>
 
                 <div className="flex justify-between items-start mb-2">
-                  <h2 className="font-serif font-bold text-xl text-white">{selectedItem.name}</h2>
-                  <span className="font-mono font-bold text-base text-[#E5D5C5]">€{selectedItem.price.toFixed(2)}</span>
+                  <h2 className="font-serif font-bold text-xl text-foreground">{selectedItem.name}</h2>
+                  <span className="font-mono font-bold text-base text-foreground">€{selectedItem.price.toFixed(2)}</span>
                 </div>
-                <p className="text-[11px] text-[#8E7E70] mb-6 leading-relaxed">{selectedItem.desc}</p>
+                <p className="text-[11px] text-muted-foreground mb-6 leading-relaxed">{selectedItem.desc}</p>
 
                 {/* Modifiers */}
                 {Array.isArray(selectedItem.customFields || selectedItem.custom_fields) && (selectedItem.customFields || selectedItem.custom_fields).map((field: any) => (
-                  <div key={field.id} className="mb-6 bg-[#120D09]/40 border border-[#2A1E15] p-5 rounded-2xl backdrop-blur-sm shadow-sm">
+                  <div key={field.id} className="mb-6 bg-card/40 border border-border p-5 rounded-2xl backdrop-blur-sm shadow-sm">
                     <div className="flex items-center gap-2 mb-4">
-                      <span className="font-bold text-sm text-white">{field.name}</span>
+                      <span className="font-bold text-sm text-foreground">{field.name}</span>
                       {field.required && (
-                        <span className="px-2 py-0.5 border border-[#C8102E]/30 bg-[#C8102E]/10 text-[#C8102E] text-[9px] font-black rounded-full tracking-wider ml-1 font-mono uppercase">
+                        <span className="px-2 py-0.5 border border-primary/30 bg-primary/10 text-primary text-[9px] font-black rounded-full tracking-wider ml-1 font-mono uppercase">
                           {lang === "fr" ? "Requis" : "Required"}
                         </span>
                       )}
@@ -1442,7 +1442,7 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
                                   borderColor: checked ? "#C8102E" : "#2A1E15", 
                                   background: checked ? "#C8102E" : "transparent" 
                                 }}>
-                                {checked && <Check size={12} className="text-white stroke-[3px]" />}
+                                {checked && <Check size={12} className="text-foreground stroke-[3px]" />}
                               </div>
                               <span className="flex-1 font-semibold">{opt}</span>
                             </button>
@@ -1455,9 +1455,9 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
               </div>
 
               {/* Drawer Footer */}
-              <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-[#2A1E15] bg-[#120D09] z-10">
+              <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-border bg-card z-10">
                 <button onClick={addToCart}
-                  className="w-full py-4 text-xs font-black tracking-widest bg-[#C8102E] text-white rounded-xl hover:opacity-90 active:scale-[0.98] transition-all cursor-pointer shadow-lg shadow-[#C8102E]/20">
+                  className="w-full py-4 text-xs font-black tracking-widest bg-primary text-foreground rounded-xl hover:opacity-90 active:scale-[0.98] transition-all cursor-pointer shadow-lg shadow-[#C8102E]/20">
                   {t.addToCart.toUpperCase()} — €{getItemPriceWithModifiers().toFixed(2)}
                 </button>
               </div>
@@ -1490,15 +1490,15 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
                   setStatus("browsing");
                 }
               }}
-              className="fixed bottom-0 left-0 right-0 max-h-[85vh] bg-[#120D09] border-t border-[#2A1E15] rounded-t-2xl z-50 flex flex-col overflow-hidden"
+              className="fixed bottom-0 left-0 right-0 max-h-[85vh] bg-card border-t border-border rounded-t-2xl z-50 flex flex-col overflow-hidden"
             >
               {/* Drag Handle */}
               <div className="w-12 h-1 bg-[#2A1E15] rounded-full mx-auto my-3 flex-shrink-0" />
               
               {/* Header */}
-              <div className="px-4 pb-3 flex items-center justify-between border-b border-[#2A1E15]/30">
-                <span className="font-serif font-bold text-base text-[#E5D5C5]">{t.cartTitle} · Table {tableId}</span>
-                <button onClick={() => setStatus("browsing")} className="text-xs text-[#8E7E70] hover:text-white transition-colors cursor-pointer">
+              <div className="px-4 pb-3 flex items-center justify-between border-b border-border/30">
+                <span className="font-serif font-bold text-base text-foreground">{t.cartTitle} · Table {tableId}</span>
+                <button onClick={() => setStatus("browsing")} className="text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
                   {lang === "fr" ? "Fermer" : "Close"}
                 </button>
               </div>
@@ -1508,33 +1508,33 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
                 {cart.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-16">
                     <ShoppingCart size={40} className="text-[#2A1E15] mb-3" />
-                    <p className="text-xs text-[#8E7E70]">{t.cartEmpty}</p>
+                    <p className="text-xs text-muted-foreground">{t.cartEmpty}</p>
                   </div>
                 ) : (
                   <>
                     <div className="flex flex-col gap-2.5 mb-6">
                       {cart.map(item => (
-                        <div key={item.itemKey} className="p-3.5 bg-[#1A130E]/50 border border-[#2A1E15] rounded-xl">
+                        <div key={item.itemKey} className="p-3.5 bg-muted/50 border border-border rounded-xl">
                           <div className="flex items-center justify-between mb-1.5">
-                            <span className="font-bold text-[#E5D5C5] text-xs">{item.name}</span>
-                            <span className="font-mono text-xs font-bold text-[#C8102E]">€{(item.price * item.quantity).toFixed(2)}</span>
+                            <span className="font-bold text-foreground text-xs">{item.name}</span>
+                            <span className="font-mono text-xs font-bold text-primary">€{(item.price * item.quantity).toFixed(2)}</span>
                           </div>
                           {Object.entries(item.customizations).map(([k, v]) => v && (Array.isArray(v) ? v.length > 0 : true) && (
-                            <div key={k} className="text-[10px] text-[#8E7E70] mb-0.5">
+                            <div key={k} className="text-[10px] text-muted-foreground mb-0.5">
                               {Array.isArray(v) ? v.join(", ") : v}
                             </div>
                           ))}
-                          <div className="flex items-center gap-3 mt-3 pt-2.5 border-t border-[#2A1E15]/30 select-none">
+                          <div className="flex items-center gap-3 mt-3 pt-2.5 border-t border-border/30 select-none">
                             <button onClick={() => adjustQty(item.itemKey, -1)}
-                              className="w-8 h-8 flex items-center justify-center border border-[#2A1E15] rounded-lg text-white hover:bg-[#1A130E] transition-all cursor-pointer">
+                              className="w-8 h-8 flex items-center justify-center border border-border rounded-lg text-foreground hover:bg-muted transition-all cursor-pointer">
                               <Minus size={12} />
                             </button>
-                            <span className="font-mono text-xs font-bold text-[#E5D5C5] w-5 text-center">{item.quantity}</span>
+                            <span className="font-mono text-xs font-bold text-foreground w-5 text-center">{item.quantity}</span>
                             <button onClick={() => adjustQty(item.itemKey, 1)}
-                              className="w-8 h-8 flex items-center justify-center bg-[#C8102E] text-white rounded-lg hover:opacity-90 transition-all cursor-pointer">
+                              className="w-8 h-8 flex items-center justify-center bg-primary text-foreground rounded-lg hover:opacity-90 transition-all cursor-pointer">
                               <Plus size={12} />
                             </button>
-                            <button onClick={() => adjustQty(item.itemKey, -item.quantity)} className="ml-auto text-[#8E7E70] hover:text-white cursor-pointer p-1.5" title="Remove">
+                            <button onClick={() => adjustQty(item.itemKey, -item.quantity)} className="ml-auto text-muted-foreground hover:text-foreground cursor-pointer p-1.5" title="Remove">
                               <X size={14} />
                             </button>
                           </div>
@@ -1542,18 +1542,18 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
                       ))}
                     </div>
 
-                    <div className="p-4 bg-[#1A130E]/50 border border-[#2A1E15] rounded-xl mb-6">
-                      <div className="flex justify-between mb-1.5 text-[11px] text-[#8E7E70]">
+                    <div className="p-4 bg-muted/50 border border-border rounded-xl mb-6">
+                      <div className="flex justify-between mb-1.5 text-[11px] text-muted-foreground">
                         <span>Subtotal</span>
                         <span className="font-mono">€{cartTotal.toFixed(2)}</span>
                       </div>
-                      <div className="flex justify-between mb-1.5 text-[11px] text-[#8E7E70]">
+                      <div className="flex justify-between mb-1.5 text-[11px] text-muted-foreground">
                         <span>Service</span>
                         <span>Included</span>
                       </div>
-                      <div className="flex justify-between pt-2.5 mt-2.5 border-t border-[#2A1E15]/30 font-black text-xs text-white">
+                      <div className="flex justify-between pt-2.5 mt-2.5 border-t border-border/30 font-black text-xs text-foreground">
                         <span>Total</span>
-                        <span className="font-mono text-sm text-[#C8102E]">€{cartTotal.toFixed(2)}</span>
+                        <span className="font-mono text-sm text-primary">€{cartTotal.toFixed(2)}</span>
                       </div>
                     </div>
                   </>
@@ -1562,9 +1562,9 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
 
               {/* Footer */}
               {cart.length > 0 && (
-                <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-[#2A1E15] bg-[#120D09] z-10">
+                <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-border bg-card z-10">
                   <button onClick={() => setStatus("checkout")}
-                    className="w-full py-4 text-xs font-bold tracking-widest bg-[#C8102E] hover:opacity-95 text-white rounded-xl transition-all active:scale-98 cursor-pointer shadow-lg shadow-[#C8102E]/20">
+                    className="w-full py-4 text-xs font-bold tracking-widest bg-primary hover:opacity-95 text-foreground rounded-xl transition-all active:scale-98 cursor-pointer shadow-lg shadow-[#C8102E]/20">
                     {t.checkoutBtn.toUpperCase()}
                   </button>
                 </div>
@@ -1600,18 +1600,18 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
                   setStatus("cart");
                 }
               }}
-              className="fixed bottom-0 left-0 right-0 max-h-[85vh] bg-[#120D09] border-t border-[#2A1E15] rounded-t-2xl z-50 flex flex-col overflow-hidden"
+              className="fixed bottom-0 left-0 right-0 max-h-[85vh] bg-card border-t border-border rounded-t-2xl z-50 flex flex-col overflow-hidden"
             >
               {/* Drag Handle */}
               <div className="w-12 h-1 bg-[#2A1E15] rounded-full mx-auto my-3 flex-shrink-0" />
               
               {/* Header */}
-              <div className="px-4 pb-3 flex items-center justify-between border-b border-[#2A1E15]/30">
-                <span className="font-serif font-bold text-base text-[#E5D5C5]">{t.paymentTitle}</span>
+              <div className="px-4 pb-3 flex items-center justify-between border-b border-border/30">
+                <span className="font-serif font-bold text-base text-foreground">{t.paymentTitle}</span>
                 <button
                   disabled={status === "ordering"}
                   onClick={() => setStatus("cart")}
-                  className="text-xs text-[#8E7E70] hover:text-white transition-colors disabled:opacity-50 cursor-pointer"
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50 cursor-pointer"
                 >
                   {lang === "fr" ? "Retour" : "Back"}
                 </button>
@@ -1620,46 +1620,46 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
               {/* Scrollable Content */}
               <div className="flex-1 overflow-y-auto px-4 py-4 pb-28">
                 {tableId?.toUpperCase() === "DELIVERY" && (
-                  <div className="mb-6 p-4 bg-[#1A130E]/50 border border-[#2A1E15] rounded-xl">
-                    <h3 className="font-serif font-bold text-white text-sm mb-3">{t.deliveryDetails}</h3>
+                  <div className="mb-6 p-4 bg-muted/50 border border-border rounded-xl">
+                    <h3 className="font-serif font-bold text-foreground text-sm mb-3">{t.deliveryDetails}</h3>
                     <div className="flex flex-col gap-2.5">
                       <input
                         type="text"
                         placeholder={t.showsFullName || "Full Name"}
                         value={deliveryName}
                         onChange={(e) => setDeliveryName(e.target.value)}
-                        className="w-full px-3.5 py-2.5 text-xs bg-[#1A130E] border border-[#2A1E15] rounded-xl text-white outline-none focus:border-[#C8102E]"
+                        className="w-full px-3.5 py-2.5 text-xs bg-muted border border-border rounded-xl text-foreground outline-none focus:border-primary"
                       />
                       <input
                         type="email"
                         placeholder={t.deliveryEmail || "Email Address (Optional)"}
                         value={deliveryEmail}
                         onChange={(e) => setDeliveryEmail(e.target.value)}
-                        className="w-full px-3.5 py-2.5 text-xs bg-[#1A130E] border border-[#2A1E15] rounded-xl text-white outline-none focus:border-[#C8102E]"
+                        className="w-full px-3.5 py-2.5 text-xs bg-muted border border-border rounded-xl text-foreground outline-none focus:border-primary"
                       />
                       <input
                         type="tel"
                         placeholder={t.deliveryPhone || "Phone Number"}
                         value={deliveryPhone}
                         onChange={(e) => setDeliveryPhone(e.target.value)}
-                        className="w-full px-3.5 py-2.5 text-xs bg-[#1A130E] border border-[#2A1E15] rounded-xl text-white outline-none focus:border-[#C8102E]"
+                        className="w-full px-3.5 py-2.5 text-xs bg-muted border border-border rounded-xl text-foreground outline-none focus:border-primary"
                       />
                       <textarea
                         placeholder={t.deliveryAddress || "Full Address"}
                         value={deliveryAddress}
                         onChange={(e) => setDeliveryAddress(e.target.value)}
                         rows={2}
-                        className="w-full px-3.5 py-2.5 text-xs bg-[#1A130E] border border-[#2A1E15] rounded-xl text-white outline-none focus:border-[#C8102E] resize-none"
+                        className="w-full px-3.5 py-2.5 text-xs bg-muted border border-border rounded-xl text-foreground outline-none focus:border-primary resize-none"
                       />
                     </div>
                   </div>
                 )}
 
                 {/* Expandable Note panel (Dine-in or Delivery) */}
-                <div className="mb-6 bg-[#1A130E]/30 border border-[#2A1E15] p-3.5 rounded-xl">
+                <div className="mb-6 bg-muted/30 border border-border p-3.5 rounded-xl">
                   <button
                     onClick={() => setNoteExpanded(!noteExpanded)}
-                    className="w-full flex items-center justify-between text-xs text-[#8E7E70] hover:text-[#E5D5C5] transition-colors font-mono uppercase tracking-wider cursor-pointer"
+                    className="w-full flex items-center justify-between text-xs text-muted-foreground hover:text-foreground transition-colors font-mono uppercase tracking-wider cursor-pointer"
                   >
                     <span>{lang === "fr" ? "+ Ajouter une note (allergies, etc.)" : "+ Add a note (allergies, etc.)"}</span>
                     <ChevronDown size={14} className={`transform transition-transform duration-200 ${noteExpanded ? "rotate-180" : ""}`} />
@@ -1678,14 +1678,14 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
                           onChange={e => setOrderNote(e.target.value)}
                           rows={2}
                           placeholder={lang === "fr" ? "Allergies, demandes spéciales..." : "Allergies, special requests..."}
-                          className="w-full px-3.5 py-2.5 text-xs bg-[#1A130E] border border-[#2A1E15] rounded-xl text-white outline-none focus:border-[#C8102E] transition-colors resize-none"
+                          className="w-full px-3.5 py-2.5 text-xs bg-muted border border-border rounded-xl text-foreground outline-none focus:border-primary transition-colors resize-none"
                         />
                       </motion.div>
                     )}
                   </AnimatePresence>
                 </div>
 
-                <p className="text-[11px] text-[#8E7E70] mb-4">{t.paymentDesc}</p>
+                <p className="text-[11px] text-muted-foreground mb-4">{t.paymentDesc}</p>
                 
                 <div className="flex flex-col gap-2.5 mb-6">
                   {[
@@ -1704,13 +1704,13 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
                       disabled={method.disabled}
                       onClick={() => setSelectedPayment(method.id)}
                       className={`flex items-center justify-between p-3.5 rounded-xl border transition-all text-left ${
-                        method.disabled ? "opacity-30 cursor-not-allowed border-[#2A1E15] bg-zinc-950/20" :
-                        selectedPayment === method.id ? "border-[#C8102E] bg-red-950/10 cursor-pointer" : "border-[#2A1E15] bg-[#120D09] hover:bg-[#1A130E] cursor-pointer"
+                        method.disabled ? "opacity-30 cursor-not-allowed border-border bg-zinc-950/20" :
+                        selectedPayment === method.id ? "border-primary bg-red-950/10 cursor-pointer" : "border-border bg-card hover:bg-muted cursor-pointer"
                       }`}
                     >
-                      <span className={`text-xs font-semibold ${selectedPayment === method.id ? "text-white" : "text-[#8E7E70]"}`}>{method.label}</span>
+                      <span className={`text-xs font-semibold ${selectedPayment === method.id ? "text-foreground" : "text-muted-foreground"}`}>{method.label}</span>
                       <div className="w-4 h-4 rounded-full border flex items-center justify-center" style={{ borderColor: selectedPayment === method.id ? "#C8102E" : "#2A1E15" }}>
-                        {selectedPayment === method.id && <div className="w-2 h-2 rounded-full bg-[#C8102E]" />}
+                        {selectedPayment === method.id && <div className="w-2 h-2 rounded-full bg-primary" />}
                       </div>
                     </button>
                   ))}
@@ -1718,10 +1718,10 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
               </div>
 
               {/* Submit Action */}
-              <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-[#2A1E15] bg-[#120D09] z-10">
+              <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-border bg-card z-10">
                 <button onClick={placeOrder}
                   disabled={status === "ordering"}
-                  className="w-full py-4 text-xs font-black tracking-widest bg-[#C8102E] hover:opacity-95 text-white rounded-xl transition-all active:scale-98 cursor-pointer shadow-lg shadow-[#C8102E]/25">
+                  className="w-full py-4 text-xs font-black tracking-widest bg-primary hover:opacity-95 text-foreground rounded-xl transition-all active:scale-98 cursor-pointer shadow-lg shadow-[#C8102E]/25">
                   {status === "ordering" ? (lang === "fr" ? "TRANSMISSION DU TICKET..." : "TRANSMITTING TICKET...") : `${lang === "fr" ? "COMMANDER" : "PLACE ORDER"} · ${cartTotal.toFixed(2)}€`}
                 </button>
               </div>

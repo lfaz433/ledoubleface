@@ -312,21 +312,21 @@ export function KitchenDisplay() {
   // Render PIN security gate
   if (!isPinVerified) {
     return (
-      <div className="min-h-screen bg-[#0A0704] flex items-center justify-center p-4 font-sans select-none text-white animate-fade-in">
-        <div className="w-full max-w-sm bg-[#120D09] border border-[#2A1E15] p-8 rounded-2xl shadow-2xl text-center relative overflow-hidden">
-          <div className="absolute top-0 inset-x-0 h-1 bg-[#C8102E]" />
+      <div className="min-h-screen bg-background flex items-center justify-center p-4 font-sans select-none text-foreground animate-fade-in">
+        <div className="w-full max-w-sm bg-card border border-border p-8 rounded-2xl shadow-2xl text-center relative overflow-hidden">
+          <div className="absolute top-0 inset-x-0 h-1 bg-primary" />
           
-          <div className="w-12 h-12 rounded-xl bg-[#C8102E]/10 border border-[#C8102E]/30 flex items-center justify-center mx-auto mb-4">
-            <Lock className="w-5 h-5 text-[#C8102E]" />
+          <div className="w-12 h-12 rounded-xl bg-primary/10 border border-primary/30 flex items-center justify-center mx-auto mb-4">
+            <Lock className="w-5 h-5 text-primary" />
           </div>
 
-          <h2 className="font-serif font-black text-xl text-white mb-1">Le Double Face</h2>
-          <p className="text-[9.5px] font-mono tracking-widest text-[#8E7E70] uppercase mb-8">
+          <h2 className="font-serif font-black text-xl text-foreground mb-1">Le Double Face</h2>
+          <p className="text-[9.5px] font-mono tracking-widest text-muted-foreground uppercase mb-8">
             {t.enterKitchenPin}
           </p>
 
           {pinError && (
-            <div className="mb-6 p-3 bg-[#C8102E]/15 border border-[#C8102E]/35 rounded-xl text-xs text-[#C8102E] flex items-center justify-center gap-1.5 animate-pulse">
+            <div className="mb-6 p-3 bg-primary/15 border border-primary/35 rounded-xl text-xs text-primary flex items-center justify-center gap-1.5 animate-pulse">
               <AlertTriangle className="w-3.5 h-3.5" />
               <span>{t.invalidPin}</span>
             </div>
@@ -340,12 +340,12 @@ export function KitchenDisplay() {
               value={pinInput}
               onChange={(e) => setPinInput(e.target.value.replace(/\D/g, ""))}
               placeholder="••••"
-              className="w-full px-4 py-3 bg-[#1A130E] border border-[#2A1E15] rounded-xl text-white outline-none focus:border-[#C8102E] text-center tracking-widest text-2xl font-bold font-mono focus:ring-1 focus:ring-[#C8102E]/50"
+              className="w-full px-4 py-3 bg-muted border border-border rounded-xl text-foreground outline-none focus:border-primary text-center tracking-widest text-2xl font-bold font-mono focus:ring-1 focus:ring-[#C8102E]/50"
             />
 
             <button
               type="submit"
-              className="w-full py-3 bg-[#C8102E] hover:bg-[#C8102E]/90 text-white font-bold rounded-xl text-xs tracking-widest uppercase transition-all cursor-pointer active:scale-[0.98] shadow-lg shadow-[#C8102E]/15"
+              className="w-full py-3 bg-primary hover:bg-primary/90 text-foreground font-bold rounded-xl text-xs tracking-widest uppercase transition-all cursor-pointer active:scale-[0.98] shadow-lg shadow-[#C8102E]/15"
             >
               Verify Code
             </button>
@@ -356,15 +356,15 @@ export function KitchenDisplay() {
   }
 
   return (
-    <div className="h-screen w-screen bg-[#070503] text-white flex flex-col font-sans select-none overflow-hidden">
+    <div className="h-screen w-screen bg-[#070503] text-foreground flex flex-col font-sans select-none overflow-hidden">
       {/* KDS Header */}
       <header className="px-4 md:px-6 py-3 bg-[#100B07] border-b border-[#23170F] flex items-center justify-between gap-2 flex-wrap z-30 shrink-0">
         <div className="flex items-center gap-3">
-          <div className="w-7 h-7 rounded-lg bg-[#C8102E] flex items-center justify-center font-serif font-black text-xs text-white animate-pulse">L</div>
+          <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center font-serif font-black text-xs text-foreground animate-pulse">L</div>
           <div>
-            <h1 className="font-serif font-bold text-sm tracking-tight text-white">{t.kdsTitle}</h1>
+            <h1 className="font-serif font-bold text-sm tracking-tight text-foreground">{t.kdsTitle}</h1>
             <div className="flex items-center gap-1.5 mt-0.5">
-              <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-black/30 border border-white/5 text-[9px] font-mono uppercase text-[#8E7E70]">
+              <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-black/30 border border-border text-[9px] font-mono uppercase text-muted-foreground">
                 {online ? (
                   <>
                     <Wifi className="w-2.5 h-2.5 text-[#10B981]" />
@@ -377,7 +377,7 @@ export function KitchenDisplay() {
                   </>
                 )}
               </div>
-              <span className="hidden sm:inline text-[9px] font-mono text-[#8E7E70] uppercase">
+              <span className="hidden sm:inline text-[9px] font-mono text-muted-foreground uppercase">
                 {isMock ? "LOCAL SIMULATION" : "LIVE CLOUD CONNECTED"}
               </span>
             </div>
@@ -387,10 +387,10 @@ export function KitchenDisplay() {
         {/* Header Controls */}
         <div className="flex items-center gap-2 md:gap-4">
           <div className="hidden sm:block text-right">
-            <div className="text-xs font-mono font-bold tracking-wider text-[#E5D5C5]">
+            <div className="text-xs font-mono font-bold tracking-wider text-foreground">
               {new Date(timeNow).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
             </div>
-            <div className="text-[9px] font-mono text-[#8E7E70] uppercase">
+            <div className="text-[9px] font-mono text-muted-foreground uppercase">
               {new Date(timeNow).toLocaleDateString([], { weekday: 'short', month: 'short', day: '2-digit' })}
             </div>
           </div>
@@ -400,7 +400,7 @@ export function KitchenDisplay() {
           <div className="flex gap-2">
             <button
               onClick={toggleFullscreen}
-              className="p-2 bg-[#1A130E] border border-[#2A1E15] hover:bg-white/5 rounded-lg text-white transition-colors cursor-pointer"
+              className="p-2 bg-muted border border-border hover:bg-secondary rounded-lg text-foreground transition-colors cursor-pointer"
               title="Toggle Fullscreen"
             >
               {isFullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
@@ -411,7 +411,7 @@ export function KitchenDisplay() {
                 setIsPinVerified(false);
                 setPinInput("");
               }}
-              className="px-2 md:px-3 py-1.5 bg-white/5 border border-white/10 hover:bg-white/10 text-white rounded-lg text-[10px] font-mono uppercase transition-all cursor-pointer flex items-center gap-1.5"
+              className="px-2 md:px-3 py-1.5 bg-secondary border border-border hover:bg-secondary/80 text-foreground rounded-lg text-[10px] font-mono uppercase transition-all cursor-pointer flex items-center gap-1.5"
             >
               <Lock size={10} /> <span className="hidden sm:inline">Lock Screen</span>
             </button>
@@ -451,12 +451,12 @@ export function KitchenDisplay() {
                     className={`border rounded-xl p-4 transition-all relative overflow-hidden cursor-pointer group ${
                       urgent 
                         ? "border-red-600 shadow-[0_0_15px_rgba(220,38,38,0.25)] bg-red-950/20 animate-pulse" 
-                        : "border-[#20150E] bg-[#120D09] hover:border-red-500/40 shadow-md"
+                        : "border-[#20150E] bg-card hover:border-red-500/40 shadow-md"
                     }`}
                   >
                     {/* Timer */}
                     <div className={`absolute top-0 right-0 px-2.5 py-0.5 text-[9px] font-mono font-bold flex items-center gap-1 rounded-bl-lg ${
-                      urgent ? "bg-red-600 text-white" : "bg-white/5 text-[#8E7E70]"
+                      urgent ? "bg-red-600 text-foreground" : "bg-secondary text-muted-foreground"
                     }`}>
                       <Clock className="w-3 h-3" />
                       <span>{getElapsedTime(order.created_at)}</span>
@@ -464,12 +464,12 @@ export function KitchenDisplay() {
 
                     <div className="mb-2 shrink-0">
                       <div className="flex items-center gap-2">
-                        <span className="font-serif font-black text-base text-white">#{orderNum}</span>
-                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-[#E5D5C5] uppercase font-bold border border-white/10">
+                        <span className="font-serif font-black text-base text-foreground">#{orderNum}</span>
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-secondary text-foreground uppercase font-bold border border-border">
                           Table {order.table_id}
                         </span>
                       </div>
-                      <div className="text-[9px] font-mono text-[#8E7E70] uppercase mt-0.5">{order.area}</div>
+                      <div className="text-[9px] font-mono text-muted-foreground uppercase mt-0.5">{order.area}</div>
                     </div>
 
                     {/* Items List */}
@@ -477,10 +477,10 @@ export function KitchenDisplay() {
                       {order.order_items?.map(item => (
                         <div key={item.id} className="flex justify-between gap-2">
                           <div className="flex-1">
-                            <span className="font-bold text-[#E5D5C5] mr-1.5">{item.quantity}x</span>
-                            <span className="text-white font-medium">{item.name}</span>
+                            <span className="font-bold text-foreground mr-1.5">{item.quantity}x</span>
+                            <span className="text-foreground font-medium">{item.name}</span>
                             {item.customizations && Object.keys(item.customizations).length > 0 && (
-                              <div className="text-[9.5px] text-[#8E7E70] ml-4 font-mono">
+                              <div className="text-[9.5px] text-muted-foreground ml-4 font-mono">
                                 {Object.entries(item.customizations).map(([key, val]: any) => (
                                   <div key={key}>• {key}: {Array.isArray(val) ? val.join(", ") : val}</div>
                                 ))}
@@ -493,7 +493,7 @@ export function KitchenDisplay() {
 
                     {/* Note */}
                     {order.note && (
-                      <div className="mt-2 text-[10px] text-[#D4A017] bg-[#D4A017]/5 border border-[#D4A017]/25 p-2 rounded-lg italic leading-normal">
+                      <div className="mt-2 text-[10px] text-accent bg-accent/5 border border-accent/25 p-2 rounded-lg italic leading-normal">
                         <span className="font-mono font-bold block uppercase text-[8px] tracking-wider mb-0.5">NOTE:</span>
                         {order.note}
                       </div>
@@ -508,7 +508,7 @@ export function KitchenDisplay() {
                 );
               })}
               {pendingOrders.length === 0 && (
-                <div className="h-full flex flex-col items-center justify-center text-[#8E7E70] text-center p-6 py-20">
+                <div className="h-full flex flex-col items-center justify-center text-muted-foreground text-center p-6 py-20">
                   <span className="text-2xl mb-1">🍽️</span>
                   <p className="text-[10px] font-mono uppercase tracking-widest">No pending tickets</p>
                 </div>
@@ -542,22 +542,22 @@ export function KitchenDisplay() {
                     transition={{ duration: 0.2 }}
                     key={order.id}
                     onClick={() => advanceOrderStatus(order.id, order.order_status)}
-                    className="border border-[#20150E] bg-[#120D09] hover:border-amber-500/40 rounded-xl p-4 transition-all relative overflow-hidden cursor-pointer group shadow-md"
+                    className="border border-[#20150E] bg-card hover:border-amber-500/40 rounded-xl p-4 transition-all relative overflow-hidden cursor-pointer group shadow-md"
                   >
                     {/* Timer */}
-                    <div className="absolute top-0 right-0 px-2.5 py-0.5 text-[9px] font-mono font-bold flex items-center gap-1 rounded-bl-lg bg-white/5 text-[#8E7E70]">
+                    <div className="absolute top-0 right-0 px-2.5 py-0.5 text-[9px] font-mono font-bold flex items-center gap-1 rounded-bl-lg bg-secondary text-muted-foreground">
                       <Clock className="w-3 h-3" />
                       <span>{getElapsedTime(order.created_at)}</span>
                     </div>
 
                     <div className="mb-2 shrink-0">
                       <div className="flex items-center gap-2">
-                        <span className="font-serif font-black text-base text-white">#{orderNum}</span>
-                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-[#E5D5C5] uppercase font-bold border border-white/10">
+                        <span className="font-serif font-black text-base text-foreground">#{orderNum}</span>
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-secondary text-foreground uppercase font-bold border border-border">
                           Table {order.table_id}
                         </span>
                       </div>
-                      <div className="text-[9px] font-mono text-[#8E7E70] uppercase mt-0.5">{order.area}</div>
+                      <div className="text-[9px] font-mono text-muted-foreground uppercase mt-0.5">{order.area}</div>
                     </div>
 
                     {/* Items List */}
@@ -565,10 +565,10 @@ export function KitchenDisplay() {
                       {order.order_items?.map(item => (
                         <div key={item.id} className="flex justify-between gap-2">
                           <div className="flex-1">
-                            <span className="font-bold text-[#E5D5C5] mr-1.5">{item.quantity}x</span>
-                            <span className="text-white font-medium">{item.name}</span>
+                            <span className="font-bold text-foreground mr-1.5">{item.quantity}x</span>
+                            <span className="text-foreground font-medium">{item.name}</span>
                             {item.customizations && Object.keys(item.customizations).length > 0 && (
-                              <div className="text-[9.5px] text-[#8E7E70] ml-4 font-mono">
+                              <div className="text-[9.5px] text-muted-foreground ml-4 font-mono">
                                 {Object.entries(item.customizations).map(([key, val]: any) => (
                                   <div key={key}>• {key}: {Array.isArray(val) ? val.join(", ") : val}</div>
                                 ))}
@@ -581,7 +581,7 @@ export function KitchenDisplay() {
 
                     {/* Note */}
                     {order.note && (
-                      <div className="mt-2 text-[10px] text-[#D4A017] bg-[#D4A017]/5 border border-[#D4A017]/25 p-2 rounded-lg italic leading-normal">
+                      <div className="mt-2 text-[10px] text-accent bg-accent/5 border border-accent/25 p-2 rounded-lg italic leading-normal">
                         <span className="font-mono font-bold block uppercase text-[8px] tracking-wider mb-0.5">NOTE:</span>
                         {order.note}
                       </div>
@@ -596,7 +596,7 @@ export function KitchenDisplay() {
                 );
               })}
               {preparingOrders.length === 0 && (
-                <div className="h-full flex flex-col items-center justify-center text-[#8E7E70] text-center p-6 py-20">
+                <div className="h-full flex flex-col items-center justify-center text-muted-foreground text-center p-6 py-20">
                   <span className="text-2xl mb-1">🍳</span>
                   <p className="text-[10px] font-mono uppercase tracking-widest">Nothing cooking right now</p>
                 </div>
@@ -635,7 +635,7 @@ export function KitchenDisplay() {
                     transition={{ duration: 0.2 }}
                     key={order.id}
                     onClick={() => advanceOrderStatus(order.id, order.order_status)}
-                    className="border border-[#20150E] bg-[#120D09] hover:border-green-500/40 rounded-xl p-4 transition-all relative overflow-hidden cursor-pointer group shadow-md"
+                    className="border border-[#20150E] bg-card hover:border-green-500/40 rounded-xl p-4 transition-all relative overflow-hidden cursor-pointer group shadow-md"
                   >
                     {/* Expiry Bar (2m countdown indicator) */}
                     <div 
@@ -650,23 +650,23 @@ export function KitchenDisplay() {
 
                     <div className="mb-2 shrink-0">
                       <div className="flex items-center gap-2">
-                        <span className="font-serif font-black text-base text-white">#{orderNum}</span>
+                        <span className="font-serif font-black text-base text-foreground">#{orderNum}</span>
                         <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-green-950/10 text-green-400 uppercase font-bold border border-green-950/30">
                           Table {order.table_id}
                         </span>
                       </div>
-                      <div className="text-[9px] font-mono text-[#8E7E70] uppercase mt-0.5">{order.area}</div>
+                      <div className="text-[9px] font-mono text-muted-foreground uppercase mt-0.5">{order.area}</div>
                     </div>
 
                     {/* Items List */}
                     <div className="space-y-1.5 py-2.5 border-t border-b border-[#23170F] text-xs leading-snug">
                       {order.order_items?.map(item => (
-                        <div key={item.id} className="flex justify-between gap-2 text-[#8E7E70]">
+                        <div key={item.id} className="flex justify-between gap-2 text-muted-foreground">
                           <div className="flex-1">
-                            <span className="font-bold text-[#E5D5C5] mr-1.5">{item.quantity}x</span>
-                            <span className="text-[#E5D5C5] font-medium">{item.name}</span>
+                            <span className="font-bold text-foreground mr-1.5">{item.quantity}x</span>
+                            <span className="text-foreground font-medium">{item.name}</span>
                             {item.customizations && Object.keys(item.customizations).length > 0 && (
-                              <div className="text-[9.5px] text-[#8E7E70] ml-4 font-mono">
+                              <div className="text-[9.5px] text-muted-foreground ml-4 font-mono">
                                 {Object.entries(item.customizations).map(([key, val]: any) => (
                                   <div key={key}>• {key}: {Array.isArray(val) ? val.join(", ") : val}</div>
                                 ))}
@@ -679,7 +679,7 @@ export function KitchenDisplay() {
 
                     {/* Note */}
                     {order.note && (
-                      <div className="mt-2 text-[10px] text-[#8E7E70] bg-white/5 border border-white/5 p-2 rounded-lg italic leading-normal">
+                      <div className="mt-2 text-[10px] text-muted-foreground bg-secondary border border-border p-2 rounded-lg italic leading-normal">
                         <span className="font-mono font-bold block uppercase text-[8px] tracking-wider mb-0.5">NOTE:</span>
                         {order.note}
                       </div>
@@ -694,7 +694,7 @@ export function KitchenDisplay() {
                 );
               })}
               {readyOrders.length === 0 && (
-                <div className="h-full flex flex-col items-center justify-center text-[#8E7E70] text-center p-6 py-20">
+                <div className="h-full flex flex-col items-center justify-center text-muted-foreground text-center p-6 py-20">
                   <span className="text-2xl mb-1">✅</span>
                   <p className="text-[10px] font-mono uppercase tracking-widest">No orders waiting service</p>
                 </div>

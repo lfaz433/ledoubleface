@@ -265,12 +265,12 @@ export default function WaiterCallAlert({ language }: { language: "fr" | "en" })
   if (calls.length === 0) return null;
 
   return (
-    <div className="bg-[#120D09] border border-[#2A1E15] rounded-xl p-4 mb-6 shadow-md">
+    <div className="bg-card border border-border rounded-xl p-4 mb-6 shadow-md">
       <h3 
         style={{ fontFamily: "Georgia, serif" }}
-        className="font-bold text-base text-white mb-4 flex items-center gap-2"
+        className="font-bold text-base text-foreground mb-4 flex items-center gap-2"
       >
-        <Bell className="w-5 h-5 text-[#C8102E] animate-pulse" />
+        <Bell className="w-5 h-5 text-primary animate-pulse" />
         <span>{t.activeCallsTitle}</span>
       </h3>
 
@@ -284,16 +284,16 @@ export default function WaiterCallAlert({ language }: { language: "fr" | "en" })
               exit={{ opacity: 0, x: -20 }}
               transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.2 }}
               key={call.id}
-              className="bg-[#C8102E]/10 border border-[#C8102E]/30 rounded-xl p-3 flex items-center justify-between gap-3 shadow-inner"
+              className="bg-primary/10 border border-primary/30 rounded-xl p-3 flex items-center justify-between gap-3 shadow-inner"
             >
               <div>
-                <div style={{ fontFamily: "Georgia, serif" }} className="font-bold text-white text-sm">
+                <div style={{ fontFamily: "Georgia, serif" }} className="font-bold text-foreground text-sm">
                   🛎️ Table {call.table_id}
                 </div>
-                <div className="text-[#8E7E70] font-mono text-[10px] mt-0.5 uppercase tracking-wider flex items-center gap-2">
+                <div className="text-muted-foreground font-mono text-[10px] mt-0.5 uppercase tracking-wider flex items-center gap-2">
                   <span>{call.area}</span>
                   <span>•</span>
-                  <span className="text-[#D4A017]">{getElapsedTime(call.called_at)}</span>
+                  <span className="text-accent">{getElapsedTime(call.called_at)}</span>
                 </div>
               </div>
 

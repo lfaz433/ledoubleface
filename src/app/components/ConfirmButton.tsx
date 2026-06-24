@@ -17,9 +17,9 @@ export function ConfirmButton({
   onConfirm,
   confirmLabel = "Confirmer",
   cancelLabel = "Annuler",
-  className = "px-3 py-1.5 bg-[#C8102E] hover:opacity-90 text-white rounded text-xs font-mono font-bold tracking-wider transition-all",
-  confirmClassName = "px-3 py-1.5 bg-[#C8102E] hover:opacity-90 text-white rounded text-xs font-mono font-bold tracking-wider transition-all",
-  cancelClassName = "px-3 py-1.5 bg-transparent border border-[#2A1E15] text-[#8E7E70] hover:text-white rounded text-xs font-mono font-bold tracking-wider transition-all",
+  className = "px-3 py-1.5 bg-primary hover:opacity-90 text-foreground rounded text-xs font-mono font-bold tracking-wider transition-all",
+  confirmClassName = "px-3 py-1.5 bg-primary hover:opacity-90 text-foreground rounded text-xs font-mono font-bold tracking-wider transition-all",
+  cancelClassName = "px-3 py-1.5 bg-transparent border border-border text-muted-foreground hover:text-foreground rounded text-xs font-mono font-bold tracking-wider transition-all",
   disabled = false,
 }: ConfirmButtonProps) {
   const [isConfirming, setIsConfirming] = useState(false);

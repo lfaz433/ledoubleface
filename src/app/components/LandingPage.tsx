@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { ChevronDown, Star, MapPin, Phone, Clock, Instagram, Facebook, Twitter, ArrowRight, Flame, Award, Utensils, Users, X, Check, Tv } from "lucide-react";
+import { ChevronDown, Star, MapPin, Phone, Clock, Instagram, Facebook, Twitter, ArrowRight, Flame, Award, Utensils, Users, X, Check, Tv, Sun, Moon } from "lucide-react";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { supabase } from "../../lib/supabase";
 import { translations, Language } from "../../lib/translations";
 import { motion, AnimatePresence } from "motion/react";
+import { useTheme } from "../../lib/theme";
 
 const FALLBACK_MENU_ITEMS = [
   { id: "B1", name: "Le Double Face Burger", price: 14.90, category: "Signature", desc: "Double wagyu patty, truffle mayo, aged cheddar, brioche bun", image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400&h=300&fit=crop&auto=format", popular: true },
@@ -64,6 +65,7 @@ export function LandingPage({ onNavigate, tableId }: { onNavigate: (view: string
   // Bilingual State
   const [lang, setLang] = useState<Language>("fr");
   const t = translations[lang];
+  const { theme, toggleTheme } = useTheme();
 
   const [dbError, setDbError] = useState(false);
 
@@ -359,10 +361,17 @@ export function LandingPage({ onNavigate, tableId }: { onNavigate: (view: string
             </a>
           </div>
           <div className="flex items-center gap-3">
+            <button
+              onClick={toggleTheme}
+              className="p-1.5 text-accent hover:bg-secondary rounded-full transition-colors border border-accent/30"
+              title="Toggle Theme"
+            >
+              {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
+            </button>
             {/* Language Selector */}
             <button
               onClick={() => setLang(l => l === "fr" ? "en" : "fr")}
-              className="px-3 py-1.5 text-xs rounded border border-[#d4a017]/30 text-accent font-bold hover:bg-white/5 cursor-pointer"
+              className="px-3 py-1.5 text-xs rounded border border-[#d4a017]/30 text-accent font-bold hover:bg-secondary cursor-pointer"
             >
               {lang.toUpperCase()}
             </button>
@@ -406,7 +415,7 @@ export function LandingPage({ onNavigate, tableId }: { onNavigate: (view: string
                 {lang === "fr" ? "LIVRAISON" : "DELIVERY"} <ArrowRight size={18} />
               </button>
               <button onClick={() => onNavigate("client", (!tableId || tableId === "DELIVERY" || tableId === "T07") ? "DELIVERY" : tableId)}
-                className="flex items-center justify-center gap-2 w-full sm:w-auto px-8 py-4 text-base transition-all hover:bg-white/5 cursor-pointer"
+                className="flex items-center justify-center gap-2 w-full sm:w-auto px-8 py-4 text-base transition-all hover:bg-secondary cursor-pointer"
                 style={{ border: "1px solid rgba(245,240,232,0.2)", color: "var(--foreground)", borderRadius: "var(--radius)", fontWeight: 600 }}>
                 {t.viewMenu}
               </button>
@@ -505,7 +514,7 @@ export function LandingPage({ onNavigate, tableId }: { onNavigate: (view: string
           {loading ? (
             <div className="flex flex-col items-center justify-center py-20">
               <div className="w-10 h-10 border-2 border-t-[#C8102E] border-r-transparent rounded-full animate-spin mb-4" />
-              <p className="text-xs font-mono text-[#8E7E70] tracking-widest uppercase">Forging menu items...</p>
+              <p className="text-xs font-mono text-muted-foreground tracking-widest uppercase">Forging menu items...</p>
             </div>
           ) : (
             <>
@@ -579,9 +588,9 @@ export function LandingPage({ onNavigate, tableId }: { onNavigate: (view: string
               <div 
                 key={show.id} 
                 onClick={() => setSelectedShow(show)}
-                className="group overflow-hidden bg-card border border-border rounded flex flex-col sm:flex-row transition-all duration-300 hover:-translate-y-1 cursor-pointer select-none hover:border-[#C8102E]/30"
+                className="group overflow-hidden bg-card border border-border rounded flex flex-col sm:flex-row transition-all duration-300 hover:-translate-y-1 cursor-pointer select-none hover:border-primary/30"
               >
-                <div className="sm:w-48 h-48 sm:h-auto overflow-hidden bg-[#1A130E] flex-shrink-0">
+                <div className="sm:w-48 h-48 sm:h-auto overflow-hidden bg-muted flex-shrink-0">
                   <ImageWithFallback src={show.image} alt={show.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
                 </div>
                 <div className="p-6 flex flex-col justify-between flex-1">
@@ -601,7 +610,7 @@ export function LandingPage({ onNavigate, tableId }: { onNavigate: (view: string
                         e.stopPropagation();
                         setSelectedShow(show);
                       }}
-                      className="px-5.5 py-3 text-xs font-bold bg-[#C8102E] hover:opacity-90 text-white rounded transition-all cursor-pointer shadow-sm shadow-[#C8102E]/20"
+                      className="px-5.5 py-3 text-xs font-bold bg-primary hover:opacity-90 text-foreground rounded transition-all cursor-pointer shadow-sm shadow-[#C8102E]/20"
                     >
                       {t.showsBuyTickets}
                     </button>
@@ -691,7 +700,7 @@ export function LandingPage({ onNavigate, tableId }: { onNavigate: (view: string
               { Icon: Facebook, url: "https://facebook.com/ledoubleface" },
               { Icon: Twitter, url: "https://twitter.com/ledoubleface" }
             ].map((social, i) => (
-              <a key={i} href={social.url} target="_blank" rel="noopener noreferrer" className="w-9 h-9 flex items-center justify-center transition-all hover:opacity-80 border border-border rounded text-muted-foreground hover:text-white">
+              <a key={i} href={social.url} target="_blank" rel="noopener noreferrer" className="w-9 h-9 flex items-center justify-center transition-all hover:opacity-80 border border-border rounded text-muted-foreground hover:text-foreground">
                 <social.Icon size={16} />
               </a>
             ))}
@@ -699,29 +708,29 @@ export function LandingPage({ onNavigate, tableId }: { onNavigate: (view: string
         </div>
 
         {/* Connection Diagnostics Bar */}
-        <div className="max-w-7xl mx-auto mt-8 pt-8 border-t border-white/5 flex flex-col items-center justify-center gap-3 text-center">
+        <div className="max-w-7xl mx-auto mt-8 pt-8 border-t border-border flex flex-col items-center justify-center gap-3 text-center">
           <div className="flex flex-wrap items-center justify-center gap-3">
             <button
               onClick={forceReload}
-              className="px-3 py-1.5 bg-white/5 border border-white/10 hover:bg-white/10 active:scale-95 text-foreground rounded text-[10px] font-mono transition-all cursor-pointer"
+              className="px-3 py-1.5 bg-secondary border border-border hover:bg-secondary/80 active:scale-95 text-foreground rounded text-[10px] font-mono transition-all cursor-pointer"
             >
               🔄 Refresh Connection (Clear PWA Cache)
             </button>
             <button
               onClick={() => onNavigate("waiter")}
-              className="px-3 py-1.5 bg-white/5 border border-white/10 hover:bg-white/10 active:scale-95 text-foreground rounded text-[10px] font-mono transition-all cursor-pointer flex items-center gap-1.5"
+              className="px-3 py-1.5 bg-secondary border border-border hover:bg-secondary/80 active:scale-95 text-foreground rounded text-[10px] font-mono transition-all cursor-pointer flex items-center gap-1.5"
             >
               🛎️ Waiter Portal
             </button>
             <button
               onClick={() => onNavigate("driver")}
-              className="px-3 py-1.5 bg-white/5 border border-white/10 hover:bg-white/10 active:scale-95 text-foreground rounded text-[10px] font-mono transition-all cursor-pointer flex items-center gap-1.5"
+              className="px-3 py-1.5 bg-secondary border border-border hover:bg-secondary/80 active:scale-95 text-foreground rounded text-[10px] font-mono transition-all cursor-pointer flex items-center gap-1.5"
             >
               🛵 Driver Portal
             </button>
             <button
               onClick={() => onNavigate("admin")}
-              className="px-3 py-1.5 bg-white/5 border border-white/10 hover:bg-white/10 active:scale-95 text-foreground rounded text-[10px] font-mono transition-all cursor-pointer flex items-center gap-1.5"
+              className="px-3 py-1.5 bg-secondary border border-border hover:bg-secondary/80 active:scale-95 text-foreground rounded text-[10px] font-mono transition-all cursor-pointer flex items-center gap-1.5"
             >
               🔑 Admin CMS
             </button>
@@ -734,27 +743,27 @@ export function LandingPage({ onNavigate, tableId }: { onNavigate: (view: string
         {selectedShow && (
           <motion.div 
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 z-50 text-white"
+            className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 z-50 text-foreground"
           >
-            <div className="w-full max-w-md bg-[#120D09] border border-[#2A1E15] p-6 rounded-2xl relative max-h-[90vh] overflow-y-auto">
-              <button onClick={() => setSelectedShow(null)} className="absolute top-4 right-4 text-[#8E7E70] hover:text-white cursor-pointer">
+            <div className="w-full max-w-md bg-card border border-border p-6 rounded-2xl relative max-h-[90vh] overflow-y-auto">
+              <button onClick={() => setSelectedShow(null)} className="absolute top-4 right-4 text-muted-foreground hover:text-foreground cursor-pointer">
                 <X size={20} />
               </button>
 
-              <div className="h-44 w-full rounded-xl overflow-hidden bg-black/40 mb-4 border border-[#2A1E15]">
+              <div className="h-44 w-full rounded-xl overflow-hidden bg-background/60 mb-4 border border-border">
                 <ImageWithFallback src={selectedShow.image} alt={selectedShow.title} className="w-full h-full object-cover" />
               </div>
 
-              <h3 className="font-serif font-black text-xl text-[#E5D5C5] mb-2">{selectedShow.title}</h3>
+              <h3 className="font-serif font-black text-xl text-foreground mb-2">{selectedShow.title}</h3>
               
               <div className="flex items-center gap-2 text-xs text-accent mb-4 font-mono">
                 <Clock size={12} />
                 <span>{new Date(selectedShow.date).toLocaleDateString(lang === "fr" ? "fr-FR" : "en-US", { weekday: 'long', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
               </div>
 
-              <p className="text-xs text-[#8E7E70] leading-relaxed mb-6 border-b border-[#2A1E15] pb-4">{selectedShow.description}</p>
+              <p className="text-xs text-muted-foreground leading-relaxed mb-6 border-b border-border pb-4">{selectedShow.description}</p>
               
-              <h4 className="font-serif font-bold text-sm text-white mb-3">{t.showsBookTitle}</h4>
+              <h4 className="font-serif font-bold text-sm text-foreground mb-3">{t.showsBookTitle}</h4>
 
               {bookingSuccess ? (
                 <div className="flex flex-col items-center justify-center py-6 text-center animate-fade-in">
@@ -766,37 +775,37 @@ export function LandingPage({ onNavigate, tableId }: { onNavigate: (view: string
               ) : (
                 <div className="flex flex-col gap-4">
                   <div>
-                    <label className="text-[9px] font-mono tracking-wider text-[#8E7E70] block mb-1">{t.showsFullName.toUpperCase()}</label>
+                    <label className="text-[9px] font-mono tracking-wider text-muted-foreground block mb-1">{t.showsFullName.toUpperCase()}</label>
                     <input
                       type="text"
                       value={bookingName}
                       onChange={e => setBookingName(e.target.value)}
                       placeholder="Jean Dupont"
-                      className="w-full px-3 py-2 text-xs bg-[#1A130E] border border-[#2A1E15] rounded text-white outline-none focus:border-[#C8102E]"
+                      className="w-full px-3 py-2 text-xs bg-muted border border-border rounded text-foreground outline-none focus:border-primary"
                     />
                   </div>
                   <div>
-                    <label className="text-[9px] font-mono tracking-wider text-[#8E7E70] block mb-1">{t.showsEmail.toUpperCase()}</label>
+                    <label className="text-[9px] font-mono tracking-wider text-muted-foreground block mb-1">{t.showsEmail.toUpperCase()}</label>
                     <input
                       type="email"
                       value={bookingEmail}
                       onChange={e => setBookingEmail(e.target.value)}
                       placeholder="jean.dupont@email.com"
-                      className="w-full px-3 py-2 text-xs bg-[#1A130E] border border-[#2A1E15] rounded text-white outline-none focus:border-[#C8102E]"
+                      className="w-full px-3 py-2 text-xs bg-muted border border-border rounded text-foreground outline-none focus:border-primary"
                     />
                   </div>
                   <div>
-                    <label className="text-[9px] font-mono tracking-wider text-[#8E7E70] block mb-1">{t.showsQuantity.toUpperCase()}</label>
+                    <label className="text-[9px] font-mono tracking-wider text-muted-foreground block mb-1">{t.showsQuantity.toUpperCase()}</label>
                     <div className="flex items-center gap-3">
-                      <button onClick={() => setBookingQty(q => Math.max(1, q - 1))} className="px-3 py-1 border border-[#2A1E15] rounded text-white cursor-pointer">-</button>
+                      <button onClick={() => setBookingQty(q => Math.max(1, q - 1))} className="px-3 py-1 border border-border rounded text-foreground cursor-pointer">-</button>
                       <span className="font-mono text-sm w-4 text-center">{bookingQty}</span>
-                      <button onClick={() => setBookingQty(q => q + 1)} className="px-3 py-1 border border-[#2A1E15] rounded text-white cursor-pointer">+</button>
-                      <span className="text-xs text-[#8E7E70] ml-auto font-bold text-accent">€{(selectedShow.price * bookingQty).toFixed(2)}</span>
+                      <button onClick={() => setBookingQty(q => q + 1)} className="px-3 py-1 border border-border rounded text-foreground cursor-pointer">+</button>
+                      <span className="text-xs text-muted-foreground ml-auto font-bold text-accent">€{(selectedShow.price * bookingQty).toFixed(2)}</span>
                     </div>
                   </div>
                   
                   <button onClick={bookTicket}
-                    className="w-full py-3 bg-[#C8102E] text-white font-bold rounded text-xs hover:opacity-90 active:scale-95 transition-all mt-2 cursor-pointer"
+                    className="w-full py-3 bg-primary text-foreground font-bold rounded text-xs hover:opacity-90 active:scale-95 transition-all mt-2 cursor-pointer"
                   >
                     {t.showsConfirmBooking.toUpperCase()}
                   </button>
@@ -811,10 +820,10 @@ export function LandingPage({ onNavigate, tableId }: { onNavigate: (view: string
       <div className="fixed bottom-6 right-6 z-40">
         <button
           onClick={() => window.open("?view=display", "_blank")}
-          className="flex items-center gap-2.5 px-4 py-2.5 bg-[#120D09] hover:bg-[#1A130E] text-[#E5D5C5] hover:text-white border border-[#2A1E15] hover:border-[#C8102E]/40 rounded-full shadow-lg shadow-black/80 cursor-pointer active:scale-95 transition-all text-xs font-bold tracking-wider uppercase font-mono"
+          className="flex items-center gap-2.5 px-4 py-2.5 bg-card hover:bg-muted text-foreground hover:text-foreground border border-border hover:border-primary/40 rounded-full shadow-lg shadow-black/80 cursor-pointer active:scale-95 transition-all text-xs font-bold tracking-wider uppercase font-mono"
           title="Open Customer Order Display Board in new tab"
         >
-          <Tv size={14} className="text-[#C8102E]" />
+          <Tv size={14} className="text-primary" />
           <span>{t.orderDisplayBoard}</span>
         </button>
       </div>

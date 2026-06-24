@@ -14,16 +14,16 @@ const statusCycle = ["pending", "seen", "preparing", "served", "bill_requested",
 
 const statusStyles: Record<string, { bg: string; border: string; text: string; label: string; next: string }> = {
   pending: {
-    bg: "bg-[#D4A017]/10",
-    border: "border-[#D4A017]/30",
-    text: "text-[#D4A017]",
+    bg: "bg-accent/10",
+    border: "border-accent/30",
+    text: "text-accent",
     label: "En attente ⏳",
     next: "Vu 👀",
   },
   seen: {
     bg: "bg-[#8E7E70]/10",
     border: "border-[#8E7E70]/30",
-    text: "text-[#8E7E70]",
+    text: "text-muted-foreground",
     label: "Vu 👀",
     next: "Préparation 🍳",
   },
@@ -42,15 +42,15 @@ const statusStyles: Record<string, { bg: string; border: string; text: string; l
     next: "Addition requested 🧾",
   },
   bill_requested: {
-    bg: "bg-[#C8102E]/10",
-    border: "border-[#C8102E]/30",
-    text: "text-[#C8102E]",
+    bg: "bg-primary/10",
+    border: "border-primary/30",
+    text: "text-primary",
     label: "Addition requested 🧾",
     next: "Payé 💵",
   },
   paid: {
-    bg: "bg-white/5",
-    border: "border-[#2A1E15]",
+    bg: "bg-secondary",
+    border: "border-border",
     text: "text-[#5A4E42]",
     label: "Payé 💵",
     next: "Terminal",
@@ -160,7 +160,7 @@ export function OrderStatusBadge({ orderId, currentStatus, onStatusChange }: Ord
             initial={{ opacity: 0, y: 5 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 5 }}
-            className="absolute left-1/2 -translate-x-1/2 bottom-full mb-1.5 px-2 py-1 bg-black text-[#E5D5C5] border border-[#2A1E15] text-[9px] font-mono tracking-wider uppercase rounded shadow-lg whitespace-nowrap z-50 pointer-events-none"
+            className="absolute left-1/2 -translate-x-1/2 bottom-full mb-1.5 px-2 py-1 bg-black text-foreground border border-border text-[9px] font-mono tracking-wider uppercase rounded shadow-lg whitespace-nowrap z-50 pointer-events-none"
           >
             Avancer → {style.next}
           </motion.div>

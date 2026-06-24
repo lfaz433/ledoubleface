@@ -1846,7 +1846,7 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
 
   if (loading) {
     return (
-      <div className="h-screen w-full flex flex-col items-center justify-center bg-[#0A0704] text-[#8E7E70] p-6">
+      <div className="h-screen w-full flex flex-col items-center justify-center bg-background text-muted-foreground p-6">
         <div className="relative w-12 h-12 mb-4">
           <div className="absolute inset-0 rounded-full border-2 border-t-[#C8102E] border-r-transparent border-b-transparent border-l-transparent animate-spin" />
         </div>
@@ -1857,11 +1857,11 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
 
   const renderNavContent = () => (
     <>
-      <div className="px-4 py-4 border-b border-[#2A1E15] flex items-center gap-2">
-        <div className="w-7 h-7 rounded bg-[#C8102E] flex items-center justify-center font-serif font-black text-xs text-white">L</div>
+      <div className="px-4 py-4 border-b border-border flex items-center gap-2">
+        <div className="w-7 h-7 rounded bg-primary flex items-center justify-center font-serif font-black text-xs text-foreground">L</div>
         <div>
           <div className="font-serif font-bold text-xs">Le Double Face</div>
-          <div className="font-mono text-[8px] text-[#8E7E70] tracking-widest">KITCHEN WORKSPACE</div>
+          <div className="font-mono text-[8px] text-muted-foreground tracking-widest">KITCHEN WORKSPACE</div>
         </div>
       </div>
       <nav className="flex-1 px-2 py-4 flex flex-col gap-1 overflow-y-auto">
@@ -1879,19 +1879,19 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
               {item.icon}
               <span className="flex-1">{item.label}</span>
               {item.badge ? (
-                <span className="bg-[#C8102E] text-white font-mono font-bold text-[9px] w-4 h-4 rounded-full flex items-center justify-center">{item.badge}</span>
+                <span className="bg-primary text-foreground font-mono font-bold text-[9px] w-4 h-4 rounded-full flex items-center justify-center">{item.badge}</span>
               ) : null}
             </button>
           );
         })}
       </nav>
       {onLogout && (
-        <div className="p-3 border-t border-[#2A1E15]">
+        <div className="p-3 border-t border-border">
           <button
             onClick={onLogout}
-            className="w-full flex items-center gap-2.5 px-3 py-2 text-left rounded text-xs transition-all text-[#8E7E70] hover:text-white hover:bg-white/5 border border-transparent cursor-pointer"
+            className="w-full flex items-center gap-2.5 px-3 py-2 text-left rounded text-xs transition-all text-muted-foreground hover:text-foreground hover:bg-secondary border border-transparent cursor-pointer"
           >
-            <LogOut size={16} className="text-[#C8102E]" />
+            <LogOut size={16} className="text-primary" />
             <span className="font-mono uppercase tracking-wider text-[10px]">Log Out</span>
           </button>
         </div>
@@ -1900,10 +1900,10 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
   );
 
   return (
-    <div className="flex h-screen bg-[#0A0704] text-white relative overflow-hidden">
+    <div className="flex h-screen bg-background text-foreground relative overflow-hidden">
 
       {/* ── Desktop Sidebar (md+) ─────────────────────────────── */}
-      <div className="hidden md:flex w-56 flex-shrink-0 flex-col bg-[#120D09] border-r border-[#2A1E15]">
+      <div className="hidden md:flex w-56 flex-shrink-0 flex-col bg-card border-r border-border">
         {renderNavContent()}
       </div>
 
@@ -1917,7 +1917,7 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
           {/* Drawer */}
           <div
-            className="relative z-10 w-64 max-w-[80vw] flex flex-col bg-[#120D09] border-r border-[#2A1E15] h-full"
+            className="relative z-10 w-64 max-w-[80vw] flex flex-col bg-card border-r border-border h-full"
             onClick={e => e.stopPropagation()}
           >
             {renderNavContent()}
@@ -1928,12 +1928,12 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
       {/* ── Main Panel Content ────────────────────────────────── */}
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         {/* Header */}
-        <header className="px-4 md:px-6 py-3 md:py-4 bg-[#120D09] border-b border-[#2A1E15] flex items-center justify-between gap-2">
+        <header className="px-4 md:px-6 py-3 md:py-4 bg-card border-b border-border flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
             {/* Hamburger — mobile only */}
             <button
               onClick={() => setNavOpen(o => !o)}
-              className="md:hidden flex-shrink-0 p-1.5 rounded border border-[#2A1E15] bg-[#1A130E] text-[#E5D5C5] cursor-pointer active:scale-95 transition-all"
+              className="md:hidden flex-shrink-0 p-1.5 rounded border border-border bg-muted text-foreground cursor-pointer active:scale-95 transition-all"
               aria-label="Open navigation"
             >
               <span className="block w-4 h-0.5 bg-current mb-1" />
@@ -1941,9 +1941,9 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
               <span className="block w-4 h-0.5 bg-current" />
             </button>
 
-            <span className="text-[#8E7E70] font-mono text-[10px] md:text-xs uppercase tracking-widest truncate">{section}</span>
+            <span className="text-muted-foreground font-mono text-[10px] md:text-xs uppercase tracking-widest truncate">{section}</span>
             {pendingCount > 0 && (
-              <span className="bg-[#C8102E] text-white text-[9px] font-mono font-bold px-2 py-0.5 rounded-full animate-pulse flex-shrink-0">
+              <span className="bg-primary text-foreground text-[9px] font-mono font-bold px-2 py-0.5 rounded-full animate-pulse flex-shrink-0">
                 {pendingCount}
               </span>
             )}
@@ -1951,14 +1951,14 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
             {/* Kitchen / Board shortcuts — icon-only on mobile */}
             <button
               onClick={() => window.open("?view=kitchen", "_blank")}
-              className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 bg-[#1A130E] border border-[#2A1E15] hover:bg-white/5 hover:border-[#C8102E]/40 text-[#E5D5C5] rounded text-[9.5px] font-mono font-bold transition-all cursor-pointer"
+              className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 bg-muted border border-border hover:bg-secondary hover:border-primary/40 text-foreground rounded text-[9.5px] font-mono font-bold transition-all cursor-pointer"
               title="Kitchen Screen"
             >
               🍳 <span className="hidden lg:inline">KITCHEN SCREEN</span>
             </button>
             <button
               onClick={() => setShowQRModal(true)}
-              className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 bg-[#1A130E] border border-[#2A1E15] hover:bg-white/5 hover:border-[#C8102E]/40 text-[#E5D5C5] rounded text-[9.5px] font-mono font-bold transition-all cursor-pointer"
+              className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 bg-muted border border-border hover:bg-secondary hover:border-primary/40 text-foreground rounded text-[9.5px] font-mono font-bold transition-all cursor-pointer"
               title="Customer Board"
             >
               📺 <span className="hidden lg:inline">CUSTOMER BOARD</span>
@@ -1980,7 +1980,7 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
             )}
             <button
               onClick={forceReload}
-              className="px-2 py-1 bg-white/5 border border-white/10 hover:bg-white/10 active:scale-95 text-[#E5D5C5] rounded text-[9px] font-mono transition-all cursor-pointer"
+              className="px-2 py-1 bg-secondary border border-border hover:bg-secondary/80 active:scale-95 text-foreground rounded text-[9px] font-mono transition-all cursor-pointer"
               title="Refresh"
             >
               🔄
@@ -1991,8 +1991,8 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
         {/* Content Body */}
         <div className="flex-1 p-4 md:p-6 overflow-y-auto">
           {dbError && (
-            <div className="mb-6 p-4 bg-red-950/20 border border-[#C8102E]/30 rounded-lg text-xs text-[#8E7E70] flex items-center gap-2">
-              <AlertCircle size={14} className="text-[#C8102E]" />
+            <div className="mb-6 p-4 bg-red-950/20 border border-primary/30 rounded-lg text-xs text-muted-foreground flex items-center gap-2">
+              <AlertCircle size={14} className="text-primary" />
               <span>Warning: Could not sync from Supabase. Running in isolated fallback simulation.</span>
             </div>
           )}
@@ -2004,24 +2004,24 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {[
                   { label: "DELIVERED REVENUE (TODAY)", value: `€${totalRevenue.toFixed(2)}`, trend: "+12.4% vs yesterday", icon: <DollarSign size={18} className="text-[#10B981]" /> },
-                  { label: "ACTIVE TICKETS IN PIPELINE", value: String(activeOrdersCount), trend: "Live kitchen load", icon: <ShoppingBag size={18} className="text-[#C8102E]" /> },
-                  { label: "TABLE OCCUPANCY / COUNT", value: `${orders.filter(o => o.status !== "delivered").map(o => o.table_id).filter((v, i, a) => a.indexOf(v) === i).length} / 12`, trend: "Active guest sessions", icon: <Users size={18} className="text-[#8E7E70]" /> },
+                  { label: "ACTIVE TICKETS IN PIPELINE", value: String(activeOrdersCount), trend: "Live kitchen load", icon: <ShoppingBag size={18} className="text-primary" /> },
+                  { label: "TABLE OCCUPANCY / COUNT", value: `${orders.filter(o => o.status !== "delivered").map(o => o.table_id).filter((v, i, a) => a.indexOf(v) === i).length} / 12`, trend: "Active guest sessions", icon: <Users size={18} className="text-muted-foreground" /> },
                 ].map(stat => (
-                  <div key={stat.label} className="p-4 bg-[#120D09] border border-[#2A1E15] rounded-xl flex items-center justify-between">
+                  <div key={stat.label} className="p-4 bg-card border border-border rounded-xl flex items-center justify-between">
                     <div>
-                      <div className="text-[9px] font-mono tracking-widest text-[#8E7E70] uppercase mb-1">{stat.label}</div>
+                      <div className="text-[9px] font-mono tracking-widest text-muted-foreground uppercase mb-1">{stat.label}</div>
                       <div className="text-xl font-bold font-serif mb-1">{stat.value}</div>
-                      <div className="text-[9px] font-mono text-[#8E7E70]">{stat.trend}</div>
+                      <div className="text-[9px] font-mono text-muted-foreground">{stat.trend}</div>
                     </div>
-                    <div className="w-10 h-10 rounded bg-[#1A130E] border border-[#2A1E15] flex items-center justify-center">{stat.icon}</div>
+                    <div className="w-10 h-10 rounded bg-muted border border-border flex items-center justify-center">{stat.icon}</div>
                   </div>
                 ))}
               </div>
 
               {/* Chart & Queue summary */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2 p-5 bg-[#120D09] border border-[#2A1E15] rounded-xl">
-                  <h4 className="text-xs font-mono tracking-widest text-[#8E7E70] mb-4 uppercase">Weekly Revenue Projection</h4>
+                <div className="lg:col-span-2 p-5 bg-card border border-border rounded-xl">
+                  <h4 className="text-xs font-mono tracking-widest text-muted-foreground mb-4 uppercase">Weekly Revenue Projection</h4>
                   <div className="h-64">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={REVENUE_DATA}>
@@ -2034,25 +2034,25 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
                   </div>
                 </div>
 
-                <div className="p-5 bg-[#120D09] border border-[#2A1E15] rounded-xl">
-                  <h4 className="text-xs font-mono tracking-widest text-[#8E7E70] mb-4 uppercase">Recent activity log</h4>
+                <div className="p-5 bg-card border border-border rounded-xl">
+                  <h4 className="text-xs font-mono tracking-widest text-muted-foreground mb-4 uppercase">Recent activity log</h4>
                   <div className="flex flex-col gap-3.5 max-h-64 overflow-y-auto pr-1">
                     {orders.slice(0, 5).map(o => (
-                      <div key={o.id} className="flex items-start gap-3 text-xs border-b border-[#2A1E15]/30 pb-3 last:border-0 last:pb-0">
+                      <div key={o.id} className="flex items-start gap-3 text-xs border-b border-border/30 pb-3 last:border-0 last:pb-0">
                         <div className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0" style={{ background: statusColors[o.status] }} />
                         <div className="flex-1">
-                          <div className="flex justify-between font-bold text-white mb-0.5">
+                          <div className="flex justify-between font-bold text-foreground mb-0.5">
                             <span>Ticket {o.id}</span>
-                            <span className="text-[9px] font-mono text-[#8E7E70]">{o.time}</span>
+                            <span className="text-[9px] font-mono text-muted-foreground">{o.time}</span>
                           </div>
-                          <div className="text-[10px] text-[#8E7E70] font-mono">
+                          <div className="text-[10px] text-muted-foreground font-mono">
                             Table {o.table_id} · {o.items.length} items · €{o.total.toFixed(2)}
                           </div>
                         </div>
                       </div>
                     ))}
                     {orders.length === 0 && (
-                      <div className="text-center py-12 text-[#8E7E70] text-xs">No orders logged today.</div>
+                      <div className="text-center py-12 text-muted-foreground text-xs">No orders logged today.</div>
                     )}
                   </div>
                 </div>
@@ -2077,67 +2077,67 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
                 {(["pending", "preparing", "ready", "delivered"] as const).map(stage => {
                   const stageOrders = orders.filter(o => o.status === stage && o.table_id?.toUpperCase() === "DELIVERY");
                   return (
-                    <div key={stage} className="flex flex-col min-h-[500px] bg-[#120D09]/50 border border-[#2A1E15]/60 rounded-xl p-4">
-                      <div className="flex justify-between items-center mb-4 border-b border-[#2A1E15]/30 pb-3">
-                        <h3 className="font-mono text-xs font-bold tracking-widest text-[#E5D5C5] uppercase">{statusLabels[stage] || stage}</h3>
-                        <span className="bg-[#1A130E] text-[#8E7E70] text-[10px] px-2 py-0.5 rounded font-mono">
+                    <div key={stage} className="flex flex-col min-h-[500px] bg-card/50 border border-border/60 rounded-xl p-4">
+                      <div className="flex justify-between items-center mb-4 border-b border-border/30 pb-3">
+                        <h3 className="font-mono text-xs font-bold tracking-widest text-foreground uppercase">{statusLabels[stage] || stage}</h3>
+                        <span className="bg-muted text-muted-foreground text-[10px] px-2 py-0.5 rounded font-mono">
                           {stageOrders.length}
                         </span>
                       </div>
                       
                       <div className="flex-1 overflow-y-auto pr-2 space-y-3 custom-scrollbar">
                         {stageOrders.map(order => (
-                          <div key={order.id} className="bg-[#1A130E] border border-[#2A1E15] rounded-lg p-3 hover:border-[#C8102E]/30 transition-colors">
+                          <div key={order.id} className="bg-muted border border-border rounded-lg p-3 hover:border-primary/30 transition-colors">
                             <div className="flex justify-between items-start mb-2">
                               <div className="flex items-center gap-2">
-                                <span className="text-[#C8102E] font-bold text-sm tracking-wider">#{order.id.slice(-6)}</span>
+                                <span className="text-primary font-bold text-sm tracking-wider">#{order.id.slice(-6)}</span>
                                 <OrderStatusBadge
                                   orderId={order.id}
                                   currentStatus={order.order_status || order.status}
                                   onStatusChange={loadOrders}
                                 />
                               </div>
-                              <span className="text-[#8E7E70] text-[10px] font-mono">{order.time}</span>
+                              <span className="text-muted-foreground text-[10px] font-mono">{order.time}</span>
                             </div>
                             
                             <div className="mb-3">
-                              <span className="text-white text-[11px] font-bold block mb-1">DELIVERY</span>
-                              <p className="text-[#8E7E70] text-[9px] uppercase tracking-wide">
+                              <span className="text-foreground text-[11px] font-bold block mb-1">DELIVERY</span>
+                              <p className="text-muted-foreground text-[9px] uppercase tracking-wide">
                                 Total: €{order.total.toFixed(2)} | {order.paid ? <span className="text-[#10B981]">PAID</span> : <span className="text-[#F59E0B]">UNPAID</span>}
                               </p>
                             </div>
 
-                            <div className="space-y-1.5 mb-3 border-t border-[#2A1E15]/30 pt-3">
+                            <div className="space-y-1.5 mb-3 border-t border-border/30 pt-3">
                               {order.items.map((item: any, idx: number) => (
                                 <div key={idx} className="flex justify-between text-[11px]">
-                                  <span className="text-[#E5D5C5]">{item.quantity}x {item.name}</span>
-                                  <span className="text-[#8E7E70]">€{(item.price * item.quantity).toFixed(2)}</span>
+                                  <span className="text-foreground">{item.quantity}x {item.name}</span>
+                                  <span className="text-muted-foreground">€{(item.price * item.quantity).toFixed(2)}</span>
                                 </div>
                               ))}
                             </div>
 
                             {order.note && (
-                              <div className="mb-3 p-2 bg-[#120D09] rounded text-[10px] text-[#C8102E] border border-[#C8102E]/20 whitespace-pre-wrap">
+                              <div className="mb-3 p-2 bg-card rounded text-[10px] text-primary border border-primary/20 whitespace-pre-wrap">
                                 {order.note}
                               </div>
                             )}
 
                              {/* Driver Assignment details */}
                              {order.assigned_driver_id && (
-                               <div className="mb-3 flex items-center gap-1.5 text-[9px] font-mono text-[#D4A017] uppercase tracking-wider">
+                               <div className="mb-3 flex items-center gap-1.5 text-[9px] font-mono text-accent uppercase tracking-wider">
                                  <span>Livreur:</span>
-                                 <span className="font-bold text-[#E5D5C5]">{drivers.find(d => d.id === order.assigned_driver_id)?.name || "Livreur"}</span>
-                                 <span className="text-[#8E7E70] text-[8px]">({order.delivery_status || "assigned"})</span>
+                                 <span className="font-bold text-foreground">{drivers.find(d => d.id === order.assigned_driver_id)?.name || "Livreur"}</span>
+                                 <span className="text-muted-foreground text-[8px]">({order.delivery_status || "assigned"})</span>
                                </div>
                              )}
 
                              {/* Driver Selector Dropdown */}
-                             <div className="mb-3 pt-2.5 border-t border-[#2A1E15]/30">
-                               <label className="block text-[8px] font-mono text-[#8E7E70] uppercase mb-1">Attribuer un livreur</label>
+                             <div className="mb-3 pt-2.5 border-t border-border/30">
+                               <label className="block text-[8px] font-mono text-muted-foreground uppercase mb-1">Attribuer un livreur</label>
                                <select
                                  value={order.assigned_driver_id || ""}
                                  onChange={(e) => assignDriver(order.id, e.target.value || null)}
-                                 className="w-full bg-[#1A130E] border border-[#2A1E15] text-[#E5D5C5] text-[9.5px] py-1 px-1.5 rounded outline-none focus:border-[#C8102E]/60 cursor-pointer font-mono"
+                                 className="w-full bg-muted border border-border text-foreground text-[9.5px] py-1 px-1.5 rounded outline-none focus:border-primary/60 cursor-pointer font-mono"
                                >
                                  <option value="">-- NON ATTRIBUÉ --</option>
                                  {drivers.filter(d => d.is_active).map(d => (
@@ -2148,12 +2148,12 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
 
                             <div className="flex gap-2 mt-2">
                               <button onClick={() => downloadInvoicePNG(order)}
-                                className="flex-1 py-1.5 bg-[#D4A017] text-[#0A0704] font-bold rounded text-[10px] cursor-pointer">
+                                className="flex-1 py-1.5 bg-accent text-[#0A0704] font-bold rounded text-[10px] cursor-pointer">
                                 RECEIPT
                               </button>
                               {stage !== "delivered" && (
                                 <button onClick={() => advanceOrder(order.id, order.status)}
-                                  className="flex-1 py-1.5 bg-[#C8102E] hover:opacity-95 text-white font-bold rounded text-[10px] cursor-pointer">
+                                  className="flex-1 py-1.5 bg-primary hover:opacity-95 text-foreground font-bold rounded text-[10px] cursor-pointer">
                                   {stage === "pending" ? "PREPARE" : stage === "preparing" ? "READY" : "DELIVER"}
                                 </button>
                               )}
@@ -2173,8 +2173,8 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
             <div className="flex flex-col gap-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="font-serif font-black text-lg text-white">Product Catalog Matrix</h3>
-                  <p className="text-xs text-[#8E7E70] mt-1 font-mono">Add new products, adjust base prices, or customize option builders.</p>
+                  <h3 className="font-serif font-black text-lg text-foreground">Product Catalog Matrix</h3>
+                  <p className="text-xs text-muted-foreground mt-1 font-mono">Add new products, adjust base prices, or customize option builders.</p>
                 </div>
                 {!showProductForm && (
                   <button
@@ -2182,7 +2182,7 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
                       setEditingProduct({ id: `P${Date.now()}`, name: "", category: "Burgers", price: 0, desc: "", image: "", active: true, customFields: [] });
                       setShowProductForm(true);
                     }}
-                    className="bg-[#C8102E] hover:opacity-90 text-white font-bold py-2 px-4 rounded text-xs flex items-center gap-1.5 cursor-pointer"
+                    className="bg-primary hover:opacity-90 text-foreground font-bold py-2 px-4 rounded text-xs flex items-center gap-1.5 cursor-pointer"
                   >
                     <Plus size={14} /> FORGE NEW ITEM
                   </button>
@@ -2205,28 +2205,28 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
               {/* Products Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {products.map(p => (
-                  <div key={p.id} className="p-4 bg-[#120D09] border border-[#2A1E15] rounded-xl flex gap-3.5 items-start">
-                    <div className="w-16 h-16 rounded overflow-hidden bg-[#1A130E] border border-[#2A1E15] flex-shrink-0">
+                  <div key={p.id} className="p-4 bg-card border border-border rounded-xl flex gap-3.5 items-start">
+                    <div className="w-16 h-16 rounded overflow-hidden bg-muted border border-border flex-shrink-0">
                       {p.image && <img src={p.image} alt={p.name} className="w-full h-full object-cover" />}
                     </div>
                     <div className="flex-1 flex flex-col justify-between h-full">
                       <div>
                         <div className="flex justify-between items-start gap-1">
-                          <h4 className="font-serif font-bold text-sm text-white">{p.name}</h4>
-                          <span className="font-mono text-xs font-bold text-[#C8102E]">€{p.price.toFixed(2)}</span>
+                          <h4 className="font-serif font-bold text-sm text-foreground">{p.name}</h4>
+                          <span className="font-mono text-xs font-bold text-primary">€{p.price.toFixed(2)}</span>
                         </div>
-                        <p className="text-[10px] text-[#8E7E70] line-clamp-2 mt-1 leading-snug">{p.desc}</p>
+                        <p className="text-[10px] text-muted-foreground line-clamp-2 mt-1 leading-snug">{p.desc}</p>
                         <div className="flex items-center gap-2 mt-2">
-                          <span className="bg-[#1A130E] border border-[#2A1E15] text-[#8E7E70] text-[9px] font-mono px-2 py-0.5 rounded uppercase">{p.category}</span>
-                          <span className="text-[9px] font-mono text-[#8E7E70]">
+                          <span className="bg-muted border border-border text-muted-foreground text-[9px] font-mono px-2 py-0.5 rounded uppercase">{p.category}</span>
+                          <span className="text-[9px] font-mono text-muted-foreground">
                             {p.customFields.length} options
                           </span>
                         </div>
                       </div>
-                      <div className="flex items-center justify-between border-t border-[#2A1E15]/30 pt-2 mt-3.5">
+                      <div className="flex items-center justify-between border-t border-border/30 pt-2 mt-3.5">
                         <button onClick={() => handleToggleActive(p)}
                           className={`px-2 py-0.5 rounded text-[8px] font-mono font-bold tracking-wider cursor-pointer border ${
-                            p.active ? "bg-[#10B981]/10 text-[#10B981] border-[#10B981]/30" : "bg-[#1A130E] text-[#8E7E70] border-[#2A1E15]"
+                            p.active ? "bg-[#10B981]/10 text-[#10B981] border-[#10B981]/30" : "bg-muted text-muted-foreground border-border"
                           }`}>
                           {p.active ? "ACTIVE" : "DRAFT"}
                         </button>
@@ -2235,7 +2235,7 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
                             setEditingProduct(p);
                             setShowProductForm(true);
                           }}
-                            className="p-1 border border-[#2A1E15] hover:bg-[#1A130E] rounded text-white cursor-pointer">
+                            className="p-1 border border-border hover:bg-muted rounded text-foreground cursor-pointer">
                             <Edit2 size={12} />
                           </button>
                           <ConfirmButton
@@ -2243,9 +2243,9 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
                             onConfirm={() => handleDeleteProduct(p.id)}
                             confirmLabel="Oui"
                             cancelLabel="Non"
-                            className="p-1 border border-[#2A1E15] hover:bg-red-950/20 text-[#C8102E] rounded cursor-pointer"
-                            confirmClassName="px-2 py-0.5 bg-[#C8102E] text-white text-[10px] font-bold rounded"
-                            cancelClassName="px-2 py-0.5 bg-transparent border border-[#2A1E15] text-[#8E7E70] text-[10px] font-bold rounded"
+                            className="p-1 border border-border hover:bg-red-950/20 text-primary rounded cursor-pointer"
+                            confirmClassName="px-2 py-0.5 bg-primary text-foreground text-[10px] font-bold rounded"
+                            cancelClassName="px-2 py-0.5 bg-transparent border border-border text-muted-foreground text-[10px] font-bold rounded"
                           />
                         </div>
                       </div>
@@ -2260,18 +2260,18 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
           {/* 4. TABLES AND QR MATRIX */}
           {section === "tables" && (
             <div>
-              <p className="text-xs text-[#8E7E70] mb-5 font-mono leading-relaxed">
+              <p className="text-xs text-muted-foreground mb-5 font-mono leading-relaxed">
                 Scan tabletop QR codes or click them to test guest ordering context in a new window. Active orders light up in red.
               </p>
 
               {/* Le Salon Intérieur */}
               <div className="mb-8">
-                <div className="flex justify-between items-center mb-4 pb-2 border-b border-[#2A1E15]/30">
-                  <h3 className="text-xs font-mono tracking-widest text-[#C8102E] uppercase font-bold flex items-center gap-2">
+                <div className="flex justify-between items-center mb-4 pb-2 border-b border-border/30">
+                  <h3 className="text-xs font-mono tracking-widest text-primary uppercase font-bold flex items-center gap-2">
                     🛋️ Le Salon Intérieur ({tablesToRender.filter(t => !t.is_terrace).length})
                   </h3>
                   <button onClick={() => addTable(false)}
-                    className="bg-[#C8102E] hover:opacity-90 text-white font-bold py-1.5 px-3 rounded text-[10px] flex items-center gap-1 cursor-pointer">
+                    className="bg-primary hover:opacity-90 text-foreground font-bold py-1.5 px-3 rounded text-[10px] flex items-center gap-1 cursor-pointer">
                     <Plus size={12} /> ADD TABLE
                   </button>
                 </div>
@@ -2283,13 +2283,13 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
                     const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(tableUrl)}`;
                     
                     return (
-                      <div key={table.id} className="p-4 bg-[#120D09] border rounded text-center transition-all flex flex-col justify-between"
+                      <div key={table.id} className="p-4 bg-card border rounded text-center transition-all flex flex-col justify-between"
                         style={{ borderColor: activeOrder ? "#C8102E" : table.waiter_called ? "#F59E0B" : "#2A1E15" }}>
                         
                         <div>
                           <div className="flex justify-between items-center mb-2">
-                            <span className="font-serif font-black text-base text-white">{table.id}</span>
-                            <span className="text-[9px] text-[#8E7E70] font-mono uppercase">{table.area}</span>
+                            <span className="font-serif font-black text-base text-foreground">{table.id}</span>
+                            <span className="text-[9px] text-muted-foreground font-mono uppercase">{table.area}</span>
                           </div>
                           
                           {/* Scannable & Clickable QR Code */}
@@ -2312,10 +2312,10 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
                           </div>
                         </div>
                         
-                        <div className="mt-3 pt-2.5 border-t border-[#2A1E15]/30">
+                        <div className="mt-3 pt-2.5 border-t border-border/30">
                           {/* La Terrasse Toggle button */}
                           <div className="flex items-center justify-between text-[10px] mb-2 font-mono">
-                            <span className="text-[#8E7E70]">La Terrasse:</span>
+                            <span className="text-muted-foreground">La Terrasse:</span>
                             <button
                               onClick={() => toggleTerrace(table.id, table.is_terrace)}
                               className="w-7 h-4 relative rounded-full transition-all border cursor-pointer"
@@ -2329,13 +2329,13 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
                           <div className="flex gap-1">
                             <button
                               onClick={() => printQrCode(table.id, table.area)}
-                              className="flex-1 py-1 border border-[#2A1E15] hover:bg-[#1A130E] text-white rounded text-[8px] font-bold cursor-pointer"
+                              className="flex-1 py-1 border border-border hover:bg-muted text-foreground rounded text-[8px] font-bold cursor-pointer"
                             >
                               PRINT
                             </button>
                             <button
                               onClick={() => downloadQrCode(table.id, table.area)}
-                              className="flex-1 py-1 border border-[#2A1E15] hover:bg-[#1A130E] text-[#8E7E70] hover:text-white rounded text-[8px] font-bold cursor-pointer"
+                              className="flex-1 py-1 border border-border hover:bg-muted text-muted-foreground hover:text-foreground rounded text-[8px] font-bold cursor-pointer"
                             >
                               DL
                             </button>
@@ -2344,9 +2344,9 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
                               onConfirm={() => deleteTable(table.id)}
                               confirmLabel="Oui"
                               cancelLabel="Non"
-                              className="flex-1 py-1 border border-[#2A1E15] hover:bg-red-950/20 text-[#C8102E] rounded text-[8px] font-bold cursor-pointer text-center"
-                              confirmClassName="px-2 py-0.5 bg-[#C8102E] text-white text-[9px] font-bold rounded"
-                              cancelClassName="px-2 py-0.5 bg-transparent border border-[#2A1E15] text-[#8E7E70] text-[9px] font-bold rounded"
+                              className="flex-1 py-1 border border-border hover:bg-red-950/20 text-primary rounded text-[8px] font-bold cursor-pointer text-center"
+                              confirmClassName="px-2 py-0.5 bg-primary text-foreground text-[9px] font-bold rounded"
+                              cancelClassName="px-2 py-0.5 bg-transparent border border-border text-muted-foreground text-[9px] font-bold rounded"
                             />
                           </div>
                         </div>
@@ -2358,8 +2358,8 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
 
               {/* La Terrasse */}
               <div>
-                <div className="flex justify-between items-center mb-4 pb-2 border-b border-[#2A1E15]/30">
-                  <h3 className="text-xs font-mono tracking-widest text-[#C8102E] uppercase font-bold flex items-center gap-2">
+                <div className="flex justify-between items-center mb-4 pb-2 border-b border-border/30">
+                  <h3 className="text-xs font-mono tracking-widest text-primary uppercase font-bold flex items-center gap-2">
                     ☀️ La Terrasse ({tablesToRender.filter(t => t.is_terrace).length})
                   </h3>
                   <div className="flex gap-2">
@@ -2373,20 +2373,20 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
                         onConfirm={turnOffAllTerrace}
                         confirmLabel="Confirmer"
                         cancelLabel="Annuler"
-                        className="px-2.5 py-1 bg-[#C8102E]/10 hover:bg-[#C8102E]/20 text-[#C8102E] border border-[#C8102E]/30 rounded text-[9px] font-mono font-bold tracking-wider transition-all uppercase flex items-center gap-1 cursor-pointer"
-                        confirmClassName="px-2 py-0.5 bg-[#C8102E] text-white text-[9px] font-mono rounded"
-                        cancelClassName="px-2 py-0.5 bg-transparent border border-[#2A1E15] text-[#8E7E70] text-[9px] font-mono rounded"
+                        className="px-2.5 py-1 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 rounded text-[9px] font-mono font-bold tracking-wider transition-all uppercase flex items-center gap-1 cursor-pointer"
+                        confirmClassName="px-2 py-0.5 bg-primary text-foreground text-[9px] font-mono rounded"
+                        cancelClassName="px-2 py-0.5 bg-transparent border border-border text-muted-foreground text-[9px] font-mono rounded"
                       />
                     )}
                     <button onClick={() => addTable(true)}
-                      className="bg-[#C8102E] hover:opacity-90 text-white font-bold py-1 px-3 rounded text-[10px] flex items-center gap-1 cursor-pointer">
+                      className="bg-primary hover:opacity-90 text-foreground font-bold py-1 px-3 rounded text-[10px] flex items-center gap-1 cursor-pointer">
                       <Plus size={12} /> ADD TABLE
                     </button>
                   </div>
                 </div>
 
                 {tablesToRender.filter(t => t.is_terrace).length === 0 ? (
-                  <div className="p-8 text-center bg-[#120D09]/50 border border-dashed border-[#2A1E15] rounded-xl text-xs text-[#8E7E70] font-mono">
+                  <div className="p-8 text-center bg-card/50 border border-dashed border-border rounded-xl text-xs text-muted-foreground font-mono">
                     Aucune table n'est actuellement assignée à la terrasse.
                   </div>
                 ) : (
@@ -2397,13 +2397,13 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
                       const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(tableUrl)}`;
                       
                       return (
-                        <div key={table.id} className="p-4 bg-[#120D09] border rounded text-center transition-all flex flex-col justify-between"
+                        <div key={table.id} className="p-4 bg-card border rounded text-center transition-all flex flex-col justify-between"
                           style={{ borderColor: activeOrder ? "#C8102E" : table.waiter_called ? "#F59E0B" : "#2A1E15" }}>
                           
                           <div>
                             <div className="flex justify-between items-center mb-2">
-                              <span className="font-serif font-black text-base text-white">{table.id}</span>
-                              <span className="text-[9px] text-[#8E7E70] font-mono uppercase">{table.area}</span>
+                              <span className="font-serif font-black text-base text-foreground">{table.id}</span>
+                              <span className="text-[9px] text-muted-foreground font-mono uppercase">{table.area}</span>
                             </div>
                             
                             {/* Scannable & Clickable QR Code */}
@@ -2426,10 +2426,10 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
                             </div>
                           </div>
                           
-                          <div className="mt-3 pt-2.5 border-t border-[#2A1E15]/30">
+                          <div className="mt-3 pt-2.5 border-t border-border/30">
                             {/* La Terrasse Toggle button */}
                             <div className="flex items-center justify-between text-[10px] mb-2 font-mono">
-                              <span className="text-[#8E7E70]">La Terrasse:</span>
+                              <span className="text-muted-foreground">La Terrasse:</span>
                               <button
                                 onClick={() => toggleTerrace(table.id, table.is_terrace)}
                                 className="w-7 h-4 relative rounded-full transition-all border cursor-pointer"
@@ -2443,13 +2443,13 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
                             <div className="flex gap-1">
                               <button
                                 onClick={() => printQrCode(table.id, table.area)}
-                                className="flex-1 py-1 border border-[#2A1E15] hover:bg-[#1A130E] text-white rounded text-[8px] font-bold cursor-pointer"
+                                className="flex-1 py-1 border border-border hover:bg-muted text-foreground rounded text-[8px] font-bold cursor-pointer"
                               >
                                 PRINT
                               </button>
                               <button
                                 onClick={() => downloadQrCode(table.id, table.area)}
-                                className="flex-1 py-1 border border-[#2A1E15] hover:bg-[#1A130E] text-[#8E7E70] hover:text-white rounded text-[8px] font-bold cursor-pointer"
+                                className="flex-1 py-1 border border-border hover:bg-muted text-muted-foreground hover:text-foreground rounded text-[8px] font-bold cursor-pointer"
                               >
                                 DL
                               </button>
@@ -2458,9 +2458,9 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
                               onConfirm={() => deleteTable(table.id)}
                               confirmLabel="Oui"
                               cancelLabel="Non"
-                              className="flex-1 py-1 border border-[#2A1E15] hover:bg-red-950/20 text-[#C8102E] rounded text-[8px] font-bold cursor-pointer text-center"
-                              confirmClassName="px-2 py-0.5 bg-[#C8102E] text-white text-[9px] font-bold rounded"
-                              cancelClassName="px-2 py-0.5 bg-transparent border border-[#2A1E15] text-[#8E7E70] text-[9px] font-bold rounded"
+                              className="flex-1 py-1 border border-border hover:bg-red-950/20 text-primary rounded text-[8px] font-bold cursor-pointer text-center"
+                              confirmClassName="px-2 py-0.5 bg-primary text-foreground text-[9px] font-bold rounded"
+                              cancelClassName="px-2 py-0.5 bg-transparent border border-border text-muted-foreground text-[9px] font-bold rounded"
                             />
                             </div>
                           </div>
@@ -2480,13 +2480,13 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
               <div className="xl:col-span-2 flex flex-col gap-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="font-serif font-black text-lg text-white">Vente au Comptoir</h3>
-                    <p className="text-xs text-[#8E7E70] mt-1 font-mono">Enregistrez des ventes directes et générez des factures tickets de caisse imprimables.</p>
+                    <h3 className="font-serif font-black text-lg text-foreground">Vente au Comptoir</h3>
+                    <p className="text-xs text-muted-foreground mt-1 font-mono">Enregistrez des ventes directes et générez des factures tickets de caisse imprimables.</p>
                   </div>
                 </div>
 
                 {/* Category Selector */}
-                <div className="flex flex-wrap gap-1.5 py-2 border-b border-[#2A1E15]/30">
+                <div className="flex flex-wrap gap-1.5 py-2 border-b border-border/30">
                   {["All", "Burgers", "Chicken", "Sides", "Drinks", "Vegan"].map((cat) => {
                     const active = (cat === "All" && !activeCategory) || activeCategory === cat;
                     return (
@@ -2535,7 +2535,7 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
                             ];
                           });
                         }}
-                        className="p-3 bg-[#120D09] border border-[#2A1E15] hover:border-[#C8102E]/60 rounded-xl transition-all flex flex-col justify-between cursor-pointer group"
+                        className="p-3 bg-card border border-border hover:border-primary/60 rounded-xl transition-all flex flex-col justify-between cursor-pointer group"
                       >
                         <div className="relative h-28 rounded-lg overflow-hidden mb-2.5">
                           <img
@@ -2543,18 +2543,18 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
                             alt={product.name}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                           />
-                          <div className="absolute top-1.5 right-1.5 px-2 py-0.5 bg-[#0A0704]/80 border border-[#2A1E15] rounded text-[9px] font-mono font-bold text-[#C8102E]">
+                          <div className="absolute top-1.5 right-1.5 px-2 py-0.5 bg-background/80 border border-border rounded text-[9px] font-mono font-bold text-primary">
                             €{product.price.toFixed(2)}
                           </div>
                         </div>
                         <div>
-                          <span className="text-[8px] font-mono tracking-widest text-[#8E7E70] uppercase">{product.category}</span>
-                          <h4 className="font-serif font-black text-sm text-white mt-0.5 line-clamp-1">{product.name}</h4>
-                          <p className="text-[9px] text-[#8E7E70] font-mono mt-1 line-clamp-2 leading-relaxed">{product.desc}</p>
+                          <span className="text-[8px] font-mono tracking-widest text-muted-foreground uppercase">{product.category}</span>
+                          <h4 className="font-serif font-black text-sm text-foreground mt-0.5 line-clamp-1">{product.name}</h4>
+                          <p className="text-[9px] text-muted-foreground font-mono mt-1 line-clamp-2 leading-relaxed">{product.desc}</p>
                         </div>
                         <button
                           type="button"
-                          className="mt-3 w-full py-1.5 bg-[#2A1E15] hover:bg-[#C8102E] text-white rounded text-[10px] font-mono font-bold uppercase tracking-wider transition-all cursor-pointer"
+                          className="mt-3 w-full py-1.5 bg-[#2A1E15] hover:bg-primary text-foreground rounded text-[10px] font-mono font-bold uppercase tracking-wider transition-all cursor-pointer"
                         >
                           Ajouter +
                         </button>
@@ -2564,11 +2564,11 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
               </div>
 
               {/* Cash Cart Register */}
-              <div className="bg-[#120D09] border border-[#2A1E15] p-5 rounded-xl flex flex-col justify-between min-h-[500px]">
+              <div className="bg-card border border-border p-5 rounded-xl flex flex-col justify-between min-h-[500px]">
                 <div>
-                  <div className="flex items-center justify-between pb-3 border-b border-[#2A1E15]/30 mb-4">
-                    <span className="font-mono text-xs font-black text-[#C8102E] tracking-wider uppercase">Panier Comptoir</span>
-                    <span className="bg-[#C8102E] text-white font-mono font-bold text-[10px] px-2 py-0.5 rounded-full">
+                  <div className="flex items-center justify-between pb-3 border-b border-border/30 mb-4">
+                    <span className="font-mono text-xs font-black text-primary tracking-wider uppercase">Panier Comptoir</span>
+                    <span className="bg-primary text-foreground font-mono font-bold text-[10px] px-2 py-0.5 rounded-full">
                       {counterCart.reduce((sum, item) => sum + item.quantity, 0)} articles
                     </span>
                   </div>
@@ -2576,15 +2576,15 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
                   {/* Cart Items list */}
                   <div className="flex flex-col gap-3 overflow-y-auto max-h-[300px] pr-1 mb-4">
                     {counterCart.length === 0 ? (
-                      <div className="text-center py-12 text-[#8E7E70] font-mono text-xs leading-relaxed">
+                      <div className="text-center py-12 text-muted-foreground font-mono text-xs leading-relaxed">
                         Le panier est vide.<br />Cliquez sur des articles pour les ajouter.
                       </div>
                     ) : (
                       counterCart.map((item) => (
-                        <div key={item.product_id} className="flex justify-between items-center bg-[#1A130E]/30 p-2 border border-[#2A1E15]/50 rounded-lg">
+                        <div key={item.product_id} className="flex justify-between items-center bg-muted/30 p-2 border border-border/50 rounded-lg">
                           <div className="flex-1 min-w-0 pr-2">
-                            <h5 className="font-serif font-bold text-xs text-white truncate">{item.name}</h5>
-                            <span className="font-mono text-[9px] text-[#8E7E70]">€{item.price.toFixed(2)}</span>
+                            <h5 className="font-serif font-bold text-xs text-foreground truncate">{item.name}</h5>
+                            <span className="font-mono text-[9px] text-muted-foreground">€{item.price.toFixed(2)}</span>
                           </div>
                           <div className="flex items-center gap-1.5 flex-shrink-0">
                             {/* Decrement */}
@@ -2600,11 +2600,11 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
                                     .filter((i) => i.quantity > 0)
                                 );
                               }}
-                              className="w-5 h-5 bg-[#2A1E15] hover:bg-[#C8102E] rounded flex items-center justify-center text-xs font-bold transition-colors cursor-pointer"
+                              className="w-5 h-5 bg-[#2A1E15] hover:bg-primary rounded flex items-center justify-center text-xs font-bold transition-colors cursor-pointer"
                             >
                               -
                             </button>
-                            <span className="w-5 text-center font-mono text-xs text-white font-bold">{item.quantity}</span>
+                            <span className="w-5 text-center font-mono text-xs text-foreground font-bold">{item.quantity}</span>
                             {/* Increment */}
                             <button
                               onClick={() => {
@@ -2616,7 +2616,7 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
                                   )
                                 );
                               }}
-                              className="w-5 h-5 bg-[#2A1E15] hover:bg-[#C8102E] rounded flex items-center justify-center text-xs font-bold transition-colors cursor-pointer"
+                              className="w-5 h-5 bg-[#2A1E15] hover:bg-primary rounded flex items-center justify-center text-xs font-bold transition-colors cursor-pointer"
                             >
                               +
                             </button>
@@ -2625,7 +2625,7 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
                               onClick={() => {
                                 setCounterCart((prev) => prev.filter((i) => i.product_id !== item.product_id));
                               }}
-                              className="ml-1 w-5 h-5 bg-red-950/20 hover:bg-red-900/50 text-[#C8102E] border border-red-950/40 rounded flex items-center justify-center transition-colors cursor-pointer"
+                              className="ml-1 w-5 h-5 bg-red-950/20 hover:bg-red-900/50 text-primary border border-red-950/40 rounded flex items-center justify-center transition-colors cursor-pointer"
                               title="Retirer"
                             >
                               <Trash2 size={10} />
@@ -2637,31 +2637,31 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
                   </div>
 
                   {/* Notes Field */}
-                  <div className="mt-4 pt-4 border-t border-[#2A1E15]/30">
-                    <label className="text-[9px] font-mono text-[#8E7E70] block mb-1 uppercase">Notes pour la cuisine</label>
+                  <div className="mt-4 pt-4 border-t border-border/30">
+                    <label className="text-[9px] font-mono text-muted-foreground block mb-1 uppercase">Notes pour la cuisine</label>
                     <textarea
                       value={counterNote}
                       onChange={(e) => setCounterNote(e.target.value)}
                       placeholder="ex: Bien cuit, sans sel, etc."
                       rows={2}
-                      className="w-full px-2.5 py-1.5 text-xs bg-[#1A130E] border border-[#2A1E15] rounded text-white outline-none focus:border-[#C8102E] resize-none"
+                      className="w-full px-2.5 py-1.5 text-xs bg-muted border border-border rounded text-foreground outline-none focus:border-primary resize-none"
                     />
                   </div>
                 </div>
 
                 {/* Subtotals & Pay Action */}
-                <div className="mt-5 pt-4 border-t border-[#2A1E15]/40 flex flex-col gap-3">
+                <div className="mt-5 pt-4 border-t border-border/40 flex flex-col gap-3">
                   <div className="flex justify-between items-center text-xs font-mono">
-                    <span className="text-[#8E7E70]">Total Hors Taxes:</span>
+                    <span className="text-muted-foreground">Total Hors Taxes:</span>
                     <span>€{(counterCart.reduce((sum, item) => sum + item.price * item.quantity, 0) * 0.909).toFixed(2)}</span>
                   </div>
-                  <div className="flex justify-between items-center text-xs font-mono border-b border-[#2A1E15]/20 pb-2">
-                    <span className="text-[#8E7E70]">TVA (10% incluse):</span>
+                  <div className="flex justify-between items-center text-xs font-mono border-b border-border/20 pb-2">
+                    <span className="text-muted-foreground">TVA (10% incluse):</span>
                     <span>€{(counterCart.reduce((sum, item) => sum + item.price * item.quantity, 0) * 0.091).toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between items-center text-base font-serif font-black">
-                    <span className="text-white">TOTAL À PAYER:</span>
-                    <span className="text-[#C8102E]">
+                    <span className="text-foreground">TOTAL À PAYER:</span>
+                    <span className="text-primary">
                       €{counterCart.reduce((sum, item) => sum + item.price * item.quantity, 0).toFixed(2)}
                     </span>
                   </div>
@@ -2669,7 +2669,7 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
                   <button
                     onClick={handleCounterCheckout}
                     disabled={counterCart.length === 0}
-                    className="w-full py-3 bg-[#C8102E] hover:opacity-90 disabled:opacity-40 text-white font-bold rounded-xl text-xs mt-2 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-[#C8102E]/10 font-mono tracking-wider font-bold"
+                    className="w-full py-3 bg-primary hover:opacity-90 disabled:opacity-40 text-foreground font-bold rounded-xl text-xs mt-2 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-[#C8102E]/10 font-mono tracking-wider font-bold"
                   >
                     <DollarSign size={14} /> VALIDER & IMPRIMER TICKET
                   </button>
@@ -2683,8 +2683,8 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
             <div className="flex flex-col gap-6 animate-fade-in">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="font-serif font-black text-lg text-white">Live Show Matrix</h3>
-                  <p className="text-xs text-[#8E7E70] mt-1 font-mono">Create live performances, manage seating capacities, and track ticket bookings.</p>
+                  <h3 className="font-serif font-black text-lg text-foreground">Live Show Matrix</h3>
+                  <p className="text-xs text-muted-foreground mt-1 font-mono">Create live performances, manage seating capacities, and track ticket bookings.</p>
                 </div>
                 {!showShowForm && (
                   <button
@@ -2692,7 +2692,7 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
                       setEditingShow({ id: "", title: "", description: "", price: 0, date: new Date().toISOString(), image: "", available_tickets: 50 });
                       setShowShowForm(true);
                     }}
-                    className="bg-[#C8102E] hover:opacity-90 text-white font-bold py-2 px-4 rounded text-xs flex items-center gap-1.5 cursor-pointer"
+                    className="bg-primary hover:opacity-90 text-foreground font-bold py-2 px-4 rounded text-xs flex items-center gap-1.5 cursor-pointer"
                   >
                     <Plus size={14} /> NEW PERFORMANCE
                   </button>
@@ -2700,56 +2700,56 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
               </div>
 
               {showShowForm && editingShow && (
-                <div className="p-5 bg-[#120D09] border border-[#2A1E15] rounded-xl mb-4">
-                  <h4 className="font-serif font-black text-sm text-white mb-4 border-b border-[#2A1E15]/40 pb-2">
+                <div className="p-5 bg-card border border-border rounded-xl mb-4">
+                  <h4 className="font-serif font-black text-sm text-foreground mb-4 border-b border-border/40 pb-2">
                     {editingShow.id ? `EDIT PERFORMANCE: ${editingShow.title}` : "FORGE NEW SHOW"}
                   </h4>
                   <div className="grid md:grid-cols-2 gap-4 mb-5">
                     <div>
-                      <label className="text-[10px] font-mono tracking-wider text-[#8E7E70] block mb-1">SHOW TITLE</label>
+                      <label className="text-[10px] font-mono tracking-wider text-muted-foreground block mb-1">SHOW TITLE</label>
                       <input
                         type="text"
                         value={editingShow.title}
                         onChange={e => setEditingShow(p => p ? { ...p, title: e.target.value } : null)}
                         placeholder="Live Concert Night"
-                        className="w-full px-3 py-2 text-xs bg-[#1A130E] border border-[#2A1E15] rounded text-white outline-none focus:border-[#C8102E]"
+                        className="w-full px-3 py-2 text-xs bg-muted border border-border rounded text-foreground outline-none focus:border-primary"
                       />
                     </div>
                     <div>
-                      <label className="text-[10px] font-mono tracking-wider text-[#8E7E70] block mb-1">TICKET PRICE (€)</label>
+                      <label className="text-[10px] font-mono tracking-wider text-muted-foreground block mb-1">TICKET PRICE (€)</label>
                       <input
                         type="number"
                         value={editingShow.price}
                         onChange={e => setEditingShow(p => p ? { ...p, price: Number(e.target.value) } : null)}
                         placeholder="25.00"
-                        className="w-full px-3 py-2 text-xs bg-[#1A130E] border border-[#2A1E15] rounded text-white outline-none focus:border-[#C8102E]"
+                        className="w-full px-3 py-2 text-xs bg-muted border border-border rounded text-foreground outline-none focus:border-primary"
                       />
                     </div>
                     <div>
-                      <label className="text-[10px] font-mono tracking-wider text-[#8E7E70] block mb-1">DATE & TIME</label>
+                      <label className="text-[10px] font-mono tracking-wider text-muted-foreground block mb-1">DATE & TIME</label>
                       <input
                         type="datetime-local"
                         value={editingShow.date ? new Date(editingShow.date).toISOString().slice(0, 16) : ""}
                         onChange={e => setEditingShow(p => p ? { ...p, date: new Date(e.target.value).toISOString() } : null)}
-                        className="w-full px-3 py-2 text-xs bg-[#1A130E] border border-[#2A1E15] rounded text-white outline-none focus:border-[#C8102E]"
+                        className="w-full px-3 py-2 text-xs bg-muted border border-border rounded text-foreground outline-none focus:border-primary"
                       />
                     </div>
                     <div>
-                      <label className="text-[10px] font-mono tracking-wider text-[#8E7E70] block mb-1">CAPACITY SEATS</label>
+                      <label className="text-[10px] font-mono tracking-wider text-muted-foreground block mb-1">CAPACITY SEATS</label>
                       <input
                         type="number"
                         value={editingShow.available_tickets}
                         onChange={e => setEditingShow(p => p ? { ...p, available_tickets: Number(e.target.value) } : null)}
                         placeholder="50"
-                        className="w-full px-3 py-2 text-xs bg-[#1A130E] border border-[#2A1E15] rounded text-white outline-none focus:border-[#C8102E]"
+                        className="w-full px-3 py-2 text-xs bg-muted border border-border rounded text-foreground outline-none focus:border-primary"
                       />
                     </div>
                     
                     <div>
-                      <label className="text-[10px] font-mono tracking-wider text-[#8E7E70] block mb-1">SHOW IMAGE</label>
+                      <label className="text-[10px] font-mono tracking-wider text-muted-foreground block mb-1">SHOW IMAGE</label>
                       <div className="flex flex-col gap-2">
-                        <label className="flex flex-col items-center justify-center h-16 w-full rounded border border-dashed border-[#2A1E15] hover:border-[#C8102E]/50 transition-colors cursor-pointer bg-[#1A130E]/30">
-                          <span className="text-[9px] font-mono text-[#8E7E70]">Upload image file</span>
+                        <label className="flex flex-col items-center justify-center h-16 w-full rounded border border-dashed border-border hover:border-primary/50 transition-colors cursor-pointer bg-muted/30">
+                          <span className="text-[9px] font-mono text-muted-foreground">Upload image file</span>
                           <input type="file" accept="image/*" onChange={(e) => {
                             const file = e.target.files?.[0];
                             if (!file) return;
@@ -2759,7 +2759,7 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
                           }} className="hidden" />
                         </label>
                         {editingShow.image && (
-                          <div className="h-16 w-28 rounded border border-[#2A1E15] overflow-hidden">
+                          <div className="h-16 w-28 rounded border border-border overflow-hidden">
                             <img src={editingShow.image} alt="Preview" className="w-full h-full object-cover" />
                           </div>
                         )}
@@ -2767,22 +2767,22 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
                     </div>
                     
                     <div className="md:col-span-2">
-                      <label className="text-[10px] font-mono tracking-wider text-[#8E7E70] block mb-1">DESCRIPTION DETAILS</label>
+                      <label className="text-[10px] font-mono tracking-wider text-muted-foreground block mb-1">DESCRIPTION DETAILS</label>
                       <textarea
                         value={editingShow.description}
                         onChange={e => setEditingShow(p => p ? { ...p, description: e.target.value } : null)}
                         rows={3}
-                        className="w-full px-3 py-2 text-xs bg-[#1A130E] border border-[#2A1E15] rounded text-white outline-none focus:border-[#C8102E] resize-none"
+                        className="w-full px-3 py-2 text-xs bg-muted border border-border rounded text-foreground outline-none focus:border-primary resize-none"
                       />
                     </div>
                   </div>
                   <div className="flex gap-3">
                     <button onClick={saveShow}
-                      className="bg-[#C8102E] hover:opacity-90 text-white font-bold py-2 px-4 rounded text-xs flex items-center gap-1.5 cursor-pointer">
+                      className="bg-primary hover:opacity-90 text-foreground font-bold py-2 px-4 rounded text-xs flex items-center gap-1.5 cursor-pointer">
                       <Save size={13} /> COMMIT SHOW
                     </button>
                     <button onClick={() => setShowShowForm(false)}
-                      className="border border-[#2A1E15] hover:bg-[#1A130E] text-[#8E7E70] hover:text-white py-2 px-4 rounded text-xs cursor-pointer">
+                      className="border border-border hover:bg-muted text-muted-foreground hover:text-foreground py-2 px-4 rounded text-xs cursor-pointer">
                       CANCEL
                     </button>
                   </div>
@@ -2792,66 +2792,66 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Shows List */}
                 <div className="lg:col-span-2 flex flex-col gap-3">
-                  <h4 className="font-mono text-[9px] text-[#8E7E70] tracking-widest uppercase">ACTIVE SHOWS ({shows.length})</h4>
+                  <h4 className="font-mono text-[9px] text-muted-foreground tracking-widest uppercase">ACTIVE SHOWS ({shows.length})</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {shows.map(show => (
-                      <div key={show.id} className="p-4 bg-[#120D09] border border-[#2A1E15] rounded-xl flex gap-3 flex-col justify-between">
+                      <div key={show.id} className="p-4 bg-card border border-border rounded-xl flex gap-3 flex-col justify-between">
                         <div className="flex gap-3">
-                          <div className="w-14 h-14 bg-[#1A130E] rounded overflow-hidden flex-shrink-0">
+                          <div className="w-14 h-14 bg-muted rounded overflow-hidden flex-shrink-0">
                             <img src={show.image} alt={show.title} className="w-full h-full object-cover" />
                           </div>
                           <div className="flex-1 overflow-hidden">
-                            <h5 className="font-bold text-xs text-white truncate">{show.title}</h5>
-                            <p className="text-[10px] text-[#8E7E70] line-clamp-2 mt-1 leading-snug">{show.description}</p>
+                            <h5 className="font-bold text-xs text-foreground truncate">{show.title}</h5>
+                            <p className="text-[10px] text-muted-foreground line-clamp-2 mt-1 leading-snug">{show.description}</p>
                           </div>
                         </div>
-                        <div className="mt-3 pt-2.5 border-t border-[#2A1E15]/30 flex justify-between items-center text-[10px] font-mono">
-                          <span className="text-[#C8102E] font-bold">€{show.price?.toFixed(2)}</span>
-                          <span className="text-[#8E7E70]">Cap: {show.available_tickets} seats</span>
+                        <div className="mt-3 pt-2.5 border-t border-border/30 flex justify-between items-center text-[10px] font-mono">
+                          <span className="text-primary font-bold">€{show.price?.toFixed(2)}</span>
+                          <span className="text-muted-foreground">Cap: {show.available_tickets} seats</span>
                         </div>
-                        <div className="flex justify-end gap-3 mt-2 border-t border-[#2A1E15]/10 pt-2.5">
+                        <div className="flex justify-end gap-3 mt-2 border-t border-border/10 pt-2.5">
                           <button onClick={() => {
                             setEditingShow(show);
                             setShowShowForm(true);
-                          }} className="text-[#8E7E70] hover:text-white text-[10px] font-bold cursor-pointer">Edit</button>
+                          }} className="text-muted-foreground hover:text-foreground text-[10px] font-bold cursor-pointer">Edit</button>
                           <ConfirmButton
                             label="Delete"
                             onConfirm={() => deleteShow(show.id)}
                             confirmLabel="Oui"
                             cancelLabel="Non"
-                            className="text-[#C8102E] hover:text-red-500 text-[10px] font-bold cursor-pointer"
-                            confirmClassName="px-2 py-0.5 bg-[#C8102E] text-white text-[9px] font-bold rounded"
-                            cancelClassName="px-2 py-0.5 bg-transparent border border-[#2A1E15] text-[#8E7E70] text-[9px] font-bold rounded"
+                            className="text-primary hover:text-red-500 text-[10px] font-bold cursor-pointer"
+                            confirmClassName="px-2 py-0.5 bg-primary text-foreground text-[9px] font-bold rounded"
+                            cancelClassName="px-2 py-0.5 bg-transparent border border-border text-muted-foreground text-[9px] font-bold rounded"
                           />
                         </div>
                       </div>
                     ))}
                   </div>
                   {shows.length === 0 && (
-                    <div className="text-center py-12 text-xs text-[#8E7E70] border border-[#2A1E15] border-dashed rounded">No active shows found.</div>
+                    <div className="text-center py-12 text-xs text-muted-foreground border border-border border-dashed rounded">No active shows found.</div>
                   )}
                 </div>
 
                 {/* Sold Tickets Registry */}
                 <div className="flex flex-col gap-3">
-                  <h4 className="font-mono text-[9px] text-[#8E7E70] tracking-widest uppercase">SOLD TICKETS ({tickets.length})</h4>
+                  <h4 className="font-mono text-[9px] text-muted-foreground tracking-widest uppercase">SOLD TICKETS ({tickets.length})</h4>
                   <div className="flex flex-col gap-3 max-h-[500px] overflow-y-auto pr-1">
                     {tickets.map(ticket => (
-                      <div key={ticket.id} className="p-3 bg-[#120D09] border border-[#2A1E15] rounded-xl">
+                      <div key={ticket.id} className="p-3 bg-card border border-border rounded-xl">
                         <div className="flex justify-between items-start mb-1">
-                          <span className="font-bold text-xs text-[#E5D5C5] truncate w-32">{ticket.customer_name}</span>
-                          <span className="bg-[#C8102E]/10 text-[#C8102E] font-mono text-[9px] font-bold px-1.5 py-0.5 rounded flex-shrink-0">
+                          <span className="font-bold text-xs text-foreground truncate w-32">{ticket.customer_name}</span>
+                          <span className="bg-primary/10 text-primary font-mono text-[9px] font-bold px-1.5 py-0.5 rounded flex-shrink-0">
                             {ticket.quantity} ticket{ticket.quantity > 1 ? "s" : ""}
                           </span>
                         </div>
-                        <div className="text-[10px] text-[#8E7E70] font-mono mb-1 truncate">{ticket.customer_email}</div>
-                        <div className="text-[10px] text-white/80 truncate">
-                          Show: <span className="font-serif italic font-bold text-[#E5D5C5]">{ticket.shows?.title || "Unknown Event"}</span>
+                        <div className="text-[10px] text-muted-foreground font-mono mb-1 truncate">{ticket.customer_email}</div>
+                        <div className="text-[10px] text-foreground/80 truncate">
+                          Show: <span className="font-serif italic font-bold text-foreground">{ticket.shows?.title || "Unknown Event"}</span>
                         </div>
                       </div>
                     ))}
                     {tickets.length === 0 && (
-                      <div className="text-center py-12 text-xs text-[#8E7E70] border border-[#2A1E15] border-dashed rounded">No tickets sold yet.</div>
+                      <div className="text-center py-12 text-xs text-muted-foreground border border-border border-dashed rounded">No tickets sold yet.</div>
                     )}
                   </div>
                 </div>
@@ -2863,9 +2863,9 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
           {section === "settings" && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-6xl">
               {/* Coordinates Card */}
-              <div className="bg-[#120D09] border border-[#2A1E15] p-5 rounded-xl self-start relative">
+              <div className="bg-card border border-border p-5 rounded-xl self-start relative">
                 <div className="flex justify-between items-center mb-5">
-                  <h3 className="text-xs font-mono tracking-widest text-[#C8102E] uppercase">Restaurant Coordinates</h3>
+                  <h3 className="text-xs font-mono tracking-widest text-primary uppercase">Restaurant Coordinates</h3>
                   <ConfirmButton
                     label={
                       <span className="flex items-center gap-1">
@@ -2875,9 +2875,9 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
                     onConfirm={clearRevenue}
                     confirmLabel="Confirmer"
                     cancelLabel="Annuler"
-                    className="bg-red-950/40 hover:bg-red-900/60 text-[#C8102E] border border-[#C8102E]/30 font-bold py-1 px-3 rounded text-[9px] uppercase tracking-wider transition-colors cursor-pointer flex items-center gap-1"
-                    confirmClassName="px-2 py-0.5 bg-[#C8102E] text-white text-[9px] font-mono rounded"
-                    cancelClassName="px-2 py-0.5 bg-transparent border border-[#2A1E15] text-[#8E7E70] text-[9px] font-mono rounded"
+                    className="bg-red-950/40 hover:bg-red-900/60 text-primary border border-primary/30 font-bold py-1 px-3 rounded text-[9px] uppercase tracking-wider transition-colors cursor-pointer flex items-center gap-1"
+                    confirmClassName="px-2 py-0.5 bg-primary text-foreground text-[9px] font-mono rounded"
+                    cancelClassName="px-2 py-0.5 bg-transparent border border-border text-muted-foreground text-[9px] font-mono rounded"
                   />
                 </div>
                 <div className="flex flex-col gap-4">
@@ -2888,18 +2888,18 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
                     { label: "Operation Slots", value: prefOpSlots, onChange: (e: any) => setPrefOpSlots(e.target.value) },
                   ].map(f => (
                     <div key={f.label}>
-                      <label className="text-[10px] font-mono tracking-wider text-[#8E7E70] block mb-1.5 uppercase">{f.label}</label>
+                      <label className="text-[10px] font-mono tracking-wider text-muted-foreground block mb-1.5 uppercase">{f.label}</label>
                       <input
                         value={f.value}
                         onChange={f.onChange}
-                        className="w-full px-3 py-2 text-xs bg-[#1A130E] border border-[#2A1E15] rounded text-white outline-none focus:border-[#C8102E]"
+                        className="w-full px-3 py-2 text-xs bg-muted border border-border rounded text-foreground outline-none focus:border-primary"
                       />
                     </div>
                   ))}
                   <button 
                     onClick={handleSavePreferences}
                     disabled={savingPrefs}
-                    className="bg-[#C8102E] hover:opacity-90 disabled:opacity-50 text-white font-bold py-2 px-4 rounded text-xs self-start mt-2 cursor-pointer transition-opacity"
+                    className="bg-primary hover:opacity-90 disabled:opacity-50 text-foreground font-bold py-2 px-4 rounded text-xs self-start mt-2 cursor-pointer transition-opacity"
                   >
                     {savingPrefs ? "SAVING..." : "SAVE PREFERENCES"}
                   </button>
@@ -2907,9 +2907,9 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
               </div>
 
               {/* Hero Banner CMS Card */}
-              <div className="bg-[#120D09] border border-[#2A1E15] p-5 rounded-xl flex flex-col gap-4">
-                <h3 className="text-xs font-mono tracking-widest text-[#C8102E] mb-1 uppercase">Hero Banner CMS Matrix</h3>
-                <p className="text-[10px] text-[#8E7E70] font-mono leading-relaxed">
+              <div className="bg-card border border-border p-5 rounded-xl flex flex-col gap-4">
+                <h3 className="text-xs font-mono tracking-widest text-primary mb-1 uppercase">Hero Banner CMS Matrix</h3>
+                <p className="text-[10px] text-muted-foreground font-mono leading-relaxed">
                   Configure the landing page hero background, customizable bilingual text slogans, and client menu toggle status.
                 </p>
 
@@ -2919,35 +2919,35 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {/* Background Image */}
                     <div>
-                      <label className="text-[10px] font-mono tracking-wider text-[#8E7E70] block mb-1.5 uppercase">Hero Background Image</label>
+                      <label className="text-[10px] font-mono tracking-wider text-muted-foreground block mb-1.5 uppercase">Hero Background Image</label>
                       {heroConfig.image ? (
-                        <div className="relative h-28 w-full rounded-xl border border-[#2A1E15] overflow-hidden group">
+                        <div className="relative h-28 w-full rounded-xl border border-border overflow-hidden group">
                           <img src={heroConfig.image} alt="Hero Preview" className="w-full h-full object-cover" />
                           <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                            <label className="cursor-pointer bg-[#C8102E] hover:opacity-90 text-white font-mono text-[9px] font-bold px-2.5 py-1.5 rounded">
+                            <label className="cursor-pointer bg-primary hover:opacity-90 text-foreground font-mono text-[9px] font-bold px-2.5 py-1.5 rounded">
                               {uploadingHero ? "UPLOADING..." : "REPLACE IMAGE"}
                               <input type="file" accept="image/*" onChange={handleHeroImageUpload("image")} disabled={uploadingHero} className="hidden" />
                             </label>
                             <button 
                               type="button"
                               onClick={() => setHeroConfig((p: any) => ({ ...p, image: "" }))} 
-                              className="bg-zinc-850 hover:bg-zinc-750 text-white font-mono text-[9px] font-bold px-2.5 py-1.5 rounded cursor-pointer"
+                              className="bg-zinc-850 hover:bg-zinc-750 text-foreground font-mono text-[9px] font-bold px-2.5 py-1.5 rounded cursor-pointer"
                             >
                               REMOVE
                             </button>
                           </div>
                         </div>
                       ) : (
-                        <label className="flex flex-col items-center justify-center h-28 w-full rounded-xl border border-dashed border-[#2A1E15] hover:border-[#C8102E]/50 transition-colors cursor-pointer bg-[#1A130E]/30">
+                        <label className="flex flex-col items-center justify-center h-28 w-full rounded-xl border border-dashed border-border hover:border-primary/50 transition-colors cursor-pointer bg-muted/30">
                           {uploadingHero ? (
                             <div className="flex flex-col items-center gap-1">
                               <div className="w-4 h-4 border-2 border-t-[#C8102E] border-r-transparent animate-spin rounded-full" />
-                              <span className="text-[9px] font-mono text-[#8E7E70]">Uploading...</span>
+                              <span className="text-[9px] font-mono text-muted-foreground">Uploading...</span>
                             </div>
                           ) : (
                             <div className="flex flex-col items-center gap-1">
-                              <Upload size={16} className="text-[#8E7E70]" />
-                              <span className="text-[9px] font-mono text-[#8E7E70]">Upload banner image</span>
+                              <Upload size={16} className="text-muted-foreground" />
+                              <span className="text-[9px] font-mono text-muted-foreground">Upload banner image</span>
                             </div>
                           )}
                           <input type="file" accept="image/*" onChange={handleHeroImageUpload("image")} disabled={uploadingHero} className="hidden" />
@@ -2957,35 +2957,35 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
 
                     {/* Front Image */}
                     <div>
-                      <label className="text-[10px] font-mono tracking-wider text-[#8E7E70] block mb-1.5 uppercase">Hero Front Image</label>
+                      <label className="text-[10px] font-mono tracking-wider text-muted-foreground block mb-1.5 uppercase">Hero Front Image</label>
                       {heroConfig.front_image ? (
-                        <div className="relative h-28 w-full rounded-xl border border-[#2A1E15] overflow-hidden group">
+                        <div className="relative h-28 w-full rounded-xl border border-border overflow-hidden group">
                           <img src={heroConfig.front_image} alt="Hero Front Preview" className="w-full h-full object-cover" />
                           <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                            <label className="cursor-pointer bg-[#C8102E] hover:opacity-90 text-white font-mono text-[9px] font-bold px-2.5 py-1.5 rounded">
+                            <label className="cursor-pointer bg-primary hover:opacity-90 text-foreground font-mono text-[9px] font-bold px-2.5 py-1.5 rounded">
                               {uploadingHero ? "UPLOADING..." : "REPLACE IMAGE"}
                               <input type="file" accept="image/*" onChange={handleHeroImageUpload("front_image")} disabled={uploadingHero} className="hidden" />
                             </label>
                             <button 
                               type="button"
                               onClick={() => setHeroConfig((p: any) => ({ ...p, front_image: "" }))} 
-                              className="bg-zinc-850 hover:bg-zinc-750 text-white font-mono text-[9px] font-bold px-2.5 py-1.5 rounded cursor-pointer"
+                              className="bg-zinc-850 hover:bg-zinc-750 text-foreground font-mono text-[9px] font-bold px-2.5 py-1.5 rounded cursor-pointer"
                             >
                               REMOVE
                             </button>
                           </div>
                         </div>
                       ) : (
-                        <label className="flex flex-col items-center justify-center h-28 w-full rounded-xl border border-dashed border-[#2A1E15] hover:border-[#C8102E]/50 transition-colors cursor-pointer bg-[#1A130E]/30">
+                        <label className="flex flex-col items-center justify-center h-28 w-full rounded-xl border border-dashed border-border hover:border-primary/50 transition-colors cursor-pointer bg-muted/30">
                           {uploadingHero ? (
                             <div className="flex flex-col items-center gap-1">
                               <div className="w-4 h-4 border-2 border-t-[#C8102E] border-r-transparent animate-spin rounded-full" />
-                              <span className="text-[9px] font-mono text-[#8E7E70]">Uploading...</span>
+                              <span className="text-[9px] font-mono text-muted-foreground">Uploading...</span>
                             </div>
                           ) : (
                             <div className="flex flex-col items-center gap-1">
-                              <Upload size={16} className="text-[#8E7E70]" />
-                              <span className="text-[9px] font-mono text-[#8E7E70]">Upload front image</span>
+                              <Upload size={16} className="text-muted-foreground" />
+                              <span className="text-[9px] font-mono text-muted-foreground">Upload front image</span>
                             </div>
                           )}
                           <input type="file" accept="image/*" onChange={handleHeroImageUpload("front_image")} disabled={uploadingHero} className="hidden" />
@@ -2995,35 +2995,35 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
 
                     {/* Logo Image */}
                     <div>
-                      <label className="text-[10px] font-mono tracking-wider text-[#8E7E70] block mb-1.5 uppercase">Navbar Logo Image</label>
+                      <label className="text-[10px] font-mono tracking-wider text-muted-foreground block mb-1.5 uppercase">Navbar Logo Image</label>
                       {heroConfig.logo_image ? (
-                        <div className="relative h-28 w-full rounded-xl border border-[#2A1E15] overflow-hidden group">
-                          <img src={heroConfig.logo_image} alt="Logo Preview" className="w-full h-full object-contain bg-[#0A0704]" />
+                        <div className="relative h-28 w-full rounded-xl border border-border overflow-hidden group">
+                          <img src={heroConfig.logo_image} alt="Logo Preview" className="w-full h-full object-contain bg-background" />
                           <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                            <label className="cursor-pointer bg-[#C8102E] hover:opacity-90 text-white font-mono text-[9px] font-bold px-2.5 py-1.5 rounded">
+                            <label className="cursor-pointer bg-primary hover:opacity-90 text-foreground font-mono text-[9px] font-bold px-2.5 py-1.5 rounded">
                               {uploadingHero ? "UPLOADING..." : "REPLACE"}
                               <input type="file" accept="image/*" onChange={handleHeroImageUpload("logo_image")} disabled={uploadingHero} className="hidden" />
                             </label>
                             <button 
                               type="button"
                               onClick={() => setHeroConfig((p: any) => ({ ...p, logo_image: "" }))} 
-                              className="bg-zinc-850 hover:bg-zinc-750 text-white font-mono text-[9px] font-bold px-2.5 py-1.5 rounded cursor-pointer"
+                              className="bg-zinc-850 hover:bg-zinc-750 text-foreground font-mono text-[9px] font-bold px-2.5 py-1.5 rounded cursor-pointer"
                             >
                               REMOVE
                             </button>
                           </div>
                         </div>
                       ) : (
-                        <label className="flex flex-col items-center justify-center h-28 w-full rounded-xl border border-dashed border-[#2A1E15] hover:border-[#C8102E]/50 transition-colors cursor-pointer bg-[#1A130E]/30">
+                        <label className="flex flex-col items-center justify-center h-28 w-full rounded-xl border border-dashed border-border hover:border-primary/50 transition-colors cursor-pointer bg-muted/30">
                           {uploadingHero ? (
                             <div className="flex flex-col items-center gap-1">
                               <div className="w-4 h-4 border-2 border-t-[#C8102E] border-r-transparent animate-spin rounded-full" />
-                              <span className="text-[9px] font-mono text-[#8E7E70]">Uploading...</span>
+                              <span className="text-[9px] font-mono text-muted-foreground">Uploading...</span>
                             </div>
                           ) : (
                             <div className="flex flex-col items-center gap-1">
-                              <Upload size={16} className="text-[#8E7E70]" />
-                              <span className="text-[9px] font-mono text-[#8E7E70]">Upload logo</span>
+                              <Upload size={16} className="text-muted-foreground" />
+                              <span className="text-[9px] font-mono text-muted-foreground">Upload logo</span>
                             </div>
                           )}
                           <input type="file" accept="image/*" onChange={handleHeroImageUpload("logo_image")} disabled={uploadingHero} className="hidden" />
@@ -3033,10 +3033,10 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
                   </div>
 
                   {/* Menu Visibility Toggle */}
-                  <div className="flex items-center justify-between p-3.5 bg-[#1A130E]/55 border border-[#2A1E15] rounded-xl select-none">
+                  <div className="flex items-center justify-between p-3.5 bg-muted/55 border border-border rounded-xl select-none">
                     <div>
-                      <span className="text-[10px] font-mono tracking-wider text-[#8E7E70] block uppercase">Show Hero in Client Menu</span>
-                      <span className="text-[9px] text-[#8E7E70] leading-snug">Toggle banner display at the top of guest table menus.</span>
+                      <span className="text-[10px] font-mono tracking-wider text-muted-foreground block uppercase">Show Hero in Client Menu</span>
+                      <span className="text-[9px] text-muted-foreground leading-snug">Toggle banner display at the top of guest table menus.</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <button onClick={() => setHeroConfig((p: any) => ({ ...p, show_in_menu: !p.show_in_menu }))}
@@ -3050,72 +3050,72 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
                   </div>
 
                   {/* French Slogans */}
-                  <div className="border-t border-[#2A1E15]/30 pt-3">
-                    <span className="text-[10px] font-mono font-black text-[#C8102E] tracking-wider block mb-2">FRENCH TRANSLATIONS (FR)</span>
+                  <div className="border-t border-border/30 pt-3">
+                    <span className="text-[10px] font-mono font-black text-primary tracking-wider block mb-2">FRENCH TRANSLATIONS (FR)</span>
                     <div className="flex flex-col gap-2">
                       <div className="grid grid-cols-2 gap-2">
                         <div>
-                          <label className="text-[9px] font-mono text-[#8E7E70] block mb-1">TITLE LINE 1</label>
+                          <label className="text-[9px] font-mono text-muted-foreground block mb-1">TITLE LINE 1</label>
                           <input
                             type="text"
                             value={heroConfig.title1_fr}
                             onChange={e => setHeroConfig((p: any) => ({ ...p, title1_fr: e.target.value }))}
-                            className="w-full px-2.5 py-1.5 text-xs bg-[#1A130E] border border-[#2A1E15] rounded text-white outline-none focus:border-[#C8102E]"
+                            className="w-full px-2.5 py-1.5 text-xs bg-muted border border-border rounded text-foreground outline-none focus:border-primary"
                           />
                         </div>
                         <div>
-                          <label className="text-[9px] font-mono text-[#8E7E70] block mb-1">TITLE LINE 2 (ITALIC)</label>
+                          <label className="text-[9px] font-mono text-muted-foreground block mb-1">TITLE LINE 2 (ITALIC)</label>
                           <input
                             type="text"
                             value={heroConfig.title2_fr}
                             onChange={e => setHeroConfig((p: any) => ({ ...p, title2_fr: e.target.value }))}
-                            className="w-full px-2.5 py-1.5 text-xs bg-[#1A130E] border border-[#2A1E15] rounded text-white outline-none focus:border-[#C8102E]"
+                            className="w-full px-2.5 py-1.5 text-xs bg-muted border border-border rounded text-foreground outline-none focus:border-primary"
                           />
                         </div>
                       </div>
                       <div>
-                        <label className="text-[9px] font-mono text-[#8E7E70] block mb-1">HERO SUBTITLE DESCRIPTION</label>
+                        <label className="text-[9px] font-mono text-muted-foreground block mb-1">HERO SUBTITLE DESCRIPTION</label>
                         <textarea
                           value={heroConfig.subtitle_fr}
                           onChange={e => setHeroConfig((p: any) => ({ ...p, subtitle_fr: e.target.value }))}
                           rows={2}
-                          className="w-full px-2.5 py-1.5 text-xs bg-[#1A130E] border border-[#2A1E15] rounded text-white outline-none focus:border-[#C8102E] resize-none"
+                          className="w-full px-2.5 py-1.5 text-xs bg-muted border border-border rounded text-foreground outline-none focus:border-primary resize-none"
                         />
                       </div>
                     </div>
                   </div>
 
                   {/* English Slogans */}
-                  <div className="border-t border-[#2A1E15]/30 pt-3">
-                    <span className="text-[10px] font-mono font-black text-[#C8102E] tracking-wider block mb-2">ENGLISH TRANSLATIONS (EN)</span>
+                  <div className="border-t border-border/30 pt-3">
+                    <span className="text-[10px] font-mono font-black text-primary tracking-wider block mb-2">ENGLISH TRANSLATIONS (EN)</span>
                     <div className="flex flex-col gap-2">
                       <div className="grid grid-cols-2 gap-2">
                         <div>
-                          <label className="text-[9px] font-mono text-[#8E7E70] block mb-1">TITLE LINE 1</label>
+                          <label className="text-[9px] font-mono text-muted-foreground block mb-1">TITLE LINE 1</label>
                           <input
                             type="text"
                             value={heroConfig.title1_en}
                             onChange={e => setHeroConfig((p: any) => ({ ...p, title1_en: e.target.value }))}
-                            className="w-full px-2.5 py-1.5 text-xs bg-[#1A130E] border border-[#2A1E15] rounded text-white outline-none focus:border-[#C8102E]"
+                            className="w-full px-2.5 py-1.5 text-xs bg-muted border border-border rounded text-foreground outline-none focus:border-primary"
                           />
                         </div>
                         <div>
-                          <label className="text-[9px] font-mono text-[#8E7E70] block mb-1">TITLE LINE 2 (ITALIC)</label>
+                          <label className="text-[9px] font-mono text-muted-foreground block mb-1">TITLE LINE 2 (ITALIC)</label>
                           <input
                             type="text"
                             value={heroConfig.title2_en}
                             onChange={e => setHeroConfig((p: any) => ({ ...p, title2_en: e.target.value }))}
-                            className="w-full px-2.5 py-1.5 text-xs bg-[#1A130E] border border-[#2A1E15] rounded text-white outline-none focus:border-[#C8102E]"
+                            className="w-full px-2.5 py-1.5 text-xs bg-muted border border-border rounded text-foreground outline-none focus:border-primary"
                           />
                         </div>
                       </div>
                       <div>
-                        <label className="text-[9px] font-mono text-[#8E7E70] block mb-1">HERO SUBTITLE DESCRIPTION</label>
+                        <label className="text-[9px] font-mono text-muted-foreground block mb-1">HERO SUBTITLE DESCRIPTION</label>
                         <textarea
                           value={heroConfig.subtitle_en}
                           onChange={e => setHeroConfig((p: any) => ({ ...p, subtitle_en: e.target.value }))}
                           rows={2}
-                          className="w-full px-2.5 py-1.5 text-xs bg-[#1A130E] border border-[#2A1E15] rounded text-white outline-none focus:border-[#C8102E] resize-none"
+                          className="w-full px-2.5 py-1.5 text-xs bg-muted border border-border rounded text-foreground outline-none focus:border-primary resize-none"
                         />
                       </div>
                     </div>
@@ -3124,7 +3124,7 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
                   <button 
                     onClick={handleSaveHero}
                     disabled={uploadingHero}
-                    className="bg-[#C8102E] hover:opacity-90 disabled:opacity-50 text-white font-bold py-2.5 px-4 rounded-xl text-xs mt-2 cursor-pointer shadow-md shadow-[#C8102E]/20"
+                    className="bg-primary hover:opacity-90 disabled:opacity-50 text-foreground font-bold py-2.5 px-4 rounded-xl text-xs mt-2 cursor-pointer shadow-md shadow-[#C8102E]/20"
                   >
                     {uploadingHero ? "UPLOADING IMAGE..." : "SAVE HERO BANNER CONFIG"}
                   </button>
@@ -3137,11 +3137,11 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
           {section === "staff" && (
             <div className="flex flex-col gap-6">
               {/* Tab Selector */}
-              <div className="flex border-b border-[#2A1E15] gap-4 mb-2 shrink-0">
+              <div className="flex border-b border-border gap-4 mb-2 shrink-0">
                 <button
                   onClick={() => setStaffTab("waiters")}
                   className={`pb-2.5 text-xs font-mono tracking-widest uppercase transition-all relative cursor-pointer ${
-                    staffTab === "waiters" ? "text-white font-bold border-b border-[#C8102E]" : "text-[#8E7E70] hover:text-white"
+                    staffTab === "waiters" ? "text-foreground font-bold border-b border-primary" : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   Serveurs (Floor)
@@ -3149,7 +3149,7 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
                 <button
                   onClick={() => setStaffTab("drivers")}
                   className={`pb-2.5 text-xs font-mono tracking-widest uppercase transition-all relative cursor-pointer ${
-                    staffTab === "drivers" ? "text-white font-bold border-b border-[#C8102E]" : "text-[#8E7E70] hover:text-white"
+                    staffTab === "drivers" ? "text-foreground font-bold border-b border-primary" : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   Livreurs (Drivers)
@@ -3159,12 +3159,12 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
               {staffTab === "waiters" && (
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="font-serif font-black text-lg text-white">Waiter Registry</h3>
-                    <p className="text-xs text-[#8E7E70] mt-1 font-mono">Manage floor service credentials and table assignments.</p>
+                    <h3 className="font-serif font-black text-lg text-foreground">Waiter Registry</h3>
+                    <p className="text-xs text-muted-foreground mt-1 font-mono">Manage floor service credentials and table assignments.</p>
                   </div>
                   <button
                     onClick={() => setShowWaiterModal(true)}
-                    className="bg-[#C8102E] hover:opacity-90 text-white font-bold py-2 px-4 rounded text-xs flex items-center gap-1.5 cursor-pointer shadow-md shadow-[#C8102E]/20"
+                    className="bg-primary hover:opacity-90 text-foreground font-bold py-2 px-4 rounded text-xs flex items-center gap-1.5 cursor-pointer shadow-md shadow-[#C8102E]/20"
                   >
                     <Plus size={14} /> ADD NEW WAITER
                   </button>
@@ -3173,18 +3173,18 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
 
               {/* Waiters Registry Table */}
               {staffTab === "waiters" && (
-                <div className="bg-[#120D09] border border-[#2A1E15] rounded-xl overflow-hidden">
+                <div className="bg-card border border-border rounded-xl overflow-hidden">
                   <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr className="border-b border-[#2A1E15] bg-[#1A130E]/30">
-                        <th className="px-4 py-3 text-[10px] font-mono text-[#8E7E70] uppercase">Waiter Details</th>
-                        <th className="px-4 py-3 text-[10px] font-mono text-[#8E7E70] uppercase">Assigned Tables</th>
-                        <th className="px-4 py-3 text-[10px] font-mono text-[#8E7E70] uppercase">Online Status</th>
-                        <th className="px-4 py-3 text-[10px] font-mono text-[#8E7E70] uppercase text-center">Service Status</th>
-                        <th className="px-4 py-3 text-[10px] font-mono text-[#8E7E70] uppercase text-right">Actions</th>
+                      <tr className="border-b border-border bg-muted/30">
+                        <th className="px-4 py-3 text-[10px] font-mono text-muted-foreground uppercase">Waiter Details</th>
+                        <th className="px-4 py-3 text-[10px] font-mono text-muted-foreground uppercase">Assigned Tables</th>
+                        <th className="px-4 py-3 text-[10px] font-mono text-muted-foreground uppercase">Online Status</th>
+                        <th className="px-4 py-3 text-[10px] font-mono text-muted-foreground uppercase text-center">Service Status</th>
+                        <th className="px-4 py-3 text-[10px] font-mono text-muted-foreground uppercase text-right">Actions</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[#2A1E15]/50">
+                    <tbody className="divide-y divide-border/50">
                       {waiters.map((w) => {
                         const isOnline = w.last_seen && (Date.now() - new Date(w.last_seen).getTime() < 300000);
                         const timeStr = w.last_seen ? new Date(w.last_seen).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "N/A";
@@ -3192,14 +3192,14 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
                         return (
                           <tr key={w.id} className="hover:bg-white/[0.01]">
                             <td className="px-4 py-3.5 text-xs">
-                              <div className="font-bold text-white">{w.name}</div>
-                              <div className="text-[10px] text-[#8E7E70] font-mono mt-0.5">{w.email}</div>
+                              <div className="font-bold text-foreground">{w.name}</div>
+                              <div className="text-[10px] text-muted-foreground font-mono mt-0.5">{w.email}</div>
                             </td>
                             <td className="px-4 py-3.5 text-xs">
                               {w.assigned_tables && w.assigned_tables.length > 0 ? (
                                 <div className="flex flex-wrap gap-1">
                                   {w.assigned_tables.map((t: string) => (
-                                    <span key={t} className="bg-[#1A130E] border border-[#2A1E15] text-[#E5D5C5] text-[9px] font-mono px-2 py-0.5 rounded">{t}</span>
+                                    <span key={t} className="bg-muted border border-border text-foreground text-[9px] font-mono px-2 py-0.5 rounded">{t}</span>
                                   ))}
                                 </div>
                               ) : (
@@ -3209,9 +3209,9 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
                             <td className="px-4 py-3.5 text-xs">
                               <div className="flex items-center gap-1.5">
                                 <span className={`w-2 h-2 rounded-full ${isOnline ? "bg-[#10B981] animate-pulse" : "bg-[#8E7E70]/30"}`} />
-                                <span className="font-bold text-white text-[10px] font-mono">{isOnline ? "ONLINE" : "OFFLINE"}</span>
+                                <span className="font-bold text-foreground text-[10px] font-mono">{isOnline ? "ONLINE" : "OFFLINE"}</span>
                                 {w.last_seen && (
-                                  <span className="text-[10px] text-[#8E7E70] font-mono">({timeStr})</span>
+                                  <span className="text-[10px] text-muted-foreground font-mono">({timeStr})</span>
                                 )}
                               </div>
                             </td>
@@ -3221,7 +3221,7 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
                                 className={`px-2.5 py-1 rounded text-[9px] font-mono font-bold tracking-wider cursor-pointer border ${
                                   w.is_active 
                                     ? "bg-[#10B981]/15 text-[#10B981] border-[#10B981]/30 hover:bg-[#10B981]/25" 
-                                    : "bg-[#1A130E] text-[#8E7E70] border-[#2A1E15] hover:text-white"
+                                    : "bg-muted text-muted-foreground border-border hover:text-foreground"
                                 }`}
                               >
                                 {w.is_active ? "ACTIVE" : "INACTIVE"}
@@ -3231,14 +3231,14 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
                               <div className="flex justify-end gap-2">
                                 <button
                                   onClick={() => openEditWaiter(w)}
-                                  className="p-1.5 bg-white/5 border border-white/10 hover:bg-white/10 text-white rounded-lg transition-colors cursor-pointer"
+                                  className="p-1.5 bg-secondary border border-border hover:bg-secondary/80 text-foreground rounded-lg transition-colors cursor-pointer"
                                   title="Modify Waiter"
                                 >
                                   <Edit2 size={13} />
                                 </button>
                                 <button
                                   onClick={() => setDeletingWaiter(w)}
-                                  className="p-1.5 bg-[#C8102E]/15 border border-[#C8102E]/30 hover:bg-[#C8102E]/25 text-[#C8102E] rounded-lg transition-colors cursor-pointer"
+                                  className="p-1.5 bg-primary/15 border border-primary/30 hover:bg-primary/25 text-primary rounded-lg transition-colors cursor-pointer"
                                   title="Delete Waiter"
                                 >
                                   <Trash2 size={13} />
@@ -3251,7 +3251,7 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
 
                       {waiters.length === 0 && (
                         <tr>
-                          <td colSpan={5} className="px-4 py-12 text-center text-xs text-[#8E7E70] italic">
+                          <td colSpan={5} className="px-4 py-12 text-center text-xs text-muted-foreground italic">
                             No floor waiters registered in system yet.
                           </td>
                         </tr>
@@ -3266,28 +3266,28 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
                 <>
                   <div className="flex items-center justify-between">
                     <div>
-                      <h3 className="font-serif font-black text-lg text-white">Driver Registry</h3>
-                      <p className="text-xs text-[#8E7E70] mt-1 font-mono">Manage home delivery driver accounts and credentials.</p>
+                      <h3 className="font-serif font-black text-lg text-foreground">Driver Registry</h3>
+                      <p className="text-xs text-muted-foreground mt-1 font-mono">Manage home delivery driver accounts and credentials.</p>
                     </div>
                     <button
                       onClick={() => setShowDriverModal(true)}
-                      className="bg-[#C8102E] hover:opacity-90 text-white font-bold py-2 px-4 rounded text-xs flex items-center gap-1.5 cursor-pointer shadow-md shadow-[#C8102E]/20"
+                      className="bg-primary hover:opacity-90 text-foreground font-bold py-2 px-4 rounded text-xs flex items-center gap-1.5 cursor-pointer shadow-md shadow-[#C8102E]/20"
                     >
                       <Plus size={14} /> ADD NEW DRIVER
                     </button>
                   </div>
 
-                  <div className="bg-[#120D09] border border-[#2A1E15] rounded-xl overflow-hidden">
+                  <div className="bg-card border border-border rounded-xl overflow-hidden">
                     <table className="w-full text-left border-collapse">
                       <thead>
-                        <tr className="border-b border-[#2A1E15] bg-[#1A130E]/30">
-                          <th className="px-4 py-3 text-[10px] font-mono text-[#8E7E70] uppercase">Driver Details</th>
-                          <th className="px-4 py-3 text-[10px] font-mono text-[#8E7E70] uppercase">Online Status</th>
-                          <th className="px-4 py-3 text-[10px] font-mono text-[#8E7E70] uppercase text-center">Service Status</th>
-                          <th className="px-4 py-3 text-[10px] font-mono text-[#8E7E70] uppercase text-right">Actions</th>
+                        <tr className="border-b border-border bg-muted/30">
+                          <th className="px-4 py-3 text-[10px] font-mono text-muted-foreground uppercase">Driver Details</th>
+                          <th className="px-4 py-3 text-[10px] font-mono text-muted-foreground uppercase">Online Status</th>
+                          <th className="px-4 py-3 text-[10px] font-mono text-muted-foreground uppercase text-center">Service Status</th>
+                          <th className="px-4 py-3 text-[10px] font-mono text-muted-foreground uppercase text-right">Actions</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-[#2A1E15]/50">
+                      <tbody className="divide-y divide-border/50">
                         {drivers.map((d) => {
                           const isOnline = d.last_seen && (Date.now() - new Date(d.last_seen).getTime() < 300000);
                           const timeStr = d.last_seen ? new Date(d.last_seen).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "N/A";
@@ -3295,15 +3295,15 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
                           return (
                             <tr key={d.id} className="hover:bg-white/[0.01]">
                               <td className="px-4 py-3.5 text-xs">
-                                <div className="font-bold text-white">{d.name}</div>
-                                <div className="text-[10px] text-[#8E7E70] font-mono mt-0.5">{d.email}</div>
+                                <div className="font-bold text-foreground">{d.name}</div>
+                                <div className="text-[10px] text-muted-foreground font-mono mt-0.5">{d.email}</div>
                               </td>
                               <td className="px-4 py-3.5 text-xs">
                                 <div className="flex items-center gap-1.5">
                                   <span className={`w-2 h-2 rounded-full ${isOnline ? "bg-[#10B981] animate-pulse" : "bg-[#8E7E70]/30"}`} />
-                                  <span className="font-bold text-white text-[10px] font-mono">{isOnline ? "ONLINE" : "OFFLINE"}</span>
+                                  <span className="font-bold text-foreground text-[10px] font-mono">{isOnline ? "ONLINE" : "OFFLINE"}</span>
                                   {d.last_seen && (
-                                    <span className="text-[10px] text-[#8E7E70] font-mono">({timeStr})</span>
+                                    <span className="text-[10px] text-muted-foreground font-mono">({timeStr})</span>
                                   )}
                                 </div>
                               </td>
@@ -3313,7 +3313,7 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
                                   className={`px-2.5 py-1 rounded text-[9px] font-mono font-bold tracking-wider cursor-pointer border ${
                                     d.is_active 
                                       ? "bg-[#10B981]/15 text-[#10B981] border-[#10B981]/30 hover:bg-[#10B981]/25" 
-                                      : "bg-[#1A130E] text-[#8E7E70] border-[#2A1E15] hover:text-white"
+                                      : "bg-muted text-muted-foreground border-border hover:text-foreground"
                                   }`}
                                 >
                                   {d.is_active ? "ACTIVE" : "INACTIVE"}
@@ -3323,14 +3323,14 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
                                 <div className="flex justify-end gap-2">
                                   <button
                                     onClick={() => openEditDriver(d)}
-                                    className="p-1.5 bg-white/5 border border-white/10 hover:bg-white/10 text-white rounded-lg transition-colors cursor-pointer"
+                                    className="p-1.5 bg-secondary border border-border hover:bg-secondary/80 text-foreground rounded-lg transition-colors cursor-pointer"
                                     title="Modify Driver"
                                   >
                                     <Edit2 size={13} />
                                   </button>
                                   <button
                                     onClick={() => setDeletingDriver(d)}
-                                    className="p-1.5 bg-[#C8102E]/15 border border-[#C8102E]/30 hover:bg-[#C8102E]/25 text-[#C8102E] rounded-lg transition-colors cursor-pointer"
+                                    className="p-1.5 bg-primary/15 border border-primary/30 hover:bg-primary/25 text-primary rounded-lg transition-colors cursor-pointer"
                                     title="Delete Driver"
                                   >
                                     <Trash2 size={13} />
@@ -3343,7 +3343,7 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
 
                         {drivers.length === 0 && (
                           <tr>
-                            <td colSpan={4} className="px-4 py-12 text-center text-xs text-[#8E7E70] italic">
+                            <td colSpan={4} className="px-4 py-12 text-center text-xs text-muted-foreground italic">
                               No delivery drivers registered in system yet.
                             </td>
                           </tr>
@@ -3356,44 +3356,44 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
 
               {/* Add Waiter Modal */}
               {showWaiterModal && (
-                <div className="fixed inset-0 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 z-50 text-white select-none">
-                  <div className="bg-[#120D09] border border-[#2A1E15] p-8 rounded-2xl max-w-md w-full shadow-2xl relative">
-                    <h4 className="font-serif font-bold text-xl mb-1 text-white">Register Floor Waiter</h4>
-                    <p className="text-[10px] text-[#8E7E70] uppercase font-mono mb-6">Staff Access Credentials</p>
+                <div className="fixed inset-0 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 z-50 text-foreground select-none">
+                  <div className="bg-card border border-border p-8 rounded-2xl max-w-md w-full shadow-2xl relative">
+                    <h4 className="font-serif font-bold text-xl mb-1 text-foreground">Register Floor Waiter</h4>
+                    <p className="text-[10px] text-muted-foreground uppercase font-mono mb-6">Staff Access Credentials</p>
 
                     {waiterError && (
-                      <div className="mb-5 p-3.5 bg-[#C8102E]/10 border border-[#C8102E]/30 rounded-xl text-xs text-white">
+                      <div className="mb-5 p-3.5 bg-primary/10 border border-primary/30 rounded-xl text-xs text-foreground">
                         {waiterError}
                       </div>
                     )}
 
                     <form onSubmit={handleCreateWaiter} className="space-y-4">
                       <div>
-                        <label className="block text-[9px] font-mono text-[#8E7E70] uppercase mb-1">Full Name</label>
+                        <label className="block text-[9px] font-mono text-muted-foreground uppercase mb-1">Full Name</label>
                         <input
                           type="text"
                           required
                           value={newWaiterName}
                           onChange={(e) => setNewWaiterName(e.target.value)}
                           placeholder="e.g. Jean Dupont"
-                          className="w-full px-3 py-2 text-xs bg-[#1A130E] border border-[#2A1E15] rounded-xl text-white outline-none focus:border-[#C8102E]"
+                          className="w-full px-3 py-2 text-xs bg-muted border border-border rounded-xl text-foreground outline-none focus:border-primary"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-[9px] font-mono text-[#8E7E70] uppercase mb-1">Email Address</label>
+                        <label className="block text-[9px] font-mono text-muted-foreground uppercase mb-1">Email Address</label>
                         <input
                           type="email"
                           required
                           value={newWaiterEmail}
                           onChange={(e) => setNewWaiterEmail(e.target.value)}
                           placeholder="e.g. jean@ledoubleface.com"
-                          className="w-full px-3 py-2 text-xs bg-[#1A130E] border border-[#2A1E15] rounded-xl text-white outline-none focus:border-[#C8102E]"
+                          className="w-full px-3 py-2 text-xs bg-muted border border-border rounded-xl text-foreground outline-none focus:border-primary"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-[9px] font-mono text-[#8E7E70] uppercase mb-1">4-Digit Access PIN</label>
+                        <label className="block text-[9px] font-mono text-muted-foreground uppercase mb-1">4-Digit Access PIN</label>
                         <input
                           type="password"
                           required
@@ -3401,41 +3401,41 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
                           value={newWaiterPin}
                           onChange={(e) => setNewWaiterPin(e.target.value.replace(/\D/g, ""))}
                           placeholder="e.g. 1234"
-                          className="w-full px-3 py-2 text-xs bg-[#1A130E] border border-[#2A1E15] rounded-xl text-white outline-none focus:border-[#C8102E] tracking-widest font-bold text-center text-lg"
+                          className="w-full px-3 py-2 text-xs bg-muted border border-border rounded-xl text-foreground outline-none focus:border-primary tracking-widest font-bold text-center text-lg"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-[9px] font-mono text-[#8E7E70] uppercase mb-1">
-                          Assigned Tables <span className="text-[8px] text-[#8E7E70] lowercase italic">(leave empty for ALL tables)</span>
+                        <label className="block text-[9px] font-mono text-muted-foreground uppercase mb-1">
+                          Assigned Tables <span className="text-[8px] text-muted-foreground lowercase italic">(leave empty for ALL tables)</span>
                         </label>
                         <input
                           type="text"
                           value={newWaiterTables}
                           onChange={(e) => setNewWaiterTables(e.target.value)}
                           placeholder="e.g. T01, T02, T03 (leave empty to assign all tables)"
-                          className="w-full px-3 py-2 text-xs bg-[#1A130E] border border-[#2A1E15] rounded-xl text-white outline-none focus:border-[#C8102E]"
+                          className="w-full px-3 py-2 text-xs bg-muted border border-border rounded-xl text-foreground outline-none focus:border-primary"
                         />
-                        <span className="text-[9px] text-[#8E7E70] italic mt-1 block">
+                        <span className="text-[9px] text-muted-foreground italic mt-1 block">
                           * If left empty, the waiter will be responsible for all tables.
                         </span>
                       </div>
 
-                      <div className="flex gap-3 pt-4 border-t border-[#2A1E15]/30">
+                      <div className="flex gap-3 pt-4 border-t border-border/30">
                         <button
                           type="button"
                           onClick={() => {
                             setShowWaiterModal(false);
                             setWaiterError(null);
                           }}
-                          className="flex-1 py-2.5 bg-white/5 border border-white/10 hover:bg-white/10 text-white font-bold rounded-xl text-xs cursor-pointer active:scale-95 transition-all text-center"
+                          className="flex-1 py-2.5 bg-secondary border border-border hover:bg-secondary/80 text-foreground font-bold rounded-xl text-xs cursor-pointer active:scale-95 transition-all text-center"
                         >
                           CANCEL
                         </button>
                         <button
                           type="submit"
                           disabled={waiterSubmitting}
-                          className="flex-1 py-2.5 bg-[#C8102E] text-white font-bold rounded-xl text-xs hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                          className="flex-1 py-2.5 bg-primary text-foreground font-bold rounded-xl text-xs hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
                         >
                           {waiterSubmitting ? (
                             <>
@@ -3454,45 +3454,45 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
 
               {/* Edit Waiter Modal */}
               {editingWaiter && (
-                <div className="fixed inset-0 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 z-50 text-white select-none">
-                  <div className="bg-[#120D09] border border-[#2A1E15] p-8 rounded-2xl max-w-md w-full shadow-2xl relative">
-                    <h4 className="font-serif font-bold text-xl mb-1 text-white">Modify Floor Waiter</h4>
-                    <p className="text-[10px] text-[#8E7E70] uppercase font-mono mb-6">Edit Staff Access & Assignments</p>
+                <div className="fixed inset-0 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 z-50 text-foreground select-none">
+                  <div className="bg-card border border-border p-8 rounded-2xl max-w-md w-full shadow-2xl relative">
+                    <h4 className="font-serif font-bold text-xl mb-1 text-foreground">Modify Floor Waiter</h4>
+                    <p className="text-[10px] text-muted-foreground uppercase font-mono mb-6">Edit Staff Access & Assignments</p>
 
                     {editWaiterError && (
-                      <div className="mb-5 p-3.5 bg-[#C8102E]/10 border border-[#C8102E]/30 rounded-xl text-xs text-white">
+                      <div className="mb-5 p-3.5 bg-primary/10 border border-primary/30 rounded-xl text-xs text-foreground">
                         {editWaiterError}
                       </div>
                     )}
 
                     <form onSubmit={handleUpdateWaiter} className="space-y-4">
                       <div>
-                        <label className="block text-[9px] font-mono text-[#8E7E70] uppercase mb-1">Full Name</label>
+                        <label className="block text-[9px] font-mono text-muted-foreground uppercase mb-1">Full Name</label>
                         <input
                           type="text"
                           required
                           value={editWaiterName}
                           onChange={(e) => setEditWaiterName(e.target.value)}
                           placeholder="e.g. Jean Dupont"
-                          className="w-full px-3 py-2 text-xs bg-[#1A130E] border border-[#2A1E15] rounded-xl text-white outline-none focus:border-[#C8102E]"
+                          className="w-full px-3 py-2 text-xs bg-muted border border-border rounded-xl text-foreground outline-none focus:border-primary"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-[9px] font-mono text-[#8E7E70] uppercase mb-1">Email Address</label>
+                        <label className="block text-[9px] font-mono text-muted-foreground uppercase mb-1">Email Address</label>
                         <input
                           type="email"
                           required
                           value={editWaiterEmail}
                           onChange={(e) => setEditWaiterEmail(e.target.value)}
                           placeholder="e.g. jean@ledoubleface.com"
-                          className="w-full px-3 py-2 text-xs bg-[#1A130E] border border-[#2A1E15] rounded-xl text-white outline-none focus:border-[#C8102E]"
+                          className="w-full px-3 py-2 text-xs bg-muted border border-border rounded-xl text-foreground outline-none focus:border-primary"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-[9px] font-mono text-[#8E7E70] uppercase mb-1">
-                          4-Digit Access PIN <span className="text-[8px] text-[#8E7E70] lowercase italic">(leave empty to keep current PIN)</span>
+                        <label className="block text-[9px] font-mono text-muted-foreground uppercase mb-1">
+                          4-Digit Access PIN <span className="text-[8px] text-muted-foreground lowercase italic">(leave empty to keep current PIN)</span>
                         </label>
                         <input
                           type="password"
@@ -3500,35 +3500,35 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
                           value={editWaiterPin}
                           onChange={(e) => setEditWaiterPin(e.target.value.replace(/\D/g, ""))}
                           placeholder="••••"
-                          className="w-full px-3 py-2 text-xs bg-[#1A130E] border border-[#2A1E15] rounded-xl text-white outline-none focus:border-[#C8102E] tracking-widest font-bold text-center text-lg"
+                          className="w-full px-3 py-2 text-xs bg-muted border border-border rounded-xl text-foreground outline-none focus:border-primary tracking-widest font-bold text-center text-lg"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-[9px] font-mono text-[#8E7E70] uppercase mb-1">
-                          Assigned Tables <span className="text-[8px] text-[#8E7E70] lowercase italic">(leave empty for ALL tables)</span>
+                        <label className="block text-[9px] font-mono text-muted-foreground uppercase mb-1">
+                          Assigned Tables <span className="text-[8px] text-muted-foreground lowercase italic">(leave empty for ALL tables)</span>
                         </label>
                         <input
                           type="text"
                           value={editWaiterTables}
                           onChange={(e) => setEditWaiterTables(e.target.value)}
                           placeholder="e.g. T01, T02, T03 (leave empty to assign all tables)"
-                          className="w-full px-3 py-2 text-xs bg-[#1A130E] border border-[#2A1E15] rounded-xl text-white outline-none focus:border-[#C8102E]"
+                          className="w-full px-3 py-2 text-xs bg-muted border border-border rounded-xl text-foreground outline-none focus:border-primary"
                         />
-                        <span className="text-[9px] text-[#8E7E70] italic mt-1 block">
+                        <span className="text-[9px] text-muted-foreground italic mt-1 block">
                           * If left empty, the waiter will be responsible for all tables.
                         </span>
                       </div>
 
-                      <div className="flex items-center justify-between py-2 border-t border-b border-[#2A1E15]/30">
-                        <span className="text-[9px] font-mono text-[#8E7E70] uppercase">Service Status</span>
+                      <div className="flex items-center justify-between py-2 border-t border-b border-border/30">
+                        <span className="text-[9px] font-mono text-muted-foreground uppercase">Service Status</span>
                         <button
                           type="button"
                           onClick={() => setEditWaiterIsActive(!editWaiterIsActive)}
                           className={`px-3 py-1.5 rounded text-[10px] font-mono font-bold tracking-wider border cursor-pointer ${
                             editWaiterIsActive 
                               ? "bg-[#10B981]/15 text-[#10B981] border-[#10B981]/30 hover:bg-[#10B981]/25" 
-                              : "bg-[#1A130E] text-[#8E7E70] border-[#2A1E15] hover:text-white"
+                              : "bg-muted text-muted-foreground border-border hover:text-foreground"
                           }`}
                         >
                           {editWaiterIsActive ? "ACTIVE" : "INACTIVE"}
@@ -3542,14 +3542,14 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
                             setEditingWaiter(null);
                             setEditWaiterError(null);
                           }}
-                          className="flex-1 py-2.5 bg-white/5 border border-white/10 hover:bg-white/10 text-white font-bold rounded-xl text-xs cursor-pointer active:scale-95 transition-all text-center"
+                          className="flex-1 py-2.5 bg-secondary border border-border hover:bg-secondary/80 text-foreground font-bold rounded-xl text-xs cursor-pointer active:scale-95 transition-all text-center"
                         >
                           CANCEL
                         </button>
                         <button
                           type="submit"
                           disabled={editWaiterSubmitting}
-                          className="flex-1 py-2.5 bg-[#C8102E] text-white font-bold rounded-xl text-xs hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                          className="flex-1 py-2.5 bg-primary text-foreground font-bold rounded-xl text-xs hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
                         >
                           {editWaiterSubmitting ? (
                             <>
@@ -3568,29 +3568,29 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
 
               {/* Delete Waiter Confirmation Modal */}
               {deletingWaiter && (
-                <div className="fixed inset-0 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 z-50 text-white select-none">
-                  <div className="bg-[#120D09] border border-[#2A1E15] p-8 rounded-2xl max-w-md w-full shadow-2xl relative">
-                    <h4 className="font-serif font-bold text-xl mb-1 text-white flex items-center gap-2">
-                      <AlertCircle className="text-[#C8102E] w-5 h-5" /> Delete Staff Member
+                <div className="fixed inset-0 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 z-50 text-foreground select-none">
+                  <div className="bg-card border border-border p-8 rounded-2xl max-w-md w-full shadow-2xl relative">
+                    <h4 className="font-serif font-bold text-xl mb-1 text-foreground flex items-center gap-2">
+                      <AlertCircle className="text-primary w-5 h-5" /> Delete Staff Member
                     </h4>
-                    <p className="text-[10px] text-[#8E7E70] uppercase font-mono mb-6">Dangerous Action</p>
+                    <p className="text-[10px] text-muted-foreground uppercase font-mono mb-6">Dangerous Action</p>
 
                     {deleteWaiterError && (
-                      <div className="mb-5 p-3.5 bg-[#C8102E]/10 border border-[#C8102E]/30 rounded-xl text-xs text-white">
+                      <div className="mb-5 p-3.5 bg-primary/10 border border-primary/30 rounded-xl text-xs text-foreground">
                         {deleteWaiterError}
                       </div>
                     )}
 
                     <div className="mb-6 space-y-2">
-                      <p className="text-xs text-[#E5D5C5]">
-                        Are you sure you want to permanently delete <strong className="text-white font-bold">{deletingWaiter.name}</strong> ({deletingWaiter.email})?
+                      <p className="text-xs text-foreground">
+                        Are you sure you want to permanently delete <strong className="text-foreground font-bold">{deletingWaiter.name}</strong> ({deletingWaiter.email})?
                       </p>
-                      <p className="text-[11px] text-[#8E7E70] leading-relaxed">
+                      <p className="text-[11px] text-muted-foreground leading-relaxed">
                         This action will immediately revoke their access PIN and remove them from the database. This cannot be undone.
                       </p>
                     </div>
 
-                    <div className="flex gap-3 pt-4 border-t border-[#2A1E15]/30">
+                    <div className="flex gap-3 pt-4 border-t border-border/30">
                       <button
                         type="button"
                         disabled={deleteWaiterSubmitting}
@@ -3598,7 +3598,7 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
                           setDeletingWaiter(null);
                           setDeleteWaiterError(null);
                         }}
-                        className="flex-1 py-2.5 bg-white/5 border border-white/10 hover:bg-white/10 text-white font-bold rounded-xl text-xs cursor-pointer active:scale-95 transition-all text-center disabled:opacity-50"
+                        className="flex-1 py-2.5 bg-secondary border border-border hover:bg-secondary/80 text-foreground font-bold rounded-xl text-xs cursor-pointer active:scale-95 transition-all text-center disabled:opacity-50"
                       >
                         CANCEL
                       </button>
@@ -3606,7 +3606,7 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
                         type="button"
                         onClick={handleDeleteWaiter}
                         disabled={deleteWaiterSubmitting}
-                        className="flex-1 py-2.5 bg-[#C8102E] text-white font-bold rounded-xl text-xs hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                        className="flex-1 py-2.5 bg-primary text-foreground font-bold rounded-xl text-xs hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
                       >
                         {deleteWaiterSubmitting ? (
                           <>
@@ -3624,44 +3624,44 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
 
               {/* Add Driver Modal */}
               {showDriverModal && (
-                <div className="fixed inset-0 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 z-50 text-white select-none">
-                  <div className="bg-[#120D09] border border-[#2A1E15] p-8 rounded-2xl max-w-md w-full shadow-2xl relative">
-                    <h4 className="font-serif font-bold text-xl mb-1 text-white">Register Delivery Driver</h4>
-                    <p className="text-[10px] text-[#8E7E70] uppercase font-mono mb-6">Staff Access Credentials</p>
+                <div className="fixed inset-0 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 z-50 text-foreground select-none">
+                  <div className="bg-card border border-border p-8 rounded-2xl max-w-md w-full shadow-2xl relative">
+                    <h4 className="font-serif font-bold text-xl mb-1 text-foreground">Register Delivery Driver</h4>
+                    <p className="text-[10px] text-muted-foreground uppercase font-mono mb-6">Staff Access Credentials</p>
 
                     {driverError && (
-                      <div className="mb-5 p-3.5 bg-[#C8102E]/10 border border-[#C8102E]/30 rounded-xl text-xs text-white">
+                      <div className="mb-5 p-3.5 bg-primary/10 border border-primary/30 rounded-xl text-xs text-foreground">
                         {driverError}
                       </div>
                     )}
 
                     <form onSubmit={handleCreateDriver} className="space-y-4">
                       <div>
-                        <label className="block text-[9px] font-mono text-[#8E7E70] uppercase mb-1">Full Name</label>
+                        <label className="block text-[9px] font-mono text-muted-foreground uppercase mb-1">Full Name</label>
                         <input
                           type="text"
                           required
                           value={newDriverName}
                           onChange={(e) => setNewDriverName(e.target.value)}
                           placeholder="e.g. Marc Tremblay"
-                          className="w-full px-3 py-2 text-xs bg-[#1A130E] border border-[#2A1E15] rounded-xl text-white outline-none focus:border-[#C8102E]"
+                          className="w-full px-3 py-2 text-xs bg-muted border border-border rounded-xl text-foreground outline-none focus:border-primary"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-[9px] font-mono text-[#8E7E70] uppercase mb-1">Email Address</label>
+                        <label className="block text-[9px] font-mono text-muted-foreground uppercase mb-1">Email Address</label>
                         <input
                           type="email"
                           required
                           value={newDriverEmail}
                           onChange={(e) => setNewDriverEmail(e.target.value)}
                           placeholder="e.g. marc@ledoubleface.com"
-                          className="w-full px-3 py-2 text-xs bg-[#1A130E] border border-[#2A1E15] rounded-xl text-white outline-none focus:border-[#C8102E]"
+                          className="w-full px-3 py-2 text-xs bg-muted border border-border rounded-xl text-foreground outline-none focus:border-primary"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-[9px] font-mono text-[#8E7E70] uppercase mb-1">4-Digit Access PIN</label>
+                        <label className="block text-[9px] font-mono text-muted-foreground uppercase mb-1">4-Digit Access PIN</label>
                         <input
                           type="password"
                           required
@@ -3669,25 +3669,25 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
                           value={newDriverPin}
                           onChange={(e) => setNewDriverPin(e.target.value.replace(/\D/g, ""))}
                           placeholder="e.g. 5678"
-                          className="w-full px-3 py-2 text-xs bg-[#1A130E] border border-[#2A1E15] rounded-xl text-white outline-none focus:border-[#C8102E] tracking-widest font-bold text-center text-lg"
+                          className="w-full px-3 py-2 text-xs bg-muted border border-border rounded-xl text-foreground outline-none focus:border-primary tracking-widest font-bold text-center text-lg"
                         />
                       </div>
 
-                      <div className="flex gap-3 pt-4 border-t border-[#2A1E15]/30">
+                      <div className="flex gap-3 pt-4 border-t border-border/30">
                         <button
                           type="button"
                           onClick={() => {
                             setShowDriverModal(false);
                             setDriverError(null);
                           }}
-                          className="flex-1 py-2.5 bg-white/5 border border-white/10 hover:bg-white/10 text-white font-bold rounded-xl text-xs cursor-pointer active:scale-95 transition-all text-center"
+                          className="flex-1 py-2.5 bg-secondary border border-border hover:bg-secondary/80 text-foreground font-bold rounded-xl text-xs cursor-pointer active:scale-95 transition-all text-center"
                         >
                           CANCEL
                         </button>
                         <button
                           type="submit"
                           disabled={driverSubmitting}
-                          className="flex-1 py-2.5 bg-[#C8102E] text-white font-bold rounded-xl text-xs hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                          className="flex-1 py-2.5 bg-primary text-foreground font-bold rounded-xl text-xs hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
                         >
                           {driverSubmitting ? (
                             <>
@@ -3706,45 +3706,45 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
 
               {/* Edit Driver Modal */}
               {editingDriver && (
-                <div className="fixed inset-0 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 z-50 text-white select-none">
-                  <div className="bg-[#120D09] border border-[#2A1E15] p-8 rounded-2xl max-w-md w-full shadow-2xl relative">
-                    <h4 className="font-serif font-bold text-xl mb-1 text-white">Modify Delivery Driver</h4>
-                    <p className="text-[10px] text-[#8E7E70] uppercase font-mono mb-6">Edit Staff Access & Status</p>
+                <div className="fixed inset-0 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 z-50 text-foreground select-none">
+                  <div className="bg-card border border-border p-8 rounded-2xl max-w-md w-full shadow-2xl relative">
+                    <h4 className="font-serif font-bold text-xl mb-1 text-foreground">Modify Delivery Driver</h4>
+                    <p className="text-[10px] text-muted-foreground uppercase font-mono mb-6">Edit Staff Access & Status</p>
 
                     {editDriverError && (
-                      <div className="mb-5 p-3.5 bg-[#C8102E]/10 border border-[#C8102E]/30 rounded-xl text-xs text-white">
+                      <div className="mb-5 p-3.5 bg-primary/10 border border-primary/30 rounded-xl text-xs text-foreground">
                         {editDriverError}
                       </div>
                     )}
 
                     <form onSubmit={handleUpdateDriver} className="space-y-4">
                       <div>
-                        <label className="block text-[9px] font-mono text-[#8E7E70] uppercase mb-1">Full Name</label>
+                        <label className="block text-[9px] font-mono text-muted-foreground uppercase mb-1">Full Name</label>
                         <input
                           type="text"
                           required
                           value={editDriverName}
                           onChange={(e) => setEditDriverName(e.target.value)}
                           placeholder="e.g. Marc Tremblay"
-                          className="w-full px-3 py-2 text-xs bg-[#1A130E] border border-[#2A1E15] rounded-xl text-white outline-none focus:border-[#C8102E]"
+                          className="w-full px-3 py-2 text-xs bg-muted border border-border rounded-xl text-foreground outline-none focus:border-primary"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-[9px] font-mono text-[#8E7E70] uppercase mb-1">Email Address</label>
+                        <label className="block text-[9px] font-mono text-muted-foreground uppercase mb-1">Email Address</label>
                         <input
                           type="email"
                           required
                           value={editDriverEmail}
                           onChange={(e) => setEditDriverEmail(e.target.value)}
                           placeholder="e.g. marc@ledoubleface.com"
-                          className="w-full px-3 py-2 text-xs bg-[#1A130E] border border-[#2A1E15] rounded-xl text-white outline-none focus:border-[#C8102E]"
+                          className="w-full px-3 py-2 text-xs bg-muted border border-border rounded-xl text-foreground outline-none focus:border-primary"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-[9px] font-mono text-[#8E7E70] uppercase mb-1">
-                          4-Digit Access PIN <span className="text-[8px] text-[#8E7E70] lowercase italic">(leave empty to keep current PIN)</span>
+                        <label className="block text-[9px] font-mono text-muted-foreground uppercase mb-1">
+                          4-Digit Access PIN <span className="text-[8px] text-muted-foreground lowercase italic">(leave empty to keep current PIN)</span>
                         </label>
                         <input
                           type="password"
@@ -3752,19 +3752,19 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
                           value={editDriverPin}
                           onChange={(e) => setEditDriverPin(e.target.value.replace(/\D/g, ""))}
                           placeholder="••••"
-                          className="w-full px-3 py-2 text-xs bg-[#1A130E] border border-[#2A1E15] rounded-xl text-white outline-none focus:border-[#C8102E] tracking-widest font-bold text-center text-lg"
+                          className="w-full px-3 py-2 text-xs bg-muted border border-border rounded-xl text-foreground outline-none focus:border-primary tracking-widest font-bold text-center text-lg"
                         />
                       </div>
 
-                      <div className="flex items-center justify-between py-2 border-t border-b border-[#2A1E15]/30">
-                        <span className="text-[9px] font-mono text-[#8E7E70] uppercase">Service Status</span>
+                      <div className="flex items-center justify-between py-2 border-t border-b border-border/30">
+                        <span className="text-[9px] font-mono text-muted-foreground uppercase">Service Status</span>
                         <button
                           type="button"
                           onClick={() => setEditDriverIsActive(!editDriverIsActive)}
                           className={`px-3 py-1.5 rounded text-[10px] font-mono font-bold tracking-wider border cursor-pointer ${
                             editDriverIsActive 
                               ? "bg-[#10B981]/15 text-[#10B981] border-[#10B981]/30 hover:bg-[#10B981]/25" 
-                              : "bg-[#1A130E] text-[#8E7E70] border-[#2A1E15] hover:text-white"
+                              : "bg-muted text-muted-foreground border-border hover:text-foreground"
                           }`}
                         >
                           {editDriverIsActive ? "ACTIVE" : "INACTIVE"}
@@ -3778,14 +3778,14 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
                             setEditingDriver(null);
                             setEditDriverError(null);
                           }}
-                          className="flex-1 py-2.5 bg-white/5 border border-white/10 hover:bg-white/10 text-white font-bold rounded-xl text-xs cursor-pointer active:scale-95 transition-all text-center"
+                          className="flex-1 py-2.5 bg-secondary border border-border hover:bg-secondary/80 text-foreground font-bold rounded-xl text-xs cursor-pointer active:scale-95 transition-all text-center"
                         >
                           CANCEL
                         </button>
                         <button
                           type="submit"
                           disabled={editDriverSubmitting}
-                          className="flex-1 py-2.5 bg-[#C8102E] text-white font-bold rounded-xl text-xs hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                          className="flex-1 py-2.5 bg-primary text-foreground font-bold rounded-xl text-xs hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
                         >
                           {editDriverSubmitting ? (
                             <>
@@ -3804,29 +3804,29 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
 
               {/* Delete Driver Confirmation Modal */}
               {deletingDriver && (
-                <div className="fixed inset-0 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 z-50 text-white select-none">
-                  <div className="bg-[#120D09] border border-[#2A1E15] p-8 rounded-2xl max-w-md w-full shadow-2xl relative">
-                    <h4 className="font-serif font-bold text-xl mb-1 text-white flex items-center gap-2">
-                      <AlertCircle className="text-[#C8102E] w-5 h-5" /> Delete Driver Account
+                <div className="fixed inset-0 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 z-50 text-foreground select-none">
+                  <div className="bg-card border border-border p-8 rounded-2xl max-w-md w-full shadow-2xl relative">
+                    <h4 className="font-serif font-bold text-xl mb-1 text-foreground flex items-center gap-2">
+                      <AlertCircle className="text-primary w-5 h-5" /> Delete Driver Account
                     </h4>
-                    <p className="text-[10px] text-[#8E7E70] uppercase font-mono mb-6">Dangerous Action</p>
+                    <p className="text-[10px] text-muted-foreground uppercase font-mono mb-6">Dangerous Action</p>
 
                     {deleteDriverError && (
-                      <div className="mb-5 p-3.5 bg-[#C8102E]/10 border border-[#C8102E]/30 rounded-xl text-xs text-white">
+                      <div className="mb-5 p-3.5 bg-primary/10 border border-primary/30 rounded-xl text-xs text-foreground">
                         {deleteDriverError}
                       </div>
                     )}
 
                     <div className="mb-6 space-y-2">
-                      <p className="text-xs text-[#E5D5C5]">
-                        Are you sure you want to permanently delete <strong className="text-white font-bold">{deletingDriver.name}</strong> ({deletingDriver.email})?
+                      <p className="text-xs text-foreground">
+                        Are you sure you want to permanently delete <strong className="text-foreground font-bold">{deletingDriver.name}</strong> ({deletingDriver.email})?
                       </p>
-                      <p className="text-[11px] text-[#8E7E70] leading-relaxed">
+                      <p className="text-[11px] text-muted-foreground leading-relaxed">
                         This action will immediately revoke their access PIN and remove them from the database. This cannot be undone.
                       </p>
                     </div>
 
-                    <div className="flex gap-3 pt-4 border-t border-[#2A1E15]/30">
+                    <div className="flex gap-3 pt-4 border-t border-border/30">
                       <button
                         type="button"
                         disabled={deleteDriverSubmitting}
@@ -3834,7 +3834,7 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
                           setDeletingDriver(null);
                           setDeleteDriverError(null);
                         }}
-                        className="flex-1 py-2.5 bg-white/5 border border-white/10 hover:bg-white/10 text-white font-bold rounded-xl text-xs cursor-pointer active:scale-95 transition-all text-center disabled:opacity-50"
+                        className="flex-1 py-2.5 bg-secondary border border-border hover:bg-secondary/80 text-foreground font-bold rounded-xl text-xs cursor-pointer active:scale-95 transition-all text-center disabled:opacity-50"
                       >
                         CANCEL
                       </button>
@@ -3842,7 +3842,7 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
                         type="button"
                         onClick={handleDeleteDriver}
                         disabled={deleteDriverSubmitting}
-                        className="flex-1 py-2.5 bg-[#C8102E] text-white font-bold rounded-xl text-xs hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                        className="flex-1 py-2.5 bg-primary text-foreground font-bold rounded-xl text-xs hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
                       >
                         {deleteDriverSubmitting ? (
                           <>
@@ -3860,10 +3860,10 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
 
               {/* Customer Display Board QR Code Modal */}
               {showQRModal && (
-                <div className="fixed inset-0 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 z-50 text-white select-none">
-                  <div className="bg-[#120D09] border border-[#2A1E15] p-8 rounded-2xl max-w-md w-full shadow-2xl relative text-center">
-                    <h4 className="font-serif font-bold text-xl mb-1 text-white">Order Display Board</h4>
-                    <p className="text-[10px] text-[#8E7E70] uppercase font-mono mb-6">Customer TV Screen Setup</p>
+                <div className="fixed inset-0 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 z-50 text-foreground select-none">
+                  <div className="bg-card border border-border p-8 rounded-2xl max-w-md w-full shadow-2xl relative text-center">
+                    <h4 className="font-serif font-bold text-xl mb-1 text-foreground">Order Display Board</h4>
+                    <p className="text-[10px] text-muted-foreground uppercase font-mono mb-6">Customer TV Screen Setup</p>
 
                     {/* QR Code Container */}
                     <div className="bg-white p-4 rounded-xl inline-block mb-6 shadow-md">
@@ -3875,10 +3875,10 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
                     </div>
 
                     <div className="space-y-4 mb-8 text-left">
-                      <p className="text-xs text-[#E5D5C5] text-center font-mono break-all font-bold select-text p-2 bg-[#1A130E] border border-[#2A1E15] rounded-lg">
+                      <p className="text-xs text-foreground text-center font-mono break-all font-bold select-text p-2 bg-muted border border-border rounded-lg">
                         {window.location.origin + window.location.pathname + "?view=display"}
                       </p>
-                      <div className="text-[11px] text-[#8E7E70] leading-relaxed space-y-2">
+                      <div className="text-[11px] text-muted-foreground leading-relaxed space-y-2">
                         <p>• Scan this QR code with a phone, tablet, or TV web browser to display the live order number queue.</p>
                         <p>• To display this on a TV, open this link in the TV's browser and toggle fullscreen mode.</p>
                         <p>• No login required. It updates automatically in real-time when order statuses change.</p>
@@ -3889,7 +3889,7 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
                       <button
                         type="button"
                         onClick={() => setShowQRModal(false)}
-                        className="flex-1 py-2.5 bg-white/5 border border-white/10 hover:bg-white/10 text-white font-bold rounded-xl text-xs cursor-pointer active:scale-95 transition-all"
+                        className="flex-1 py-2.5 bg-secondary border border-border hover:bg-secondary/80 text-foreground font-bold rounded-xl text-xs cursor-pointer active:scale-95 transition-all"
                       >
                         CLOSE
                       </button>
@@ -3899,7 +3899,7 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
                           window.open("?view=display", "_blank");
                           setShowQRModal(false);
                         }}
-                        className="flex-1 py-2.5 bg-[#C8102E] text-white font-bold rounded-xl text-xs hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-1 cursor-pointer"
+                        className="flex-1 py-2.5 bg-primary text-foreground font-bold rounded-xl text-xs hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-1 cursor-pointer"
                       >
                         OPEN VIEW
                       </button>
@@ -3917,17 +3917,17 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
       {activeWaiterCalls.length > 0 && (
         <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-3 max-w-sm">
           {activeWaiterCalls.map(table => (
-            <div key={table.id} className="p-4 bg-red-950 border border-[#C8102E] rounded-xl flex items-center justify-between shadow-2xl animate-bounce">
+            <div key={table.id} className="p-4 bg-red-950 border border-primary rounded-xl flex items-center justify-between shadow-2xl animate-bounce">
               <div className="flex items-center gap-2">
                 <span className="text-lg">🛎️</span>
                 <div>
-                  <div className="text-xs font-mono font-bold text-white uppercase">WAITER CALLED</div>
-                  <div className="text-[10px] text-white/80 font-mono">Table {table.id} · {table.area}</div>
+                  <div className="text-xs font-mono font-bold text-foreground uppercase">WAITER CALLED</div>
+                  <div className="text-[10px] text-foreground/80 font-mono">Table {table.id} · {table.area}</div>
                 </div>
               </div>
               <button
                 onClick={() => dismissWaiterCall(table.id)}
-                className="ml-4 px-3 py-1 bg-white text-[#C8102E] hover:opacity-90 font-mono text-[9px] font-bold rounded cursor-pointer"
+                className="ml-4 px-3 py-1 bg-white text-primary hover:opacity-90 font-mono text-[9px] font-bold rounded cursor-pointer"
               >
                 DISMISS
               </button>
@@ -4046,8 +4046,8 @@ function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
   }
 
   return (
-    <div className="p-5 bg-[#120D09] border border-[#2A1E15] rounded">
-      <h3 className="font-serif font-black text-sm text-white mb-4 border-b border-[#2A1E15] pb-2">
+    <div className="p-5 bg-card border border-border rounded">
+      <h3 className="font-serif font-black text-sm text-foreground mb-4 border-b border-border pb-2">
         {form.name ? `CMS FORGE: Edit ${form.name}` : "CMS FORGE: New Product Matrix"}
       </h3>
       
@@ -4058,48 +4058,48 @@ function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
           { key: "price", label: "Base Pricing (€)", placeholder: "14.90", type: "number" },
         ].map(f => (
           <div key={f.key}>
-            <label className="text-[10px] font-mono tracking-wider text-[#8E7E70] block mb-1">{f.label}</label>
+            <label className="text-[10px] font-mono tracking-wider text-muted-foreground block mb-1">{f.label}</label>
             <input
               type={f.type || "text"}
               value={(form as any)[f.key]}
               onChange={e => setForm(p => ({ ...p, [f.key]: f.type === "number" ? Number(e.target.value) : e.target.value }))}
               placeholder={f.placeholder}
-              className="w-full px-3 py-2 text-xs bg-[#1A130E] border border-[#2A1E15] rounded text-white outline-none focus:border-[#C8102E]"
+              className="w-full px-3 py-2 text-xs bg-muted border border-border rounded text-foreground outline-none focus:border-primary"
             />
           </div>
         ))}
         
         {/* Custom Image Uploader field */}
         <div>
-          <label className="text-[10px] font-mono tracking-wider text-[#8E7E70] block mb-1">Product Image</label>
+          <label className="text-[10px] font-mono tracking-wider text-muted-foreground block mb-1">Product Image</label>
           {form.image ? (
-            <div className="relative h-20 w-full rounded border border-[#2A1E15] overflow-hidden group">
+            <div className="relative h-20 w-full rounded border border-border overflow-hidden group">
               <img src={form.image} alt="Upload Preview" className="w-full h-full object-cover" />
               <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                <label className="cursor-pointer bg-[#C8102E] hover:opacity-90 text-white font-mono text-[9px] font-bold px-2 py-1 rounded">
+                <label className="cursor-pointer bg-primary hover:opacity-90 text-foreground font-mono text-[9px] font-bold px-2 py-1 rounded">
                   {uploading ? "UPLOADING..." : "REPLACE"}
                   <input type="file" accept="image/*" onChange={handleImageUpload} disabled={uploading} className="hidden" />
                 </label>
                 <button 
                   type="button"
                   onClick={() => setForm(p => ({ ...p, image: "" }))} 
-                  className="bg-zinc-800 hover:bg-zinc-700 text-white font-mono text-[9px] font-bold px-2 py-1 rounded cursor-pointer"
+                  className="bg-zinc-800 hover:bg-zinc-700 text-foreground font-mono text-[9px] font-bold px-2 py-1 rounded cursor-pointer"
                 >
                   REMOVE
                 </button>
               </div>
             </div>
           ) : (
-            <label className="flex flex-col items-center justify-center h-20 w-full rounded border border-dashed border-[#2A1E15] hover:border-[#C8102E]/50 transition-colors cursor-pointer bg-[#1A130E]/30">
+            <label className="flex flex-col items-center justify-center h-20 w-full rounded border border-dashed border-border hover:border-primary/50 transition-colors cursor-pointer bg-muted/30">
               {uploading ? (
                 <div className="flex flex-col items-center gap-1">
                   <div className="w-4 h-4 border-2 border-t-[#C8102E] border-r-transparent animate-spin rounded-full" />
-                  <span className="text-[9px] font-mono text-[#8E7E70]">Uploading...</span>
+                  <span className="text-[9px] font-mono text-muted-foreground">Uploading...</span>
                 </div>
               ) : (
                 <div className="flex flex-col items-center gap-1">
-                  <Upload size={16} className="text-[#8E7E70]" />
-                  <span className="text-[9px] font-mono text-[#8E7E70]">Upload image file</span>
+                  <Upload size={16} className="text-muted-foreground" />
+                  <span className="text-[9px] font-mono text-muted-foreground">Upload image file</span>
                 </div>
               )}
               <input type="file" accept="image/*" onChange={handleImageUpload} disabled={uploading} className="hidden" />
@@ -4108,17 +4108,17 @@ function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
         </div>
         
         <div className="md:col-span-2">
-          <label className="text-[10px] font-mono tracking-wider text-[#8E7E70] block mb-1">Description Copy</label>
+          <label className="text-[10px] font-mono tracking-wider text-muted-foreground block mb-1">Description Copy</label>
           <textarea
             value={form.desc}
             onChange={e => setForm(p => ({ ...p, desc: e.target.value }))}
             rows={2}
-            className="w-full px-3 py-2 text-xs bg-[#1A130E] border border-[#2A1E15] rounded text-white outline-none focus:border-[#C8102E] resize-none"
+            className="w-full px-3 py-2 text-xs bg-muted border border-border rounded text-foreground outline-none focus:border-primary resize-none"
           />
         </div>
         
         <div className="flex items-center gap-3">
-          <span className="text-[10px] font-mono tracking-wider text-[#8E7E70]">Inventory Status:</span>
+          <span className="text-[10px] font-mono tracking-wider text-muted-foreground">Inventory Status:</span>
           <button onClick={() => setForm(p => ({ ...p, active: !p.active }))}
             className="w-10 h-5 relative rounded-full transition-all border cursor-pointer"
             style={{ background: form.active ? "#C8102E" : "#1A130E", borderColor: form.active ? "#C8102E" : "#2A1E15" }}>
@@ -4130,16 +4130,16 @@ function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
       </div>
 
       {/* Modifier Schema Builder */}
-      <div className="mb-6 border-t border-[#2A1E15] pt-4">
-        <h4 className="text-xs font-mono tracking-widest text-[#8E7E70] mb-4 uppercase">Modifier Schema Builder ({form.customFields.length})</h4>
+      <div className="mb-6 border-t border-border pt-4">
+        <h4 className="text-xs font-mono tracking-widest text-muted-foreground mb-4 uppercase">Modifier Schema Builder ({form.customFields.length})</h4>
         
         <div className="flex flex-col gap-4 mb-4">
           {form.customFields.map(field => (
-            <div key={field.id} className="p-3 bg-[#1A130E] border border-[#2A1E15] rounded">
+            <div key={field.id} className="p-3 bg-muted border border-border rounded">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  <span className="font-bold text-xs text-white">{field.name}</span>
-                  <span className="bg-[#C8102E]/20 text-[#C8102E] text-[8px] font-bold px-1.5 py-0.5 rounded tracking-wide font-mono uppercase">{field.type}</span>
+                  <span className="font-bold text-xs text-foreground">{field.name}</span>
+                  <span className="bg-primary/20 text-primary text-[8px] font-bold px-1.5 py-0.5 rounded tracking-wide font-mono uppercase">{field.type}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <button onClick={() => setForm(p => ({ ...p, customFields: p.customFields.map(f => f.id === field.id ? { ...f, required: !f.required } : f) }))}
@@ -4148,7 +4148,7 @@ function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
                     {field.required ? "REQUIRED" : "OPTIONAL"}
                   </button>
                   <button onClick={() => setForm(p => ({ ...p, customFields: p.customFields.filter(f => f.id !== field.id) }))}
-                    className="text-[#8E7E70] hover:text-white cursor-pointer" title="Remove Field">
+                    className="text-muted-foreground hover:text-foreground cursor-pointer" title="Remove Field">
                     <X size={12} />
                   </button>
                 </div>
@@ -4158,10 +4158,10 @@ function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
                 <div>
                   <div className="flex flex-wrap gap-1.5 mb-3">
                     {field.options.map((opt, i) => (
-                      <div key={i} className="flex items-center gap-1.5 px-2 py-1 text-[10px] bg-[#120D09] border border-[#2A1E15] rounded text-[#E5D5C5]">
+                      <div key={i} className="flex items-center gap-1.5 px-2 py-1 text-[10px] bg-card border border-border rounded text-foreground">
                         <span>{opt}</span>
                         <button onClick={() => setForm(p => ({ ...p, customFields: p.customFields.map(f => f.id === field.id ? { ...f, options: f.options.filter((_, idx) => idx !== i) } : f) }))}
-                          className="text-[#8E7E70] hover:text-white cursor-pointer">
+                          className="text-muted-foreground hover:text-foreground cursor-pointer">
                           <X size={9} />
                         </button>
                       </div>
@@ -4173,10 +4173,10 @@ function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
                       onChange={e => setNewOption(p => ({ ...p, [field.id]: e.target.value }))}
                       onKeyDown={e => e.key === "Enter" && addOption(field.id)}
                       placeholder="Add sub-option (e.g., Extra cheese (+€1.50))"
-                      className="flex-1 px-3 py-1.5 text-xs bg-[#120D09] border border-[#2A1E15] rounded text-white outline-none focus:border-[#C8102E]"
+                      className="flex-1 px-3 py-1.5 text-xs bg-card border border-border rounded text-foreground outline-none focus:border-primary"
                     />
                     <button onClick={() => addOption(field.id)}
-                      className="bg-[#C8102E] hover:opacity-90 text-white font-bold px-3 py-1.5 rounded text-xs cursor-pointer">
+                      className="bg-primary hover:opacity-90 text-foreground font-bold px-3 py-1.5 rounded text-xs cursor-pointer">
                       ADD
                     </button>
                   </div>
@@ -4187,36 +4187,36 @@ function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
         </div>
 
         {/* Add Field Inputs */}
-        <div className="flex flex-wrap gap-2 p-3 bg-[#1A130E]/50 border border-[#2A1E15] rounded">
+        <div className="flex flex-wrap gap-2 p-3 bg-muted/50 border border-border rounded">
           <input
             value={newFieldName}
             onChange={e => setNewFieldName(e.target.value)}
             placeholder="Modifier title (e.g. Ice Options, Supplements...)"
-            className="flex-1 min-w-[200px] px-3 py-2 text-xs bg-[#120D09] border border-[#2A1E15] rounded text-white outline-none focus:border-[#C8102E]"
+            className="flex-1 min-w-[200px] px-3 py-2 text-xs bg-card border border-border rounded text-foreground outline-none focus:border-primary"
           />
           <select value={newFieldType} onChange={e => setNewFieldType(e.target.value as any)}
-            className="px-3 py-2 text-xs bg-[#120D09] border border-[#2A1E15] rounded text-white outline-none cursor-pointer">
+            className="px-3 py-2 text-xs bg-card border border-border rounded text-foreground outline-none cursor-pointer">
             <option value="radio">Radio Option (single selection)</option>
             <option value="checkbox">Checkbox Option (multi selection)</option>
             <option value="text">Text Input (custom comment)</option>
           </select>
           <button onClick={addField}
-            className="bg-[#C8102E] hover:opacity-90 text-white font-bold px-3 py-2 rounded text-xs flex items-center gap-1 cursor-pointer">
+            className="bg-primary hover:opacity-90 text-foreground font-bold px-3 py-2 rounded text-xs flex items-center gap-1 cursor-pointer">
             <Plus size={13} /> ADD FIELD
           </button>
         </div>
       </div>
 
-      <div className="flex gap-3 pt-3 border-t border-[#2A1E15]">
+      <div className="flex gap-3 pt-3 border-t border-border">
         <button onClick={() => !uploading && onSave(form)}
           disabled={uploading}
-          className={`font-bold py-2 px-4 rounded text-xs flex items-center gap-1.5 text-white transition-all ${
-            uploading ? "bg-[#C8102E]/50 cursor-not-allowed opacity-60" : "bg-[#C8102E] hover:opacity-90 cursor-pointer"
+          className={`font-bold py-2 px-4 rounded text-xs flex items-center gap-1.5 text-foreground transition-all ${
+            uploading ? "bg-primary/50 cursor-not-allowed opacity-60" : "bg-primary hover:opacity-90 cursor-pointer"
           }`}>
           <Save size={13} /> {uploading ? "UPLOADING..." : "COMMIT CHANGES"}
         </button>
         <button onClick={onCancel}
-          className="border border-[#2A1E15] hover:bg-[#1A130E] text-[#8E7E70] hover:text-white py-2 px-4 rounded text-xs cursor-pointer">
+          className="border border-border hover:bg-muted text-muted-foreground hover:text-foreground py-2 px-4 rounded text-xs cursor-pointer">
           CANCEL
         </button>
       </div>

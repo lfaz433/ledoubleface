@@ -146,8 +146,8 @@ export function WaiterAuthGate({ onLogout, onAdminRedirect }: WaiterAuthGateProp
 
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-[#0A0704] text-[#8E7E70] p-6">
-        <Loader2 className="w-10 h-10 animate-spin text-[#C8102E] mb-4" />
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background text-muted-foreground p-6">
+        <Loader2 className="w-10 h-10 animate-spin text-primary mb-4" />
         <p className="text-xs font-mono tracking-widest uppercase animate-pulse">
           {lang === "fr" ? "Vérification des accès..." : "Checking credentials..."}
         </p>
@@ -176,36 +176,36 @@ export function WaiterAuthGate({ onLogout, onAdminRedirect }: WaiterAuthGateProp
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0A0704] px-4 py-12 relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center bg-background px-4 py-12 relative overflow-hidden">
       {/* Decorative background gradients */}
-      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#C8102E]/5 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-[#D4A017]/5 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-accent/5 rounded-full blur-3xl pointer-events-none" />
 
       {/* Language Switcher */}
       <div className="absolute top-6 right-6 z-20">
         <button
           onClick={() => setLang(lang === "fr" ? "en" : "fr")}
-          className="text-xs font-mono tracking-widest px-3 py-1.5 bg-white/5 border border-white/15 rounded text-[#E5D5C5] hover:text-white cursor-pointer"
+          className="text-xs font-mono tracking-widest px-3 py-1.5 bg-secondary border border-white/15 rounded text-foreground hover:text-foreground cursor-pointer"
         >
           {lang === "fr" ? "EN" : "FR"}
         </button>
       </div>
 
-      <div className="w-full max-w-md bg-[#120D09] border border-[#2A1E15] p-8 rounded-2xl shadow-2xl relative z-10">
+      <div className="w-full max-w-md bg-card border border-border p-8 rounded-2xl shadow-2xl relative z-10">
         <div className="flex flex-col items-center mb-8">
-          <div className="w-12 h-12 rounded-xl bg-[#C8102E]/10 border border-[#C8102E]/30 flex items-center justify-center mb-3">
-            <Shield className="w-6 h-6 text-[#C8102E]" />
+          <div className="w-12 h-12 rounded-xl bg-primary/10 border border-primary/30 flex items-center justify-center mb-3">
+            <Shield className="w-6 h-6 text-primary" />
           </div>
-          <h2 className="font-serif font-bold text-2xl text-white text-center">
+          <h2 className="font-serif font-bold text-2xl text-foreground text-center">
             {t.waiterLoginTitle}
           </h2>
-          <p className="text-[#8E7E70] text-xs font-mono mt-1 uppercase tracking-wider text-center">
+          <p className="text-muted-foreground text-xs font-mono mt-1 uppercase tracking-wider text-center">
             {t.waiterLoginSubtitle}
           </p>
         </div>
 
         {isMock && (
-          <div className="mb-6 p-4.5 bg-[#D4A017]/10 border border-[#D4A017]/20 rounded-xl text-xs text-[#D4A017]">
+          <div className="mb-6 p-4.5 bg-accent/10 border border-accent/20 rounded-xl text-xs text-accent">
             <div className="flex gap-2.5 items-start">
               <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
               <div>
@@ -221,9 +221,9 @@ export function WaiterAuthGate({ onLogout, onAdminRedirect }: WaiterAuthGateProp
         )}
 
         {error && (
-          <div className="mb-6 p-4 bg-[#C8102E]/10 border border-[#C8102E]/20 rounded-xl text-xs text-white">
+          <div className="mb-6 p-4 bg-primary/10 border border-primary/20 rounded-xl text-xs text-foreground">
             <div className="flex gap-2 items-center">
-              <div className="w-1.5 h-1.5 rounded-full bg-[#C8102E]" />
+              <div className="w-1.5 h-1.5 rounded-full bg-primary" />
               <p className="font-semibold">{error}</p>
             </div>
           </div>
@@ -231,7 +231,7 @@ export function WaiterAuthGate({ onLogout, onAdminRedirect }: WaiterAuthGateProp
 
         <form onSubmit={handleLogin} className="space-y-5">
           <div>
-            <label className="block text-[#8E7E70] font-mono text-[10px] tracking-wider uppercase mb-1.5">
+            <label className="block text-muted-foreground font-mono text-[10px] tracking-wider uppercase mb-1.5">
               {t.waiterEmailLabel}
             </label>
             <input
@@ -239,13 +239,13 @@ export function WaiterAuthGate({ onLogout, onAdminRedirect }: WaiterAuthGateProp
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="waiter@ledoubleface.com"
-              className="w-full px-4 py-3 text-xs bg-[#1A130E] border border-[#2A1E15] rounded-xl text-white outline-none focus:border-[#C8102E] transition-colors"
+              className="w-full px-4 py-3 text-xs bg-muted border border-border rounded-xl text-foreground outline-none focus:border-primary transition-colors"
               required
             />
           </div>
 
           <div>
-            <label className="block text-[#8E7E70] font-mono text-[10px] tracking-wider uppercase mb-1.5">
+            <label className="block text-muted-foreground font-mono text-[10px] tracking-wider uppercase mb-1.5">
               {t.waiterPinLabel}
             </label>
             <input
@@ -254,7 +254,7 @@ export function WaiterAuthGate({ onLogout, onAdminRedirect }: WaiterAuthGateProp
               value={pin}
               onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
               placeholder="••••"
-              className="w-full px-4 py-3 text-xs tracking-widest bg-[#1A130E] border border-[#2A1E15] rounded-xl text-white outline-none focus:border-[#C8102E] transition-colors text-center font-bold text-lg"
+              className="w-full px-4 py-3 text-xs tracking-widest bg-muted border border-border rounded-xl text-foreground outline-none focus:border-primary transition-colors text-center font-bold text-lg"
               required
             />
           </div>
@@ -262,7 +262,7 @@ export function WaiterAuthGate({ onLogout, onAdminRedirect }: WaiterAuthGateProp
           <button
             type="submit"
             disabled={submitting}
-            className="w-full py-3 bg-[#C8102E] text-white font-bold rounded-xl text-xs hover:bg-[#C8102E]/90 active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+            className="w-full py-3 bg-primary text-foreground font-bold rounded-xl text-xs hover:bg-primary/90 active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
           >
             {submitting ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -276,7 +276,7 @@ export function WaiterAuthGate({ onLogout, onAdminRedirect }: WaiterAuthGateProp
         {isMock && (
           <button
             onClick={handleBypass}
-            className="w-full mt-3 py-2.5 bg-white/5 hover:bg-white/10 text-[#8E7E70] hover:text-white font-mono text-[10px] tracking-widest rounded-xl transition-all border border-white/5 cursor-pointer uppercase"
+            className="w-full mt-3 py-2.5 bg-secondary hover:bg-secondary/80 text-muted-foreground hover:text-foreground font-mono text-[10px] tracking-widest rounded-xl transition-all border border-border cursor-pointer uppercase"
           >
             Bypass Auth (Simulate Access)
           </button>

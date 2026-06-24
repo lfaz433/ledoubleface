@@ -129,7 +129,7 @@ function TimerBadge({ createdAt }: { createdAt: string }) {
 
   const color =
     min >= 20
-      ? "text-[#C8102E] animate-pulse"
+      ? "text-primary animate-pulse"
       : min >= 10
       ? "text-[#F59E0B]"
       : "text-[#10B981]";
@@ -180,15 +180,15 @@ function OrderCard({ order, column, lang, onAdvance, onReDownload, reduced }: Or
       animate={reduced ? undefined : "animate"}
       exit={reduced ? undefined : "exit"}
       transition={{ type: "spring", stiffness: 400, damping: 30 }}
-      className="bg-[#120D09] border border-[#2A1E15] rounded-xl p-4 space-y-3 hover:border-[#2A1E15]/80 transition-colors"
+      className="bg-card border border-border rounded-xl p-4 space-y-3 hover:border-border/80 transition-colors"
     >
       {/* ── Header row ── */}
       <div className="flex items-start justify-between gap-2">
         <div className="flex flex-col gap-0.5 min-w-0">
-          <span className="font-mono font-bold text-sm text-[#D4A017] tracking-wider truncate">
+          <span className="font-mono font-bold text-sm text-accent tracking-wider truncate">
             {shortId}
           </span>
-          <span className="text-[#8E7E70] text-[10px] font-mono uppercase tracking-wide">
+          <span className="text-muted-foreground text-[10px] font-mono uppercase tracking-wide">
             TABLE {order.table_id}
             {order.area ? ` · ${order.area.toUpperCase()}` : ""}
           </span>
@@ -201,7 +201,7 @@ function OrderCard({ order, column, lang, onAdvance, onReDownload, reduced }: Or
       {/* ── Bill-requested pill ── */}
       {isBillRequested && (
         <div className="inline-flex items-center gap-1">
-          <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-[#D4A017]/10 text-[#D4A017] border border-[#D4A017]/30">
+          <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-accent/10 text-accent border border-accent/30">
             {t.billRequested}
           </span>
         </div>
@@ -212,11 +212,11 @@ function OrderCard({ order, column, lang, onAdvance, onReDownload, reduced }: Or
         {order.items.map((item, idx) => (
           <div key={`${item.product_id}-${idx}`} className="space-y-0.5">
             <div className="flex justify-between items-baseline gap-2">
-              <span className="text-xs text-[#E5D5C5]">
+              <span className="text-xs text-foreground">
                 <span className="font-bold">{item.quantity}×</span>{" "}
                 {item.name}
               </span>
-              <span className="text-[10px] font-mono text-[#8E7E70] flex-shrink-0">
+              <span className="text-[10px] font-mono text-muted-foreground flex-shrink-0">
                 €{(item.price * item.quantity).toFixed(2)}
               </span>
             </div>
@@ -228,7 +228,7 @@ function OrderCard({ order, column, lang, onAdvance, onReDownload, reduced }: Or
                 return (
                   <div
                     key={k}
-                    className="text-[10px] text-[#8E7E70] ml-3 leading-relaxed"
+                    className="text-[10px] text-muted-foreground ml-3 leading-relaxed"
                   >
                     ↳ {val}
                   </div>
@@ -240,14 +240,14 @@ function OrderCard({ order, column, lang, onAdvance, onReDownload, reduced }: Or
 
       {/* ── Note ── */}
       {order.note && (
-        <div className="p-2 bg-[#1A130E] border border-dashed border-[#2A1E15] text-[10px] text-[#F59E0B] rounded font-mono">
+        <div className="p-2 bg-muted border border-dashed border-border text-[10px] text-[#F59E0B] rounded font-mono">
           📝 {order.note}
         </div>
       )}
 
       {/* ── Divider + footer ── */}
-      <div className="pt-2 border-t border-[#2A1E15]/50 flex items-center justify-between gap-2">
-        <span className="font-bold text-xs text-[#E5D5C5]">
+      <div className="pt-2 border-t border-border/50 flex items-center justify-between gap-2">
+        <span className="font-bold text-xs text-foreground">
           {t.total}:{" "}
           <span className="font-mono">€{order.total.toFixed(2)}</span>
         </span>
@@ -257,7 +257,7 @@ function OrderCard({ order, column, lang, onAdvance, onReDownload, reduced }: Or
             {t.paid} ✓
           </span>
         ) : (
-          <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-[#C8102E]/10 text-[#C8102E] border border-[#C8102E]/30">
+          <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/30">
             {t.unpaid} 🔴
           </span>
         )}
@@ -267,7 +267,7 @@ function OrderCard({ order, column, lang, onAdvance, onReDownload, reduced }: Or
       {column === 1 && (
         <button
           onClick={() => onAdvance(order.id, false)}
-          className="w-full h-10 rounded-xl font-mono font-bold text-sm bg-[#C8102E] text-white cursor-pointer hover:opacity-90 active:scale-95 transition-all"
+          className="w-full h-10 rounded-xl font-mono font-bold text-sm bg-primary text-foreground cursor-pointer hover:opacity-90 active:scale-95 transition-all"
         >
           {t.col1Btn}
         </button>
@@ -286,7 +286,7 @@ function OrderCard({ order, column, lang, onAdvance, onReDownload, reduced }: Or
         <button
           onClick={() => onReDownload(order)}
           title="Re-download receipt"
-          className="flex items-center justify-center gap-2 w-full h-10 rounded-xl font-mono text-xs text-[#8E7E70] border border-[#2A1E15] bg-transparent cursor-pointer hover:border-[#D4A017]/40 hover:text-[#D4A017] active:scale-95 transition-all"
+          className="flex items-center justify-center gap-2 w-full h-10 rounded-xl font-mono text-xs text-muted-foreground border border-border bg-transparent cursor-pointer hover:border-accent/40 hover:text-accent active:scale-95 transition-all"
         >
           <Receipt className="w-3.5 h-3.5" />
           <Lock className="w-3 h-3" />
@@ -320,25 +320,25 @@ function ColumnHeader({
 }: ColumnHeaderProps) {
   return (
     <div
-      className={`flex items-center justify-between pb-3 mb-3 border-b border-[#2A1E15] pl-3 ${accentClass} ${
+      className={`flex items-center justify-between pb-3 mb-3 border-b border-border pl-3 ${accentClass} ${
         isMobile ? "cursor-pointer select-none" : ""
       }`}
       onClick={isMobile ? onToggle : undefined}
     >
       <div className="flex items-center gap-2">
-        <span className="font-serif font-bold text-[#E5D5C5] text-sm">{title}</span>
-        <span className="bg-[#2A1E15] text-[#8E7E70] font-mono text-[10px] rounded-full px-2 py-0.5">
+        <span className="font-serif font-bold text-foreground text-sm">{title}</span>
+        <span className="bg-[#2A1E15] text-muted-foreground font-mono text-[10px] rounded-full px-2 py-0.5">
           {count}
         </span>
       </div>
       <div className="flex items-center gap-2">
-        <span className="text-[#D4A017] font-mono text-[10px]">{sumStr}</span>
+        <span className="text-accent font-mono text-[10px]">{sumStr}</span>
         {isMobile && (
           <motion.div
             animate={{ rotate: expanded ? 180 : 0 }}
             transition={{ duration: 0.2 }}
           >
-            <ChevronDown className="w-4 h-4 text-[#8E7E70]" />
+            <ChevronDown className="w-4 h-4 text-muted-foreground" />
           </motion.div>
         )}
       </div>
@@ -519,7 +519,7 @@ export function LiveOrdersQueue({
           return (
             <div
               key={col.id}
-              className="flex flex-col min-h-[120px] bg-[#120D09]/40 border border-[#2A1E15]/60 rounded-xl p-4"
+              className="flex flex-col min-h-[120px] bg-card/40 border border-border/60 rounded-xl p-4"
             >
               {/* Column Header */}
               <ColumnHeader
@@ -551,7 +551,7 @@ export function LiveOrdersQueue({
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            className="py-8 text-center text-[#8E7E70] text-xs font-mono"
+                            className="py-8 text-center text-muted-foreground text-xs font-mono"
                           >
                             {col.emptyMsg}
                           </motion.div>

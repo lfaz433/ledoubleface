@@ -7,7 +7,8 @@ import { DriverAuthGate } from "./components/DriverAuthGate";
 import { LandingPage } from "./components/LandingPage";
 import { KitchenDisplay } from "./components/KitchenDisplay";
 import { CustomerDisplay } from "./components/CustomerDisplay";
-import { Monitor, Smartphone, Columns, ArrowLeft } from "lucide-react";
+import { ArrowLeft, Monitor, Smartphone, Columns, Moon, Sun } from "lucide-react";
+import { useTheme } from "../lib/theme";
 
 type RouteView = "landing" | "menu" | "admin" | "waiter" | "driver" | "simulator" | "kitchen" | "display";
 
@@ -139,6 +140,8 @@ function AppCore() {
     }
   };
 
+  const { theme, toggleTheme } = useTheme();
+
   const updateSimulatorUrlContext = (newTable: string, newArea: string) => {
     setTableId(newTable);
     setArea(newArea);
@@ -156,10 +159,10 @@ function AppCore() {
   // Render Standalone Guest Menu View
   if (view === "menu") {
     return (
-      <div className="min-h-screen bg-[#0A0704] text-white relative">
+      <div className="min-h-screen bg-background text-foreground relative">
         <button
           onClick={() => navigateTo("landing")}
-          className="fixed top-4 left-4 z-50 flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono tracking-widest text-[#E5D5C5] bg-black/40 border border-white/10 hover:bg-black/60 rounded backdrop-blur-md transition-all cursor-pointer"
+          className="fixed top-4 left-4 z-50 flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono tracking-widest text-foreground bg-background/60 border border-border hover:bg-black/60 rounded backdrop-blur-md transition-all cursor-pointer"
         >
           <ArrowLeft size={14} /> HOME
         </button>
@@ -171,10 +174,10 @@ function AppCore() {
   // Render Standalone Kitchen Dashboard View
   if (view === "admin") {
     return (
-      <div className="min-h-screen bg-[#0A0704] text-white relative">
+      <div className="min-h-screen bg-background text-foreground relative">
         <button
           onClick={() => navigateTo("landing")}
-          className="fixed top-4 left-4 z-50 flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono tracking-widest text-[#E5D5C5] bg-black/40 border border-white/10 hover:bg-black/60 rounded-lg backdrop-blur-md transition-all cursor-pointer"
+          className="fixed top-4 left-4 z-50 flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono tracking-widest text-foreground bg-background/60 border border-border hover:bg-black/60 rounded-lg backdrop-blur-md transition-all cursor-pointer"
         >
           <ArrowLeft size={14} /> HOME
         </button>
@@ -186,10 +189,10 @@ function AppCore() {
   // Render Standalone Waiter Dashboard View
   if (view === "waiter") {
     return (
-      <div className="min-h-screen bg-[#0A0704] text-white relative">
+      <div className="min-h-screen bg-background text-foreground relative">
         <button
           onClick={() => navigateTo("landing")}
-          className="fixed top-4 left-4 z-50 flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono tracking-widest text-[#E5D5C5] bg-black/40 border border-white/10 hover:bg-black/60 rounded-lg backdrop-blur-md transition-all cursor-pointer"
+          className="fixed top-4 left-4 z-50 flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono tracking-widest text-foreground bg-background/60 border border-border hover:bg-black/60 rounded-lg backdrop-blur-md transition-all cursor-pointer"
         >
           <ArrowLeft size={14} /> HOME
         </button>
@@ -204,10 +207,10 @@ function AppCore() {
   // Render Standalone Driver Dashboard View
   if (view === "driver") {
     return (
-      <div className="min-h-screen bg-[#0A0704] text-white relative">
+      <div className="min-h-screen bg-background text-foreground relative">
         <button
           onClick={() => navigateTo("landing")}
-          className="fixed top-4 left-4 z-50 flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono tracking-widest text-[#E5D5C5] bg-black/40 border border-white/10 hover:bg-black/60 rounded-lg backdrop-blur-md transition-all cursor-pointer"
+          className="fixed top-4 left-4 z-50 flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono tracking-widest text-foreground bg-background/60 border border-border hover:bg-black/60 rounded-lg backdrop-blur-md transition-all cursor-pointer"
         >
           <ArrowLeft size={14} /> HOME
         </button>
@@ -231,52 +234,61 @@ function AppCore() {
 
   // Render Simulator View (Split / Guest / Admin Testing)
   return (
-    <div className="flex flex-col h-screen w-screen overflow-hidden bg-radial-gradient text-white">
+    <div className="flex flex-col h-screen w-screen overflow-hidden bg-radial-gradient text-foreground">
       {/* Simulator Control Panel */}
       <div className="glass-panel px-4 py-3 flex flex-wrap items-center justify-between gap-3 z-50 rounded-b-xl border-t-0 mx-2 mb-2">
         <div className="flex items-center gap-2">
-          <div className="w-2.5 h-2.5 rounded-full bg-[#C8102E] animate-pulse shadow-[0_0_8px_rgba(200,16,46,0.8)]" />
-          <span className="font-mono text-xs font-bold tracking-widest text-[#E5D5C5]">ZERO-FRICTION SIMULATOR</span>
+          <div className="w-2.5 h-2.5 rounded-full bg-primary animate-pulse shadow-[0_0_8px_rgba(200,16,46,0.8)]" />
+          <span className="font-mono text-xs font-bold tracking-widest text-foreground">ZERO-FRICTION SIMULATOR</span>
         </div>
 
+        {/* Theme Toggle */}
+        <button
+          onClick={toggleTheme}
+          className="p-1.5 text-accent hover:bg-secondary rounded-full transition-colors border border-accent/30"
+          title="Toggle Theme"
+        >
+          {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
+        </button>
+
         {/* Environment Selector variables */}
-        <div className="flex items-center gap-3 bg-white/5 border border-white/10 px-3 py-1 rounded-md text-xs backdrop-blur-md">
+        <div className="flex items-center gap-3 bg-secondary border border-border px-3 py-1 rounded-md text-xs backdrop-blur-md">
           <div className="flex items-center gap-1.5">
-            <span className="text-[#8E7E70] font-mono">TABLE:</span>
+            <span className="text-muted-foreground font-mono">TABLE:</span>
             <select
               value={tableId}
               onChange={(e) => updateSimulatorUrlContext(e.target.value, area)}
-              className="bg-transparent text-white font-bold outline-none cursor-pointer"
+              className="bg-transparent text-foreground font-bold outline-none cursor-pointer"
             >
               {Array.from({ length: 12 }, (_, i) => {
                 const id = `T${String(i + 1).padStart(2, "0")}`;
-                return <option key={id} value={id} className="bg-[#120D09]">{id}</option>;
+                return <option key={id} value={id} className="bg-card">{id}</option>;
               })}
-              <option value="DELIVERY" className="bg-[#120D09]">DELIVERY</option>
+              <option value="DELIVERY" className="bg-card">DELIVERY</option>
             </select>
           </div>
           <div className="w-px h-3 bg-white/20" />
           <div className="flex items-center gap-1.5">
-            <span className="text-[#8E7E70] font-mono">ZONE:</span>
+            <span className="text-muted-foreground font-mono">ZONE:</span>
             <select
               value={area}
               onChange={(e) => updateSimulatorUrlContext(tableId, e.target.value)}
-              className="bg-transparent text-white font-bold outline-none cursor-pointer"
+              className="bg-transparent text-foreground font-bold outline-none cursor-pointer"
             >
-              <option value="Terrace Patio" className="bg-[#120D09]">Terrace Patio</option>
-              <option value="Inside Lounge" className="bg-[#120D09]">Inside Lounge</option>
-              <option value="Bar Counter" className="bg-[#120D09]">Bar Counter</option>
+              <option value="Terrace Patio" className="bg-card">Terrace Patio</option>
+              <option value="Inside Lounge" className="bg-card">Inside Lounge</option>
+              <option value="Bar Counter" className="bg-card">Bar Counter</option>
             </select>
           </div>
         </div>
 
         {/* Mode Switcher & Navigation */}
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1 bg-white/5 border border-white/10 p-1 rounded-md backdrop-blur-md">
+          <div className="flex items-center gap-1 bg-secondary border border-border p-1 rounded-md backdrop-blur-md">
             <button
               onClick={() => setSimulatorMode("guest")}
               className={`flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded transition-all ${
-                simulatorMode === "guest" ? "bg-[#C8102E] text-white shadow-lg shadow-[#C8102E]/20" : "text-[#8E7E70] hover:text-white"
+                simulatorMode === "guest" ? "bg-primary text-foreground shadow-lg shadow-[#C8102E]/20" : "text-muted-foreground hover:text-foreground"
               }`}
             >
               <Smartphone size={14} />
@@ -285,7 +297,7 @@ function AppCore() {
             <button
               onClick={() => setSimulatorMode("admin")}
               className={`flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded transition-all ${
-                simulatorMode === "admin" ? "bg-[#C8102E] text-white shadow-lg shadow-[#C8102E]/20" : "text-[#8E7E70] hover:text-white"
+                simulatorMode === "admin" ? "bg-primary text-foreground shadow-lg shadow-[#C8102E]/20" : "text-muted-foreground hover:text-foreground"
               }`}
             >
               <Monitor size={14} />
@@ -294,7 +306,7 @@ function AppCore() {
             <button
               onClick={() => setSimulatorMode("split")}
               className={`flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded transition-all ${
-                simulatorMode === "split" ? "bg-[#C8102E] text-white shadow-lg shadow-[#C8102E]/20" : "text-[#8E7E70] hover:text-white"
+                simulatorMode === "split" ? "bg-primary text-foreground shadow-lg shadow-[#C8102E]/20" : "text-muted-foreground hover:text-foreground"
               }`}
             >
               <Columns size={14} />
@@ -304,7 +316,7 @@ function AppCore() {
 
           <button
             onClick={() => navigateTo("landing")}
-            className="flex items-center gap-1.5 px-3 py-2 text-xs font-mono tracking-widest text-[#E5D5C5] bg-black/40 border border-white/10 hover:bg-black/60 rounded backdrop-blur-md transition-all cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-2 text-xs font-mono tracking-widest text-foreground bg-background/60 border border-border hover:bg-black/60 rounded backdrop-blur-md transition-all cursor-pointer"
           >
             <ArrowLeft size={12} /> EXIT SIMULATOR
           </button>
@@ -314,7 +326,7 @@ function AppCore() {
       {/* Simulator Workspace Area */}
       <div className="flex-1 w-full overflow-hidden flex justify-center items-center">
         {simulatorMode === "guest" && (
-          <div className="h-[95%] w-full max-w-[430px] rounded-3xl border border-white/10 bg-radial-gradient relative flex flex-col shadow-2xl overflow-hidden glass-panel">
+          <div className="h-[95%] w-full max-w-[430px] rounded-3xl border border-border bg-radial-gradient relative flex flex-col shadow-2xl overflow-hidden glass-panel">
             <div className="flex-1 overflow-y-auto">
               <ClientOrdering tableId={tableId} area={area} />
             </div>
@@ -330,8 +342,8 @@ function AppCore() {
         {simulatorMode === "split" && (
           <div className="h-[98%] w-full max-w-[1400px] flex gap-4 px-4 pb-4">
             {/* Guest side (phone size) */}
-            <div className="w-[430px] flex-shrink-0 rounded-3xl border border-white/10 bg-radial-gradient flex flex-col relative h-full glass-panel overflow-hidden">
-              <div className="bg-white/5 px-3 py-2 text-[10px] text-center font-mono text-[#E5D5C5] border-b border-white/10 backdrop-blur-md">
+            <div className="w-[430px] flex-shrink-0 rounded-3xl border border-border bg-radial-gradient flex flex-col relative h-full glass-panel overflow-hidden">
+              <div className="bg-secondary px-3 py-2 text-[10px] text-center font-mono text-foreground border-b border-border backdrop-blur-md">
                 📱 GUEST VIEW (SIMULATOR FRAME)
               </div>
               <div className="flex-1 overflow-y-auto">
@@ -339,8 +351,8 @@ function AppCore() {
               </div>
             </div>
             {/* Admin side (full desk size) */}
-            <div className="flex-1 rounded-3xl border border-white/10 bg-radial-gradient flex flex-col h-full overflow-hidden glass-panel">
-              <div className="bg-white/5 px-3 py-2 text-[10px] text-center font-mono text-[#E5D5C5] border-b border-white/10 backdrop-blur-md">
+            <div className="flex-1 rounded-3xl border border-border bg-radial-gradient flex flex-col h-full overflow-hidden glass-panel">
+              <div className="bg-secondary px-3 py-2 text-[10px] text-center font-mono text-foreground border-b border-border backdrop-blur-md">
                 💻 KITCHEN WORKSPACE / CMS
               </div>
               <div className="flex-1 overflow-hidden">

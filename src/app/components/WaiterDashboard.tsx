@@ -272,7 +272,7 @@ export function WaiterDashboard({ waiterId, waiterName, assignedTables, onLogout
     if (diffMins >= 15) {
       return "border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.1)] bg-[#1A120E]";
     }
-    return "border-[#2A1E15] bg-[#120D09]";
+    return "border-border bg-card";
   };
 
   const getStatusTranslation = (status: Order["order_status"]) => {
@@ -301,18 +301,18 @@ export function WaiterDashboard({ waiterId, waiterName, assignedTables, onLogout
   };
 
   return (
-    <div className="min-h-screen bg-[#0A0704] text-[#E5D5C5] flex flex-col font-sans">
+    <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
       {/* Header */}
-      <header className="px-6 py-4 bg-[#120D09] border-b border-[#2A1E15] flex items-center justify-between sticky top-0 z-40">
+      <header className="px-6 py-4 bg-card border-b border-border flex items-center justify-between sticky top-0 z-40">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-[#C8102E]/10 border border-[#C8102E]/30 flex items-center justify-center">
-            <User className="w-4 h-4 text-[#C8102E]" />
+          <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/30 flex items-center justify-center">
+            <User className="w-4 h-4 text-primary" />
           </div>
           <div>
-            <div className="font-bold text-sm tracking-tight text-white">{waiterName}</div>
-            <div className="flex items-center gap-1 text-[10px] font-mono uppercase text-[#8E7E70]">
+            <div className="font-bold text-sm tracking-tight text-foreground">{waiterName}</div>
+            <div className="flex items-center gap-1 text-[10px] font-mono uppercase text-muted-foreground">
               <span>{t.assignedTables}:</span>
-              <span className="text-white font-bold">
+              <span className="text-foreground font-bold">
                 {assignedTables.length > 0 ? assignedTables.join(", ") : t.noAssignedTables}
               </span>
             </div>
@@ -321,7 +321,7 @@ export function WaiterDashboard({ waiterId, waiterName, assignedTables, onLogout
 
         <div className="flex items-center gap-3">
           {/* Online status indicator */}
-          <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-[#1A130E] border border-[#2A1E15] text-[9px] font-mono uppercase">
+          <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-muted border border-border text-[9px] font-mono uppercase">
             {online ? (
               <>
                 <Wifi className="w-3.5 h-3.5 text-[#10B981]" />
@@ -329,22 +329,22 @@ export function WaiterDashboard({ waiterId, waiterName, assignedTables, onLogout
               </>
             ) : (
               <>
-                <WifiOff className="w-3.5 h-3.5 text-[#C8102E] animate-pulse" />
-                <span className="text-[#C8102E] font-bold">{t.offline}</span>
+                <WifiOff className="w-3.5 h-3.5 text-primary animate-pulse" />
+                <span className="text-primary font-bold">{t.offline}</span>
               </>
             )}
           </div>
 
           <button
             onClick={() => setLang(l => l === "fr" ? "en" : "fr")}
-            className="px-2 py-1 bg-[#1A130E] border border-[#2A1E15] rounded text-[10px] font-mono text-[#8E7E70] hover:text-white cursor-pointer active:scale-95 transition-all"
+            className="px-2 py-1 bg-muted border border-border rounded text-[10px] font-mono text-muted-foreground hover:text-foreground cursor-pointer active:scale-95 transition-all"
           >
             {lang.toUpperCase()}
           </button>
 
           <button
             onClick={onLogout}
-            className="p-2 bg-[#1A130E] border border-[#2A1E15] hover:border-red-900/30 hover:bg-red-950/20 text-[#8E7E70] hover:text-[#C8102E] rounded-lg transition-all cursor-pointer active:scale-95"
+            className="p-2 bg-muted border border-border hover:border-red-900/30 hover:bg-red-950/20 text-muted-foreground hover:text-primary rounded-lg transition-all cursor-pointer active:scale-95"
             title="Log Out"
           >
             <LogOut className="w-4 h-4" />
@@ -355,12 +355,12 @@ export function WaiterDashboard({ waiterId, waiterName, assignedTables, onLogout
       {/* Main Board content */}
       <main className="flex-1 p-6 max-w-lg mx-auto w-full">
         {loading ? (
-          <div className="py-20 flex flex-col items-center justify-center text-[#8E7E70]">
-            <Loader2 className="w-8 h-8 animate-spin text-[#C8102E] mb-3" />
+          <div className="py-20 flex flex-col items-center justify-center text-muted-foreground">
+            <Loader2 className="w-8 h-8 animate-spin text-primary mb-3" />
             <p className="text-xs font-mono tracking-widest uppercase">Syncing Kitchen Orders...</p>
           </div>
         ) : orders.length === 0 ? (
-          <div className="py-20 flex flex-col items-center justify-center text-[#8E7E70] text-center px-6">
+          <div className="py-20 flex flex-col items-center justify-center text-muted-foreground text-center px-6">
             <AlertCircle className="w-10 h-10 text-[#2A1E15] mb-3" />
             <p className="text-sm font-semibold">{t.noActiveOrders}</p>
           </div>
@@ -457,7 +457,7 @@ function WaiterOrderCard({
   };
 
   return (
-    <div className="relative overflow-hidden rounded-xl bg-[#1A130E] w-full select-none shadow-md">
+    <div className="relative overflow-hidden rounded-xl bg-muted w-full select-none shadow-md">
       
       {/* Right Underlay (Green - Swipe Right to Advance Status) */}
       {nextStatus && (
@@ -475,12 +475,12 @@ function WaiterOrderCard({
       {/* Left Underlay (Amber - Swipe Left to Call for Bill) */}
       {order.order_status === "served" && (
         <div 
-          className="absolute inset-0 flex items-center justify-end pr-6 bg-[#D4A017]/25 rounded-xl transition-all"
+          className="absolute inset-0 flex items-center justify-end pr-6 bg-accent/25 rounded-xl transition-all"
           style={{ opacity: Math.min(1, Math.max(0, -dragX / 120)) }}
         >
-          <div className="flex items-center gap-2 text-[#D4A017] font-mono text-xs font-bold uppercase tracking-widest">
+          <div className="flex items-center gap-2 text-accent font-mono text-xs font-bold uppercase tracking-widest">
             <span>{lang === "fr" ? "ADDITION ←" : "GET BILL ←"}</span>
-            <DollarSign className="w-5 h-5 text-[#D4A017]" />
+            <DollarSign className="w-5 h-5 text-accent" />
           </div>
         </div>
       )}
@@ -505,7 +505,7 @@ function WaiterOrderCard({
       >
         {/* Timer Badge */}
         <div className={`absolute top-0 right-0 px-3 py-1 text-[10px] font-mono font-bold flex items-center gap-1 rounded-bl-lg ${
-          isRed ? "bg-[#C8102E] text-white" : isAmber ? "bg-[#D4A017] text-black" : "bg-white/5 text-[#8E7E70]"
+          isRed ? "bg-primary text-foreground" : isAmber ? "bg-accent text-black" : "bg-secondary text-muted-foreground"
         }`}>
           <Clock className="w-3.5 h-3.5" />
           <span>{getElapsedTime(order.created_at)}</span>
@@ -514,21 +514,21 @@ function WaiterOrderCard({
         {/* Header info */}
         <div>
           <div className="flex items-center gap-2">
-            <h3 className="font-serif font-bold text-lg text-white">
+            <h3 className="font-serif font-bold text-lg text-foreground">
               Table {order.table_id}
             </h3>
-            <span className="text-[10px] font-mono text-[#8E7E70] uppercase">
+            <span className="text-[10px] font-mono text-muted-foreground uppercase">
               {order.area}
             </span>
           </div>
-          <div className="text-[10px] font-mono text-[#8E7E70] mt-0.5">
+          <div className="text-[10px] font-mono text-muted-foreground mt-0.5">
             ID: {order.id}
           </div>
         </div>
 
         {/* Status Indicator */}
         <div className="flex items-center gap-2 text-xs">
-          <span className="text-[#8E7E70] font-mono text-[10px] tracking-wider uppercase">Status:</span>
+          <span className="text-muted-foreground font-mono text-[10px] tracking-wider uppercase">Status:</span>
           <span className="px-2.5 py-0.5 rounded text-[10px] font-bold font-mono tracking-wide uppercase" style={{ 
             backgroundColor: `${statusColors[order.order_status]}1A`, 
             color: statusColors[order.order_status],
@@ -539,14 +539,14 @@ function WaiterOrderCard({
         </div>
 
         {/* Order Items */}
-        <div className="bg-[#1A130E] border border-[#2A1E15] rounded-xl p-3.5 divide-y divide-[#2A1E15] space-y-2">
+        <div className="bg-muted border border-border rounded-xl p-3.5 divide-y divide-border space-y-2">
           {order.order_items?.map((item) => (
             <div key={item.id} className="pt-2 first:pt-0 flex justify-between gap-4 text-xs">
               <div className="flex-1">
-                <span className="font-bold text-[#E5D5C5] mr-1.5">{item.quantity}x</span>
-                <span className="text-white font-medium">{item.name}</span>
+                <span className="font-bold text-foreground mr-1.5">{item.quantity}x</span>
+                <span className="text-foreground font-medium">{item.name}</span>
                 {item.customizations && Object.keys(item.customizations).length > 0 && (
-                  <div className="text-[10px] text-[#8E7E70] mt-0.5 leading-relaxed">
+                  <div className="text-[10px] text-muted-foreground mt-0.5 leading-relaxed">
                     {Object.entries(item.customizations).map(([key, val]: any) => (
                       <div key={key}>
                         • <span className="capitalize">{key}</span>: {Array.isArray(val) ? val.join(", ") : val}
@@ -555,7 +555,7 @@ function WaiterOrderCard({
                   </div>
                 )}
               </div>
-              <div className="font-mono text-[#8E7E70]">
+              <div className="font-mono text-muted-foreground">
                 €{(item.price * item.quantity).toFixed(2)}
               </div>
             </div>
@@ -564,10 +564,10 @@ function WaiterOrderCard({
 
         {/* Note */}
         {order.note && (
-          <div className="p-3 bg-white/5 border border-white/10 rounded-lg text-xs flex gap-2 items-start">
-            <MessageSquare className="w-4 h-4 text-[#D4A017] mt-0.5 flex-shrink-0" />
-            <div className="text-[#E5D5C5]">
-              <span className="font-bold text-[#D4A017] uppercase text-[9px] block font-mono">Kitchen Note</span>
+          <div className="p-3 bg-secondary border border-border rounded-lg text-xs flex gap-2 items-start">
+            <MessageSquare className="w-4 h-4 text-accent mt-0.5 flex-shrink-0" />
+            <div className="text-foreground">
+              <span className="font-bold text-accent uppercase text-[9px] block font-mono">Kitchen Note</span>
               <p className="italic">{order.note}</p>
             </div>
           </div>
@@ -581,20 +581,20 @@ function WaiterOrderCard({
               value={noteText}
               onChange={(e) => setNoteText(e.target.value)}
               placeholder={t.addNotePlaceholder}
-              className="flex-1 px-3 py-2 bg-[#1A130E] border border-[#2A1E15] text-xs text-white rounded-lg outline-none focus:border-[#C8102E]"
+              className="flex-1 px-3 py-2 bg-muted border border-border text-xs text-foreground rounded-lg outline-none focus:border-primary"
             />
             <button
               onClick={async () => {
                 await addOrderNote(order.id, noteText);
                 setIsEditingNote(false);
               }}
-              className="px-3 bg-[#10B981] hover:bg-[#10B981]/90 text-white font-bold rounded-lg text-xs cursor-pointer active:scale-95 transition-all"
+              className="px-3 bg-[#10B981] hover:bg-[#10B981]/90 text-foreground font-bold rounded-lg text-xs cursor-pointer active:scale-95 transition-all"
             >
               Add
             </button>
             <button
               onClick={() => setIsEditingNote(false)}
-              className="px-3 bg-white/10 text-white font-bold rounded-lg text-xs cursor-pointer active:scale-95 transition-all"
+              className="px-3 bg-secondary/80 text-foreground font-bold rounded-lg text-xs cursor-pointer active:scale-95 transition-all"
             >
               Cancel
             </button>
@@ -605,14 +605,14 @@ function WaiterOrderCard({
               setNoteText(order.note || "");
               setIsEditingNote(true);
             }}
-            className="text-left text-xs text-[#8E7E70] hover:text-white transition-colors flex items-center gap-1 cursor-pointer w-fit"
+            className="text-left text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1 cursor-pointer w-fit"
           >
             + {t.addNoteBtn}
           </button>
         )}
 
         {/* Swipe instructions (subtle reminder) */}
-        <div className="text-center text-[9px] font-mono text-[#8E7E70]/30 uppercase tracking-widest border-t border-[#2A1E15]/30 pt-2.5 mt-1 select-none">
+        <div className="text-center text-[9px] font-mono text-muted-foreground/30 uppercase tracking-widest border-t border-border/30 pt-2.5 mt-1 select-none">
           {order.order_status === "served" 
             ? "← Glisser pour l'addition"
             : nextStatus 

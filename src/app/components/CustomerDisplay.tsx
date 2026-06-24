@@ -231,7 +231,7 @@ export function CustomerDisplay() {
         <button
           onClick={toggleFullscreen}
           style={{ fontFamily: "Fredoka, sans-serif" }}
-          className="p-3 bg-[#D62300] hover:bg-[#B31D00] text-white rounded-xl shadow-lg cursor-pointer transition-all active:scale-95 flex items-center gap-2 border border-red-500/20 text-xs font-bold"
+          className="p-3 bg-[#D62300] hover:bg-[#B31D00] text-foreground rounded-xl shadow-lg cursor-pointer transition-all active:scale-95 flex items-center gap-2 border border-red-500/20 text-xs font-bold"
         >
           {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
           <span>{isFullscreen ? "MODE FENÊTRE" : "PLEIN ÉCRAN"}</span>

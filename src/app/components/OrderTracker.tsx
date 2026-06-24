@@ -187,7 +187,7 @@ export function OrderTracker({
   // Paid / Thank You Screen
   if (orderStatus === "paid") {
     return (
-      <div className="w-full max-w-md mx-auto bg-[#120D09] border border-[#2A1E15] rounded-2xl p-6 text-center shadow-xl my-8">
+      <div className="w-full max-w-md mx-auto bg-card border border-border rounded-2xl p-6 text-center shadow-xl my-8">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -197,15 +197,15 @@ export function OrderTracker({
           <div className="w-20 h-20 rounded-full bg-[#10B981]/10 border-4 border-[#10B981]/30 flex items-center justify-center text-[#10B981] text-4xl">
             ✓
           </div>
-          <h2 className="font-serif font-bold text-2xl text-[#E5D5C5] leading-snug">
+          <h2 className="font-serif font-bold text-2xl text-foreground leading-snug">
             {t.thankYouVisit}
           </h2>
-          <p className="text-xs font-mono text-[#8E7E70] uppercase tracking-wider">
+          <p className="text-xs font-mono text-muted-foreground uppercase tracking-wider">
             {t.seeYouSoon}
           </p>
           <button
             onClick={onNewOrder}
-            className="w-full bg-[#C8102E] hover:opacity-90 text-white font-bold rounded-xl text-xs py-3.5 cursor-pointer active:scale-95 transition-all flex items-center justify-center gap-2 mt-4"
+            className="w-full bg-primary hover:opacity-90 text-foreground font-bold rounded-xl text-xs py-3.5 cursor-pointer active:scale-95 transition-all flex items-center justify-center gap-2 mt-4"
           >
             <RefreshCw size={14} />
             <span>{t.newOrder}</span>
@@ -224,12 +224,12 @@ export function OrderTracker({
   ];
 
   return (
-    <div className="w-full max-w-md mx-auto bg-[#120D09] border border-[#2A1E15] rounded-2xl p-6 shadow-xl my-6 relative overflow-hidden">
+    <div className="w-full max-w-md mx-auto bg-card border border-border rounded-2xl p-6 shadow-xl my-6 relative overflow-hidden">
       
       {/* Celebration Particle Effect */}
       <AnimatePresence>
         {showCelebration && !shouldReduceMotion && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-50 bg-[#120D09]/90">
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-50 bg-card/90">
             <div className="relative flex flex-col items-center justify-center">
               {particles.map((p) => (
                 <motion.div
@@ -253,10 +253,10 @@ export function OrderTracker({
                 transition={{ duration: 0.3 }}
                 className="text-center"
               >
-                <h3 className="font-serif font-black text-3xl text-[#D4A017] mb-2">
+                <h3 className="font-serif font-black text-3xl text-accent mb-2">
                   {t.bonAppetit}
                 </h3>
-                <p className="text-xs text-[#E5D5C5] font-mono tracking-widest uppercase">
+                <p className="text-xs text-foreground font-mono tracking-widest uppercase">
                   {t.enjoyMeal}
                 </p>
               </motion.div>
@@ -266,23 +266,23 @@ export function OrderTracker({
       </AnimatePresence>
 
       {/* Header Info */}
-      <div className="flex justify-between items-start border-b border-[#2A1E15] pb-4 mb-6">
+      <div className="flex justify-between items-start border-b border-border pb-4 mb-6">
         <div>
-          <span className="text-[10px] font-mono tracking-wider text-[#8E7E70] uppercase">
+          <span className="text-[10px] font-mono tracking-wider text-muted-foreground uppercase">
             {t.orderSummary}
           </span>
-          <h2 className="text-3xl font-mono font-bold text-[#E5D5C5] mt-1">
+          <h2 className="text-3xl font-mono font-bold text-foreground mt-1">
             #{numericOrderNumber}
           </h2>
-          <p className="text-[10px] font-mono text-[#8E7E70] mt-1">
+          <p className="text-[10px] font-mono text-muted-foreground mt-1">
             {t.table} {tableId} — {area}
           </p>
         </div>
         <div className="text-right">
-          <span className="text-[10px] font-mono tracking-wider text-[#8E7E70] uppercase">
+          <span className="text-[10px] font-mono tracking-wider text-muted-foreground uppercase">
             Total
           </span>
-          <div className="text-xl font-bold text-[#D4A017] mt-1">
+          <div className="text-xl font-bold text-accent mt-1">
             {totalPrice.toFixed(2)}€
           </div>
         </div>
@@ -298,7 +298,7 @@ export function OrderTracker({
               scaleX: activeIndex === 0 ? 0 : activeIndex === 1 ? 0.33 : activeIndex === 2 ? 0.66 : 1 
             }}
             transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.4 }}
-            className="h-full bg-[#C8102E] origin-left"
+            className="h-full bg-primary origin-left"
           />
         </div>
 
@@ -310,7 +310,7 @@ export function OrderTracker({
               scaleY: activeIndex === 0 ? 0 : activeIndex === 1 ? 0.33 : activeIndex === 2 ? 0.66 : 1 
             }}
             transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.4 }}
-            className="w-full bg-[#C8102E] origin-top"
+            className="w-full bg-primary origin-top"
           />
         </div>
 
@@ -328,7 +328,7 @@ export function OrderTracker({
                 {/* Circle Indicator */}
                 <div className="relative shrink-0">
                   {isCompleted ? (
-                    <div className="w-9 h-9 rounded-full bg-[#C8102E] flex items-center justify-center text-white border border-[#C8102E]">
+                    <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-foreground border border-primary">
                       <Check className="w-5 h-5 stroke-[3]" />
                     </div>
                   ) : isActive ? (
@@ -342,12 +342,12 @@ export function OrderTracker({
                         ]
                       }}
                       transition={{ repeat: Infinity, duration: 2 }}
-                      className="w-9 h-9 rounded-full bg-[#120D09] border-2 border-[#D4A017] flex items-center justify-center text-[#D4A017]"
+                      className="w-9 h-9 rounded-full bg-card border-2 border-accent flex items-center justify-center text-accent"
                     >
                       <Clock className="w-4 h-4 animate-spin-slow" />
                     </motion.div>
                   ) : (
-                    <div className="w-9 h-9 rounded-full bg-[#120D09] border-2 border-[#2A1E15] flex items-center justify-center text-[#5A4E42]" />
+                    <div className="w-9 h-9 rounded-full bg-card border-2 border-border flex items-center justify-center text-[#5A4E42]" />
                   )}
                 </div>
 
@@ -355,7 +355,7 @@ export function OrderTracker({
                 <div className="flex flex-col sm:items-center">
                   <span 
                     className={`text-xs font-bold leading-tight ${
-                      isActive ? "text-[#E5D5C5] font-black" : isCompleted ? "text-[#8E7E70]" : "text-[#5A4E42]"
+                      isActive ? "text-foreground font-black" : isCompleted ? "text-muted-foreground" : "text-[#5A4E42]"
                     }`}
                   >
                     {step.label}
@@ -363,7 +363,7 @@ export function OrderTracker({
                   
                   {/* Elapsed Timer (Active Step Only) */}
                   {isActive && (
-                    <span className="text-[9px] font-mono text-[#D4A017] mt-0.5 tracking-wider bg-[#D4A017]/10 px-2 py-0.5 rounded-full border border-[#D4A017]/20 uppercase">
+                    <span className="text-[9px] font-mono text-accent mt-0.5 tracking-wider bg-accent/10 px-2 py-0.5 rounded-full border border-accent/20 uppercase">
                       {getElapsedTimeText()}
                     </span>
                   )}
@@ -379,17 +379,17 @@ export function OrderTracker({
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-[#C8102E]/10 border border-[#C8102E]/30 text-[#E5D5C5] rounded-xl p-3.5 text-center text-xs font-medium mb-6 flex items-center justify-center gap-2"
+          className="bg-primary/10 border border-primary/30 text-foreground rounded-xl p-3.5 text-center text-xs font-medium mb-6 flex items-center justify-center gap-2"
         >
           <span>{t.billRequestedDesc}</span>
         </motion.div>
       )}
 
       {/* Items Summary list */}
-      <div className="border-t border-[#2A1E15] pt-5 pb-4 mb-6">
+      <div className="border-t border-border pt-5 pb-4 mb-6">
         <ul className="space-y-3.5 max-h-48 overflow-y-auto pr-1">
           {items.map((item, idx) => (
-            <li key={idx} className="text-xs text-[#E5D5C5]">
+            <li key={idx} className="text-xs text-foreground">
               <div className="flex justify-between font-mono">
                 <span>{item.quantity}× {item.name}</span>
                 <span>{(item.price * item.quantity).toFixed(2)}€</span>
@@ -408,14 +408,14 @@ export function OrderTracker({
 
       {/* Call Waiter Footer Button */}
       {orderStatus !== "paid" && orderStatus !== "served" && orderStatus !== "bill_requested" && (
-        <div className="border-t border-[#2A1E15] pt-5">
+        <div className="border-t border-border pt-5">
           <button
             onClick={handleCallWaiterClick}
             disabled={waiterCallPending}
             className={`w-full font-bold rounded-xl text-xs py-3.5 flex items-center justify-center gap-2 cursor-pointer active:scale-95 transition-all ${
               waiterCallPending
-                ? "bg-transparent border-2 border-[#C8102E] text-[#C8102E] animate-pulse cursor-not-allowed"
-                : "bg-[#C8102E] hover:opacity-90 text-white"
+                ? "bg-transparent border-2 border-primary text-primary animate-pulse cursor-not-allowed"
+                : "bg-primary hover:opacity-90 text-foreground"
             }`}
           >
             <Bell size={14} className={waiterCallPending ? "animate-bounce" : ""} />
@@ -428,7 +428,7 @@ export function OrderTracker({
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="text-center text-[10px] text-[#D4A017] font-mono mt-2 uppercase tracking-wider animate-pulse"
+              className="text-center text-[10px] text-accent font-mono mt-2 uppercase tracking-wider animate-pulse"
             >
               {t.callAlreadyActive}
             </motion.p>
