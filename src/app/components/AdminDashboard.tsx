@@ -4,7 +4,7 @@ import {
   Plus, Trash2, Edit2, Check, X, Bell, TrendingUp, Users, DollarSign,
   Eye, MoreVertical, ChevronDown, AlertCircle, Clock, CheckCircle2,
   GripVertical, ChevronRight, Save, ArrowLeft, RefreshCw, Upload, Award, Bike,
-  LogOut
+  LogOut, Loader2
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { supabase } from "../../lib/supabase";
