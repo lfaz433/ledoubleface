@@ -1838,6 +1838,7 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
     { id: "tables" as AdminSection, icon: <QrCode size={16} />, label: "Table Registry & QR" },
     { id: "shows" as AdminSection, icon: <Award size={16} />, label: "Shows Manager" },
     { id: "staff" as AdminSection, icon: <Users size={16} />, label: "Staff (Équipe)" },
+    { id: "kiosk" as AdminSection, icon: <Smartphone size={16} />, label: "Kiosk Mode TV" },
     { id: "settings" as AdminSection, icon: <Settings size={16} />, label: "Preferences" },
   ];
 
@@ -3908,6 +3909,43 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
                   </div>
                 </div>
               )}
+            </div>
+          )}
+          {section === "kiosk" && (
+            <div className="flex flex-col gap-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-serif font-black text-lg text-foreground">Kiosk TV Screen Setup</h3>
+                  <p className="text-xs text-muted-foreground mt-1 font-mono">Connect your TV or touch tablet to the interactive self-service ordering system.</p>
+                </div>
+                <button
+                  onClick={() => window.open("?view=kiosk", "_blank")}
+                  className="bg-primary hover:opacity-90 text-foreground font-bold py-2 px-4 rounded text-xs flex items-center gap-1.5 cursor-pointer shadow-md shadow-[#C8102E]/20"
+                >
+                  <Smartphone size={14} /> OPEN KIOSK FULLSCREEN
+                </button>
+              </div>
+
+              <div className="bg-card border border-border p-8 rounded-2xl w-full shadow-lg text-center flex flex-col items-center justify-center">
+                <div className="bg-white p-4 rounded-xl inline-block mb-6 shadow-md">
+                  <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(window.location.origin + window.location.pathname + "?view=kiosk")}`}
+                    alt="Kiosk Display Link"
+                    className="w-[250px] h-[250px] object-contain"
+                  />
+                </div>
+
+                <div className="space-y-4 max-w-lg w-full text-left">
+                  <p className="text-sm text-foreground text-center font-mono break-all font-bold select-text p-3 bg-muted border border-border rounded-lg">
+                    {window.location.origin + window.location.pathname + "?view=kiosk"}
+                  </p>
+                  <div className="text-xs text-muted-foreground leading-relaxed space-y-3 mt-4">
+                    <p>• <strong>For Tablets (iPad, Android):</strong> Scan the QR code above using the camera, then add the page to your Home Screen to remove the browser UI.</p>
+                    <p>• <strong>For Smart TVs:</strong> Open the built-in web browser and manually type the link above, then enter fullscreen mode.</p>
+                    <p>• The kiosk handles its own checkout and will automatically reset after an order is placed.</p>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
