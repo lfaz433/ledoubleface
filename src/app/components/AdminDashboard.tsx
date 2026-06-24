@@ -4032,6 +4032,77 @@ function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
     }
   };
 
+  const [uploadingOptionId, setUploadingOptionId] = useState<string | null>(null);
+
+  const handleOptionImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, fieldId: string, optName: string) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingOptionId(`${fieldId}-${optName}`);
+    try {
+      const isMock = !supabase || supabase.isMock || !supabase.storage || typeof supabase.storage.from !== "function";
+      if (isMock) {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64String = reader.result as string;
+          setForm(p => ({
+            ...p,
+            customFields: p.customFields.map(f => f.id === fieldId ? {
+              ...f,
+              optionImages: { ...(f.optionImages || {}), [optName]: base64String }
+            } : f)
+          }));
+          setUploadingOptionId(null);
+        };
+        reader.readAsDataURL(file);
+        return;
+      }
+
+      await ensureBucketExists();
+
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('menu-images')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage
+        .from('menu-images')
+        .getPublicUrl(filePath);
+
+      if (data?.publicUrl) {
+        setForm(p => ({
+          ...p,
+          customFields: p.customFields.map(f => f.id === fieldId ? {
+            ...f,
+            optionImages: { ...(f.optionImages || {}), [optName]: data.publicUrl }
+          } : f)
+        }));
+      }
+    } catch (err: any) {
+      console.warn("Image upload failed, fallback to base64", err);
+      const base64String = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      setForm(p => ({
+        ...p,
+        customFields: p.customFields.map(f => f.id === fieldId ? {
+          ...f,
+          optionImages: { ...(f.optionImages || {}), [optName]: base64String }
+        } : f)
+      }));
+    } finally {
+      setUploadingOptionId(null);
+    }
+  };
+
   function addField() {
     if (!newFieldName) return;
     const field: CustomField = { id: `cf-${Date.now()}`, name: newFieldName, type: newFieldType, options: [], required: false };
@@ -4162,21 +4233,33 @@ function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
                       <div key={i} className="flex items-center gap-3 p-2 bg-card/50 border border-border rounded">
                         <div className="flex-1 flex flex-col gap-1.5">
                           <span className="text-xs font-bold text-foreground">{opt}</span>
-                          <input
-                            placeholder="Image URL for this option (Optional)"
-                            value={field.optionImages?.[opt] || ""}
-                            onChange={e => {
-                              const val = e.target.value;
-                              setForm(p => ({
-                                ...p,
-                                customFields: p.customFields.map(f => f.id === field.id ? {
-                                  ...f,
-                                  optionImages: { ...(f.optionImages || {}), [opt]: val }
-                                } : f)
-                              }));
-                            }}
-                            className="w-full px-2 py-1 text-[10px] bg-background border border-border rounded text-foreground outline-none focus:border-primary transition-colors"
-                          />
+                          <div className="flex items-center gap-2">
+                            <label className="flex-shrink-0 flex items-center justify-center p-1.5 bg-secondary hover:bg-secondary/80 border border-border rounded cursor-pointer transition-colors text-muted-foreground hover:text-foreground">
+                              {uploadingOptionId === `${field.id}-${opt}` ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />}
+                              <input 
+                                type="file" 
+                                accept="image/*" 
+                                className="hidden" 
+                                onChange={(e) => handleOptionImageUpload(e, field.id, opt)}
+                                disabled={uploadingOptionId === `${field.id}-${opt}`}
+                              />
+                            </label>
+                            <input
+                              placeholder="Or paste URL... (Optional)"
+                              value={field.optionImages?.[opt] || ""}
+                              onChange={e => {
+                                const val = e.target.value;
+                                setForm(p => ({
+                                  ...p,
+                                  customFields: p.customFields.map(f => f.id === field.id ? {
+                                    ...f,
+                                    optionImages: { ...(f.optionImages || {}), [opt]: val }
+                                  } : f)
+                                }));
+                              }}
+                              className="w-full px-2 py-1 text-[10px] bg-background border border-border rounded text-foreground outline-none focus:border-primary transition-colors"
+                            />
+                          </div>
                         </div>
                         {field.optionImages?.[opt] && (
                           <div className="w-8 h-8 rounded bg-secondary border border-border overflow-hidden flex-shrink-0">
