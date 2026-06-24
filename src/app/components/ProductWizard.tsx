@@ -165,7 +165,7 @@ export function ProductWizard({ item, lang, onClose, onAddToCart }: ProductWizar
       <motion.div
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
         onClick={onClose}
-        className="fixed inset-0 bg-black/80 backdrop-blur-[2px] z-40"
+        className="fixed inset-0 bg-black/40 backdrop-blur-md z-40"
       />
       <motion.div
         initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}

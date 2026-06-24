@@ -1141,7 +1141,13 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
                     <button
                       onClick={(e) => {
                         e.stopPropagation(); // prevent card double tap trigger
-                        handleAddItemDirectly(item);
+                        const hasFields = item.customFields && item.customFields.length > 0;
+                        const isBurger = item.category === "Burgers" || item.category?.toLowerCase() === "burgers";
+                        if (hasFields || isBurger) {
+                          handleProductCardClick(item);
+                        } else {
+                          handleAddItemDirectly(item);
+                        }
                       }}
                       className="flex items-center gap-1.5 px-3.5 py-2 bg-primary hover:opacity-90 text-[11px] font-bold text-foreground rounded transition-all cursor-pointer shadow-sm shadow-[#C8102E]/20">
                       <Plus size={11} /> {lang === "fr" ? "Ajouter" : "Add"}
@@ -1327,33 +1333,34 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
         >
           🔄 Refresh App Connection (Reset Cache)
         </button>
-        {/* Customization Wizard */}
-        {status === "customizing" && selectedItem && (
-          <ProductWizard
-            item={selectedItem}
-            lang={lang}
-            onClose={() => {
-              setStatus("browsing");
-              setSelectedItem(null);
-            }}
-            onAddToCart={(customizations, finalPrice) => {
-              const key = `${selectedItem.id}-${JSON.stringify(customizations)}`;
-              
-              if (typeof navigator !== "undefined" && navigator.vibrate) {
-                navigator.vibrate(50);
-              }
-              
-              setCart(prev => {
-                const existing = prev.find(i => i.itemKey === key);
-                if (existing) return prev.map(i => i.itemKey === key ? { ...i, quantity: i.quantity + 1 } : i);
-                return [...prev, { id: selectedItem.id, name: selectedItem.name, price: finalPrice, quantity: 1, customizations, itemKey: key }];
-              });
-              setStatus("browsing");
-              setSelectedItem(null);
-            }}
-          />
-        )}
       </footer>
+
+      {/* Customization Wizard */}
+      {status === "customizing" && selectedItem && (
+        <ProductWizard
+          item={selectedItem}
+          lang={lang}
+          onClose={() => {
+            setStatus("browsing");
+            setSelectedItem(null);
+          }}
+          onAddToCart={(customizations, finalPrice) => {
+            const key = `${selectedItem.id}-${JSON.stringify(customizations)}`;
+            
+            if (typeof navigator !== "undefined" && navigator.vibrate) {
+              navigator.vibrate(50);
+            }
+            
+            setCart(prev => {
+              const existing = prev.find(i => i.itemKey === key);
+              if (existing) return prev.map(i => i.itemKey === key ? { ...i, quantity: i.quantity + 1 } : i);
+              return [...prev, { id: selectedItem.id, name: selectedItem.name, price: finalPrice, quantity: 1, customizations, itemKey: key }];
+            });
+            setStatus("browsing");
+            setSelectedItem(null);
+          }}
+        />
+      )}
 
       {/* Zero-friction Bottom Sheets */}
       <AnimatePresence>
