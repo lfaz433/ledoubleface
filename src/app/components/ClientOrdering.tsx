@@ -1367,7 +1367,7 @@ Note: ${orderNote}`;
             animate={{ y: 0, opacity: 1 }} 
             exit={{ y: 100, opacity: 0 }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed bottom-0 left-0 right-0 z-30 bg-primary text-foreground shadow-2xl border-t border-primary/20"
+            className="fixed bottom-6 left-4 right-4 z-40 bg-primary text-foreground shadow-[0_20px_40px_rgba(200,16,46,0.4)] rounded-2xl overflow-hidden transition-transform duration-300 hover:-translate-y-1"
           >
             <button 
               onClick={() => setStatus("cart")}
@@ -1825,10 +1825,10 @@ Note: ${orderNote}`;
               </div>
 
               {/* Submit Action */}
-              <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-border bg-card z-10">
+              <div className="absolute bottom-6 left-4 right-4 z-10">
                 <button onClick={placeOrder}
                   disabled={status === "ordering"}
-                  className="w-full py-4 text-xs font-black tracking-widest bg-primary hover:opacity-95 text-foreground rounded-xl transition-all active:scale-98 cursor-pointer shadow-lg shadow-[#C8102E]/25">
+                  className="w-full py-4 text-xs font-black tracking-widest bg-primary hover:bg-[#C8102E]/90 text-foreground rounded-2xl transition-all active:scale-95 cursor-pointer shadow-[0_20px_40px_rgba(200,16,46,0.4)]">
                   {status === "ordering" ? (lang === "fr" ? "TRANSMISSION DU TICKET..." : "TRANSMITTING TICKET...") : `${lang === "fr" ? "COMMANDER" : "PLACE ORDER"} · ${cartTotal.toFixed(2)}€`}
                 </button>
               </div>
