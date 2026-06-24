@@ -917,7 +917,7 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
                 }`}
               >
                 <span>🛎️</span>
-                <span className="hidden xs:inline">{t.callWaiter.split(" ")[1]}</span>
+                <span className="hidden sm:inline">{t.callWaiter.split(" ")[1]}</span>
               </button>
             )}
 
@@ -1090,7 +1090,7 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
           <span className="font-mono text-[9px] text-muted-foreground tracking-widest uppercase">{t.navMenu}</span>
         </div>
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
           {filtered.map(item => {
             return (
               <motion.div 
@@ -1165,7 +1165,7 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
             <Star size={14} className="fill-[#C8102E]" />
             <span className="font-mono text-[9px] tracking-widest font-black uppercase">{t.showsHeader}</span>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {shows.map(show => (
               <div 
                 key={show.id} 

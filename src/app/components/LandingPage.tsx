@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ChevronDown, Star, MapPin, Phone, Clock, Instagram, Facebook, Twitter, ArrowRight, Flame, Award, Utensils, Users, X, Check, Tv, Sun, Moon } from "lucide-react";
+import { ChevronDown, Star, MapPin, Phone, Clock, Instagram, Facebook, Twitter, ArrowRight, Flame, Award, Utensils, Users, X, Check, Tv, Sun, Moon, Menu } from "lucide-react";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { supabase } from "../../lib/supabase";
 import { translations, Language } from "../../lib/translations";
@@ -66,6 +66,7 @@ export function LandingPage({ onNavigate, tableId }: { onNavigate: (view: string
   const [lang, setLang] = useState<Language>("fr");
   const t = translations[lang];
   const { theme, toggleTheme } = useTheme();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const [dbError, setDbError] = useState(false);
 
@@ -376,16 +377,70 @@ export function LandingPage({ onNavigate, tableId }: { onNavigate: (view: string
               {lang.toUpperCase()}
             </button>
             <button onClick={() => onNavigate("client", (!tableId || tableId === "DELIVERY" || tableId === "T07") ? "DELIVERY" : tableId)}
-              className="px-4 py-2 text-sm transition-all hover:opacity-90 active:scale-95 cursor-pointer"
+              className="hidden sm:block px-4 py-2 text-sm transition-all hover:opacity-90 active:scale-95 cursor-pointer"
               style={{ background: "var(--accent)", color: "var(--accent-foreground)", borderRadius: "var(--radius)", fontWeight: 700, letterSpacing: "0.04em" }}>
               {t.orderNow}
+            </button>
+            
+            {/* Mobile Hamburger Button */}
+            <button 
+              className="md:hidden p-2 text-foreground"
+              onClick={() => setMobileMenuOpen(true)}
+            >
+              <Menu size={24} />
             </button>
           </div>
         </div>
       </nav>
 
+      {/* Mobile Menu Overlay */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0, x: "100%" }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: "100%" }}
+            transition={{ type: "spring", bounce: 0, duration: 0.4 }}
+            className="fixed inset-0 z-50 bg-background flex flex-col p-6"
+          >
+            <div className="flex justify-between items-center mb-12">
+              <span className="font-serif font-black text-2xl text-foreground">Le Double Face</span>
+              <button onClick={() => setMobileMenuOpen(false)} className="p-2 text-foreground">
+                <X size={28} />
+              </button>
+            </div>
+            
+            <div className="flex flex-col gap-8 text-2xl font-serif font-bold">
+              <button onClick={() => { setMobileMenuOpen(false); onNavigate("client", (!tableId || tableId === "DELIVERY" || tableId === "T07") ? "DELIVERY" : tableId); }}
+                className="text-left text-foreground hover:text-accent transition-colors">
+                {t.navMenu}
+              </button>
+              <a href="#services" onClick={() => setMobileMenuOpen(false)} className="text-foreground hover:text-accent transition-colors">
+                {t.navServices}
+              </a>
+              <a href="#shows" onClick={() => setMobileMenuOpen(false)} className="text-foreground hover:text-accent transition-colors">
+                {t.navShows}
+              </a>
+              <a href="#about" onClick={() => setMobileMenuOpen(false)} className="text-foreground hover:text-accent transition-colors">
+                {t.navAbout.toUpperCase()}
+              </a>
+              <a href="#contact" onClick={() => setMobileMenuOpen(false)} className="text-foreground hover:text-accent transition-colors">
+                {t.navContact}
+              </a>
+            </div>
+            
+            <div className="mt-auto pb-8">
+              <button onClick={() => { setMobileMenuOpen(false); onNavigate("client", (!tableId || tableId === "DELIVERY" || tableId === "T07") ? "DELIVERY" : tableId); }}
+                className="w-full py-4 text-center rounded-xl bg-primary text-primary-foreground font-black tracking-widest text-lg">
+                {t.orderNow}
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* HERO */}
-      <section id="hero" className="relative min-h-screen flex items-center overflow-hidden">
+      <section id="hero" className="relative min-h-[100svh] flex items-center overflow-hidden">
         <div className="absolute inset-0">
           <ImageWithFallback
             src={heroConfig.image}
@@ -395,17 +450,17 @@ export function LandingPage({ onNavigate, tableId }: { onNavigate: (view: string
           />
           <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, rgba(10,7,4,0.95) 40%, rgba(200,16,46,0.15) 100%)" }} />
         </div>
-        <div className="relative max-w-7xl mx-auto px-6 pt-24 pb-16 grid md:grid-cols-2 gap-12 items-center">
+        <div className="relative max-w-7xl mx-auto px-4 md:px-6 pt-16 md:pt-24 pb-12 md:pb-16 grid md:grid-cols-2 gap-8 md:gap-12 items-center">
           <div>
             <div className="mb-6 inline-flex items-center gap-2 px-3 py-1.5" style={{ border: "1px solid rgba(212,160,23,0.4)", borderRadius: "2px" }}>
               <Flame size={14} style={{ color: "var(--accent)" }} />
               <span style={{ fontFamily: "'DM Mono', monospace", fontSize: "11px", color: "var(--accent)", letterSpacing: "0.12em" }}>PARIS · EST. 2019</span>
             </div>
-            <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(2rem, 6vw, 5.5rem)", fontWeight: 900, lineHeight: 1.0, letterSpacing: "-0.02em", color: "#f5f0e8" }}>
+            <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(2.25rem, 6vw, 5.5rem)", fontWeight: 900, lineHeight: 1.0, letterSpacing: "-0.02em", color: "#f5f0e8" }}>
               {lang === "fr" ? heroConfig.title1_fr : heroConfig.title1_en}<br />
               <span style={{ color: "var(--primary)", fontStyle: "italic" }}>{lang === "fr" ? heroConfig.title2_fr : heroConfig.title2_en}</span>
             </h1>
-            <p className="mt-6 text-lg leading-relaxed max-w-md" style={{ color: "var(--muted-foreground)" }}>
+            <p className="mt-6 text-base md:text-lg leading-relaxed max-w-md" style={{ color: "var(--muted-foreground)" }}>
               {lang === "fr" ? heroConfig.subtitle_fr : heroConfig.subtitle_en}
             </p>
             <div className="mt-10 flex flex-col sm:flex-row flex-wrap gap-4">
@@ -420,7 +475,7 @@ export function LandingPage({ onNavigate, tableId }: { onNavigate: (view: string
                 {t.viewMenu}
               </button>
             </div>
-            <div className="mt-10 flex flex-wrap items-center gap-6 md:gap-8">
+            <div className="mt-10 flex flex-wrap items-center justify-start sm:justify-start gap-6 md:gap-8">
               {[{ n: "4.9", l: "Rating" }, { n: "50K+", l: "Served" }, { n: "12", l: "Signature Burgers" }].map(s => (
                 <div key={s.l}>
                   <div style={{ fontFamily: "'Playfair Display', serif", fontSize: "1.75rem", fontWeight: 800, color: "var(--accent)" }}>{s.n}</div>
