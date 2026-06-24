@@ -5,6 +5,7 @@ import { supabase } from "../../lib/supabase";
 import { motion, AnimatePresence, animate, useMotionValue, useTransform } from "motion/react";
 import { translations, Language } from "../../lib/translations";
 import { OrderTracker } from "./OrderTracker";
+import { ProductWizard } from "./ProductWizard";
 
 // local fallback in case database connection is not ready or configured yet
 const FALLBACK_MENU_DATA = [
@@ -1326,145 +1327,36 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
         >
           🔄 Refresh App Connection (Reset Cache)
         </button>
+        {/* Customization Wizard */}
+        {status === "customizing" && selectedItem && (
+          <ProductWizard
+            item={selectedItem}
+            lang={lang}
+            onClose={() => {
+              setStatus("browsing");
+              setSelectedItem(null);
+            }}
+            onAddToCart={(customizations, finalPrice) => {
+              const key = `${selectedItem.id}-${JSON.stringify(customizations)}`;
+              
+              if (typeof navigator !== "undefined" && navigator.vibrate) {
+                navigator.vibrate(50);
+              }
+              
+              setCart(prev => {
+                const existing = prev.find(i => i.itemKey === key);
+                if (existing) return prev.map(i => i.itemKey === key ? { ...i, quantity: i.quantity + 1 } : i);
+                return [...prev, { id: selectedItem.id, name: selectedItem.name, price: finalPrice, quantity: 1, customizations, itemKey: key }];
+              });
+              setStatus("browsing");
+              setSelectedItem(null);
+            }}
+          />
+        )}
       </footer>
 
       {/* Zero-friction Bottom Sheets */}
       <AnimatePresence>
-        {/* Customization Sheet */}
-        {status === "customizing" && selectedItem && (
-          <>
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => {
-                setStatus("browsing");
-                setSelectedItem(null);
-              }}
-              className="fixed inset-0 bg-black/80 backdrop-blur-[2px] z-40"
-            />
-            {/* Sheet */}
-            <motion.div
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
-              transition={{ type: "spring", damping: 25, stiffness: 220 }}
-              drag="y"
-              dragConstraints={{ top: 0, bottom: 0 }}
-              dragElastic={{ top: 0, bottom: 1 }}
-              onDragEnd={(e, info) => {
-                if (info.offset.y > 150) {
-                  setStatus("browsing");
-                  setSelectedItem(null);
-                }
-              }}
-              className="fixed bottom-0 left-0 right-0 max-h-[85vh] bg-card border-t border-border rounded-t-2xl z-50 flex flex-col overflow-hidden"
-            >
-              {/* Drag Handle */}
-              <div className="w-12 h-1 bg-[#2A1E15] rounded-full mx-auto my-3 flex-shrink-0" />
-              
-              {/* Header */}
-              <div className="px-4 pb-3 flex items-center justify-between border-b border-border/30">
-                <span className="font-serif font-bold text-base text-foreground">{t.customOptions}</span>
-                <button
-                  onClick={() => {
-                    setStatus("browsing");
-                    setSelectedItem(null);
-                  }}
-                  className="text-xs text-muted-foreground hover:text-foreground cursor-pointer"
-                >
-                  {lang === "fr" ? "Fermer" : "Close"}
-                </button>
-              </div>
-
-              {/* Scrollable content */}
-              <div className="flex-1 overflow-y-auto pb-28 px-4 pt-4">
-                <div className="relative h-48 overflow-hidden bg-muted border border-border rounded-xl mb-6">
-                  <ImageWithFallback src={selectedItem.image} alt={selectedItem.name} className="w-full h-full object-cover" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#120D09] via-transparent to-transparent" />
-                </div>
-
-                <div className="flex justify-between items-start mb-2">
-                  <h2 className="font-serif font-bold text-xl text-foreground">{selectedItem.name}</h2>
-                  <span className="font-mono font-bold text-base text-foreground">€{selectedItem.price.toFixed(2)}</span>
-                </div>
-                <p className="text-[11px] text-muted-foreground mb-6 leading-relaxed">{selectedItem.desc}</p>
-
-                {/* Modifiers */}
-                {Array.isArray(selectedItem.customFields || selectedItem.custom_fields) && (selectedItem.customFields || selectedItem.custom_fields).map((field: any) => (
-                  <div key={field.id} className="mb-6 bg-card/40 border border-border p-5 rounded-2xl backdrop-blur-sm shadow-sm">
-                    <div className="flex items-center gap-2 mb-4">
-                      <span className="font-bold text-sm text-foreground">{field.name}</span>
-                      {field.required && (
-                        <span className="px-2 py-0.5 border border-primary/30 bg-primary/10 text-primary text-[9px] font-black rounded-full tracking-wider ml-1 font-mono uppercase">
-                          {lang === "fr" ? "Requis" : "Required"}
-                        </span>
-                      )}
-                    </div>
-                    {field.type === "radio" && (
-                      <div className="flex flex-wrap gap-2.5">
-                        {field.options.map((opt: string) => {
-                          const selected = customizations[field.id] === opt;
-                          return (
-                            <button key={opt} onClick={() => setCustomizations(p => ({ ...p, [field.id]: opt }))}
-                              className="px-5 py-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 border cursor-pointer flex-1 min-w-[90px] sm:flex-initial text-center"
-                              style={{
-                                borderColor: selected ? "#C8102E" : "#2A1E15",
-                                background: selected ? "rgba(200,16,46,0.2)" : "#120D09",
-                                color: selected ? "#FFFFFF" : "#E5D5C5",
-                                boxShadow: selected ? "0 0 12px rgba(200, 16, 46, 0.15)" : "none"
-                              }}>
-                              <span>{opt}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-                    {field.type === "checkbox" && (
-                      <div className="flex flex-col gap-2.5">
-                        {field.options.map((opt: string) => {
-                          const arr = (customizations[field.id] as string[] | undefined) || [];
-                          const checked = arr.includes(opt);
-                          return (
-                            <button key={opt} onClick={() => setCustomizations(p => {
-                              const prev = (p[field.id] as string[] | undefined) || [];
-                              return { ...p, [field.id]: checked ? prev.filter(x => x !== opt) : [...prev, opt] };
-                            })}
-                              className="flex items-center gap-3.5 px-4.5 py-3.5 text-xs text-left rounded-xl transition-all cursor-pointer border select-none duration-150"
-                              style={{ 
-                                borderColor: checked ? "#C8102E" : "#2A1E15", 
-                                background: checked ? "rgba(200,16,46,0.06)" : "#120D09",
-                                color: checked ? "#FFFFFF" : "#E5D5C5"
-                              }}>
-                              <div className="w-5 h-5 flex items-center justify-center flex-shrink-0 rounded-md border transition-all"
-                                style={{ 
-                                  borderColor: checked ? "#C8102E" : "#2A1E15", 
-                                  background: checked ? "#C8102E" : "transparent" 
-                                }}>
-                                {checked && <Check size={12} className="text-foreground stroke-[3px]" />}
-                              </div>
-                              <span className="flex-1 font-semibold">{opt}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              {/* Drawer Footer */}
-              <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-border bg-card z-10">
-                <button onClick={addToCart}
-                  className="w-full py-4 text-xs font-black tracking-widest bg-primary text-foreground rounded-xl hover:opacity-90 active:scale-[0.98] transition-all cursor-pointer shadow-lg shadow-[#C8102E]/20">
-                  {t.addToCart.toUpperCase()} — €{getItemPriceWithModifiers().toFixed(2)}
-                </button>
-              </div>
-            </motion.div>
-          </>
-        )}
-
         {/* Cart Bottom Sheet */}
         {status === "cart" && (
           <>
