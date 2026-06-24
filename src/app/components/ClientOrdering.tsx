@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { ShoppingCart, Plus, Minus, X, ChevronLeft, Check, Clock, Flame, Star, Search, RefreshCw, AlertCircle, ChevronDown } from "lucide-react";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { supabase } from "../../lib/supabase";
@@ -36,7 +36,7 @@ interface CartItem {
   itemKey: string;
 }
 
-type OrderStatus = "browsing" | "customizing" | "cart" | "checkout" | "ordering" | "confirmed";
+type OrderStatus = "browsing" | "customizing" | "cart" | "checkout" | "ordering" | "confirmed" | "kiosk-idle" | "kiosk-dine-choice";
 
 function fetchWithTimeout<T>(promise: Promise<T>, timeoutMs = 3500): Promise<T> {
   return new Promise((resolve, reject) => {
@@ -83,7 +83,7 @@ function AnimatedPrice({ value }: { value: number }) {
   return <motion.span>{rounded}</motion.span>;
 }
 
-export function ClientOrdering({ tableId, area }: { tableId: string; area: string }) {
+export function ClientOrdering({ tableId, area, isKiosk = false }: { tableId: string; area: string; isKiosk?: boolean }) {
   const [menuItems, setMenuItems] = useState<any[]>(() => {
     if (typeof window !== "undefined") {
       const local = localStorage.getItem("ldf_menu_items");
@@ -106,7 +106,8 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
 
   const [activeCategory, setActiveCategory] = useState("All");
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [status, setStatus] = useState<OrderStatus>("browsing");
+  const [status, setStatus] = useState<OrderStatus>(isKiosk ? "kiosk-idle" : "browsing");
+  const [kioskDineType, setKioskDineType] = useState<"EAT-IN" | "TAKEAWAY" | null>(null);
   const [selectedItem, setSelectedItem] = useState<any | null>(null);
   const [customizations, setCustomizations] = useState<Record<string, string | string[]>>({});
   const [search, setSearch] = useState("");
@@ -131,6 +132,25 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
   // Active Order (Unpaid Session Pursuit)
   const [activeOrder, setActiveOrder] = useState<any | null>(null);
   const [activeOrderItems, setActiveOrderItems] = useState<any[]>([]);
+
+  const resetKiosk = useCallback(() => {
+    setCart([]);
+    setCustomizations({});
+    setSelectedItem(null);
+    setOrderId("");
+    setStatus("kiosk-idle");
+    setKioskDineType(null);
+  }, []);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (isKiosk && status === "confirmed") {
+      timer = setTimeout(() => {
+        resetKiosk();
+      }, 30000);
+    }
+    return () => clearTimeout(timer);
+  }, [isKiosk, status, resetKiosk]);
 
   const downloadInvoicePNG = (id: string, table: string, itemsList?: any[]) => {
     const canvasWidth = 360;
@@ -777,7 +797,7 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
         .insert({
           id: newOrderId,
           table_id: tableId,
-          area: area || "Terrace Patio",
+          area: isKiosk ? (kioskDineType === "EAT-IN" ? "Kiosk (Sur place)" : "Kiosk (À emporter)") : (area || "Terrace Patio"),
           status: "pending",
           total: cartTotal,
           note: finalNote || null,
@@ -893,9 +913,9 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
             <div className="flex items-center flex-wrap gap-1.5">
               {/* Permanent Context Pill */}
               <div className="flex items-center gap-1.5 px-2.5 py-1 bg-primary/10 border border-primary/25 rounded-full text-[9px] text-primary font-mono font-black tracking-wider uppercase">
-                <span>🍽️ {tableId?.toUpperCase() === "DELIVERY" ? (lang === "fr" ? "LIVRAISON" : "DELIVERY") : `TABLE ${tableId}`}</span>
-                <span className="opacity-40">•</span>
-                <span>{area}</span>
+                <span>{isKiosk ? `KIOSK - ${kioskDineType === "EAT-IN" ? (lang === "fr" ? "SUR PLACE" : "EAT IN") : (lang === "fr" ? "À EMPORTER" : "TAKEAWAY")}` : `🍽️ ${tableId?.toUpperCase() === "DELIVERY" ? (lang === "fr" ? "LIVRAISON" : "DELIVERY") : `TABLE ${tableId}`}`}</span>
+                {!isKiosk && <span className="opacity-40">•</span>}
+                {!isKiosk && <span>{area}</span>}
               </div>
               <div className="flex items-center gap-1 bg-muted border border-border px-2 py-0.5 rounded-full text-[9px] font-mono font-bold">
                 <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: (!supabase || supabase.isMock || dbError) ? '#EF4444' : '#10B981' }} />
@@ -908,7 +928,7 @@ export function ClientOrdering({ tableId, area }: { tableId: string; area: strin
           
           <div className="flex items-center gap-2">
             {/* Waiter Call Button */}
-            {tableId?.toUpperCase() !== "DELIVERY" && (
+            {tableId?.toUpperCase() !== "DELIVERY" && !isKiosk && (
               <button
                 onClick={callServer}
                 disabled={waiterCalled}

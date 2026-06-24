@@ -123,6 +123,8 @@ function AppCore() {
       navigateTo("kitchen");
     } else if (viewStr === "display") {
       navigateTo("display");
+    } else if (viewStr === "kiosk") {
+      navigateTo("kiosk");
     } else if (viewStr === "client" || viewStr === "menu") {
       if (productId) {
         const url = new URL(window.location.href);
@@ -230,6 +232,15 @@ function AppCore() {
   // Render Standalone Customer Display Board View
   if (view === "display") {
     return <CustomerDisplay />;
+  }
+
+  // Render Kiosk Mode View
+  if (view === "kiosk") {
+    return (
+      <div className="min-h-screen bg-background text-foreground relative">
+        <ClientOrdering tableId="KIOSK" area="KIOSK" isKiosk={true} />
+      </div>
+    );
   }
 
   // Render Simulator View (Split / Guest / Admin Testing)
