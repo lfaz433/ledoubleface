@@ -714,6 +714,12 @@ export function LandingPage({ onNavigate, tableId }: { onNavigate: (view: string
               🛎️ Waiter Portal
             </button>
             <button
+              onClick={() => onNavigate("driver")}
+              className="px-3 py-1.5 bg-white/5 border border-white/10 hover:bg-white/10 active:scale-95 text-foreground rounded text-[10px] font-mono transition-all cursor-pointer flex items-center gap-1.5"
+            >
+              🛵 Driver Portal
+            </button>
+            <button
               onClick={() => onNavigate("admin")}
               className="px-3 py-1.5 bg-white/5 border border-white/10 hover:bg-white/10 active:scale-95 text-foreground rounded text-[10px] font-mono transition-all cursor-pointer flex items-center gap-1.5"
             >
