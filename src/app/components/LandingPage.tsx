@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ChevronDown, Star, MapPin, Phone, Clock, Instagram, Facebook, Twitter, ArrowRight, Flame, Award, Utensils, Users, X, Check, Tv, Sun, Moon, Menu } from "lucide-react";
+import { ChevronDown, Star, MapPin, Phone, Clock, Instagram, Facebook, Twitter, ArrowRight, Flame, Award, Utensils, Users, X, Check, Tv, Sun, Moon, Menu, Settings } from "lucide-react";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { supabase } from "../../lib/supabase";
 import { translations, Language } from "../../lib/translations";
@@ -871,15 +871,15 @@ export function LandingPage({ onNavigate, tableId }: { onNavigate: (view: string
         )}
       </AnimatePresence>
 
-      {/* Floating Customer Display Button */}
+      {/* Floating Admin Dashboard Button */}
       <div className="fixed bottom-6 right-6 z-40">
         <button
-          onClick={() => window.open("?view=display", "_blank")}
+          onClick={() => window.open("?view=admin", "_blank")}
           className="flex items-center gap-2.5 px-4 py-2.5 bg-card hover:bg-muted text-foreground hover:text-foreground border border-border hover:border-primary/40 rounded-full shadow-lg shadow-black/80 cursor-pointer active:scale-95 transition-all text-xs font-bold tracking-wider uppercase font-mono"
-          title="Open Customer Order Display Board in new tab"
+          title="Open Admin Dashboard in new tab"
         >
-          <Tv size={14} className="text-primary" />
-          <span>{t.orderDisplayBoard}</span>
+          <Settings size={14} className="text-primary" />
+          <span>{lang === "fr" ? "Admin Dashboard" : "Admin Dashboard"}</span>
         </button>
       </div>
     </div>
