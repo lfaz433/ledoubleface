@@ -521,7 +521,7 @@ export function LandingPage({ onNavigate, tableId }: { onNavigate: (view: string
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filtered.map(item => (
                   <div key={item.id} 
-                    onClick={() => onNavigate("client", (!tableId || tableId === "DELIVERY" || tableId === "T07") ? "DELIVERY" : tableId)}
+                    onClick={() => onNavigate("client", (!tableId || tableId === "DELIVERY" || tableId === "T07") ? "DELIVERY" : tableId, item.id)}
                     className="group overflow-hidden transition-all duration-300 hover:-translate-y-1 cursor-pointer select-none"
                     style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "var(--radius)" }}>
                     <div className="relative h-48 overflow-hidden">
@@ -548,7 +548,7 @@ export function LandingPage({ onNavigate, tableId }: { onNavigate: (view: string
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          onNavigate("client", (!tableId || tableId === "DELIVERY" || tableId === "T07") ? "DELIVERY" : tableId);
+                          onNavigate("client", (!tableId || tableId === "DELIVERY" || tableId === "T07") ? "DELIVERY" : tableId, item.id);
                         }}
                         className="w-full py-3.5 text-sm transition-all hover:opacity-90 active:scale-95 cursor-pointer"
                         style={{ background: "var(--primary)", color: "#fff", borderRadius: "var(--radius)", fontWeight: 700, letterSpacing: "0.05em" }}>
