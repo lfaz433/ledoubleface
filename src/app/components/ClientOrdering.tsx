@@ -648,9 +648,13 @@ export function ClientOrdering({ tableId, area, isKiosk = false }: { tableId: st
 
   const handleProductCardClick = (item: any) => {
     const fields = item.customFields || item.custom_fields;
-    openCustomize(item);
-    if (!Array.isArray(fields) || fields.length === 0) {
-      setCustomizations({});
+    const hasFields = Array.isArray(fields) && fields.length > 0;
+    const isBurger = item.category === "Burgers" || item.category?.toLowerCase() === "burgers";
+
+    if (hasFields || isBurger) {
+      openCustomize(item);
+    } else {
+      handleAddItemDirectly(item);
     }
   };
 
@@ -1158,20 +1162,9 @@ export function ClientOrdering({ tableId, area, isKiosk = false }: { tableId: st
                   
                   <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/30">
                     <span className="font-mono text-xs font-bold text-primary">€{item.price.toFixed(2)}</span>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation(); // prevent card double tap trigger
-                        const hasFields = item.customFields && item.customFields.length > 0;
-                        const isBurger = item.category === "Burgers" || item.category?.toLowerCase() === "burgers";
-                        if (hasFields || isBurger) {
-                          handleProductCardClick(item);
-                        } else {
-                          handleAddItemDirectly(item);
-                        }
-                      }}
-                      className="flex items-center gap-1.5 px-3.5 py-2 bg-primary hover:opacity-90 text-[11px] font-bold text-foreground rounded transition-all cursor-pointer shadow-sm shadow-[#C8102E]/20">
-                      <Plus size={11} /> {lang === "fr" ? "Ajouter" : "Add"}
-                    </button>
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground group-hover:text-primary transition-colors">
+                      {lang === "fr" ? "SÉLECTIONNER" : "SELECT"}
+                    </span>
                   </div>
                 </div>
               </motion.div>
