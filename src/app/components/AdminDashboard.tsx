@@ -80,7 +80,7 @@ interface Show {
 
 const STATIC_TABLE_IDS = ["T01", "T02", "T03", "T04", "T05", "T06", "T07", "T08", "T09", "T10", "T11", "T12", "T13", "T14", "T15", "T16", "T17", "T18", "T19", "T20"];
 
-type AdminSection = "dashboard" | "products" | "orders" | "tables" | "settings" | "shows" | "counter" | "delivery" | "staff";
+type AdminSection = "dashboard" | "products" | "orders" | "tables" | "settings" | "shows" | "counter" | "delivery" | "staff" | "kiosk" | "display";
 
 export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () => void; language?: "fr" | "en" } = {}) {
   const pendingCount = usePendingCallsCount();
@@ -1839,6 +1839,7 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
     { id: "shows" as AdminSection, icon: <Award size={16} />, label: "Shows Manager" },
     { id: "staff" as AdminSection, icon: <Users size={16} />, label: "Staff (Équipe)" },
     { id: "kiosk" as AdminSection, icon: <Smartphone size={16} />, label: "Kiosk Mode TV" },
+    { id: "display" as AdminSection, icon: <Tv size={16} />, label: "Customer TV Screen" },
     { id: "settings" as AdminSection, icon: <Settings size={16} />, label: "Preferences" },
   ];
 
@@ -3950,6 +3951,43 @@ export function AdminDashboard({ onLogout, language = "fr" }: { onLogout?: () =>
                     <p>• <strong>For Tablets (iPad, Android):</strong> Scan the QR code above using the camera, then add the page to your Home Screen to remove the browser UI.</p>
                     <p>• <strong>For Smart TVs:</strong> Open the built-in web browser and manually type the link above, then enter fullscreen mode.</p>
                     <p>• The kiosk handles its own checkout and will automatically reset after an order is placed.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          {section === "display" && (
+            <div className="flex flex-col gap-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-serif font-black text-lg text-foreground">Order Display Board (Customer TV)</h3>
+                  <p className="text-xs text-muted-foreground mt-1 font-mono">Display live order statuses (Preparing / Ready) to your waiting customers.</p>
+                </div>
+                <button
+                  onClick={() => window.open("?view=display", "_blank")}
+                  className="bg-primary hover:opacity-90 text-foreground font-bold py-2 px-4 rounded text-xs flex items-center gap-1.5 cursor-pointer shadow-md shadow-[#C8102E]/20"
+                >
+                  <Tv size={14} /> OPEN DISPLAY FULLSCREEN
+                </button>
+              </div>
+
+              <div className="bg-card border border-border p-8 rounded-2xl w-full shadow-lg text-center flex flex-col items-center justify-center">
+                <div className="bg-white p-4 rounded-xl inline-block mb-6 shadow-md">
+                  <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(window.location.origin + window.location.pathname + "?view=display")}`}
+                    alt="Customer Display Board Link"
+                    className="w-[250px] h-[250px] object-contain"
+                  />
+                </div>
+
+                <div className="space-y-4 max-w-lg w-full text-left">
+                  <p className="text-sm text-foreground text-center font-mono break-all font-bold select-text p-3 bg-muted border border-border rounded-lg">
+                    {window.location.origin + window.location.pathname + "?view=display"}
+                  </p>
+                  <div className="text-xs text-muted-foreground leading-relaxed space-y-3 mt-4">
+                    <p>• <strong>For Smart TVs:</strong> Open the built-in web browser and manually type the link above, then enter fullscreen mode.</p>
+                    <p>• <strong>For Tablets:</strong> Scan the QR code using the camera, then add the page to your Home Screen to remove the browser UI.</p>
+                    <p>• No login required. It updates automatically in real-time when order statuses change.</p>
                   </div>
                 </div>
               </div>
