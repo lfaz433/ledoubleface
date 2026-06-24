@@ -10,7 +10,7 @@ import { CustomerDisplay } from "./components/CustomerDisplay";
 import { ArrowLeft, Monitor, Smartphone, Columns, Moon, Sun, LayoutDashboard } from "lucide-react";
 import { useTheme } from "../lib/theme";
 
-type RouteView = "landing" | "menu" | "admin" | "waiter" | "driver" | "simulator" | "kitchen" | "display";
+type RouteView = "landing" | "menu" | "admin" | "waiter" | "driver" | "simulator" | "kitchen" | "display" | "kiosk";
 
 import { ErrorBoundary } from "./components/ErrorBoundary";
 
@@ -36,6 +36,7 @@ function AppCore() {
       const isDriver = params.get("view") === "driver" || path === "/driver";
       const isKitchen = params.get("view") === "kitchen" || path === "/kitchen";
       const isDisplay = params.get("view") === "display" || path === "/display";
+      const isKiosk = params.get("view") === "kiosk" || path === "/kiosk";
       const isMenu = params.get("view") === "menu" || params.get("view") === "order" || path === "/menu" || path === "/order" || params.has("table");
       
       const urlTable = params.get("table");
@@ -56,6 +57,8 @@ function AppCore() {
         setView("kitchen");
       } else if (isDisplay) {
         setView("display");
+      } else if (isKiosk) {
+        setView("kiosk" as RouteView);
       } else if (isMenu) {
         setView("menu");
       } else {
