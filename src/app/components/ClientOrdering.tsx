@@ -868,6 +868,66 @@ export function ClientOrdering({ tableId, area, isKiosk = false }: { tableId: st
     );
   }
 
+  if (status === "kiosk-idle") {
+    return (
+      <div 
+        className="min-h-screen bg-cover bg-center flex items-center justify-center cursor-pointer"
+        style={{ backgroundImage: "url('https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=1080&q=80')" }}
+        onClick={() => setStatus("kiosk-dine-choice")}
+      >
+        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+        <motion.div 
+          animate={{ scale: [1, 1.05, 1] }} 
+          transition={{ repeat: Infinity, duration: 2 }}
+          className="relative z-10 flex flex-col items-center gap-6"
+        >
+          <div className="w-32 h-32 rounded-full border-4 border-primary/50 flex items-center justify-center bg-black/40">
+            <div className="w-24 h-24 rounded-full border-4 border-primary flex items-center justify-center shadow-[0_0_30px_rgba(200,16,46,0.5)]">
+              <span className="text-4xl">👇</span>
+            </div>
+          </div>
+          <h1 className="text-white text-5xl md:text-7xl font-black tracking-widest font-serif drop-shadow-2xl uppercase text-center" style={{ whiteSpace: "pre-line" }}>
+            {lang === "fr" ? "Touchez pour\nCommencer" : "Tap to\nStart"}
+          </h1>
+        </motion.div>
+      </div>
+    );
+  }
+
+  if (status === "kiosk-dine-choice") {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 gap-8">
+        <h2 className="text-3xl md:text-5xl font-black font-serif text-foreground mb-8 text-center">
+          {lang === "fr" ? "Où souhaitez-vous manger ?" : "Where would you like to eat?"}
+        </h2>
+        <div className="flex flex-col md:flex-row gap-6 w-full max-w-4xl">
+          <motion.div 
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => { setKioskDineType("EAT-IN"); setStatus("browsing"); }}
+            className="flex-1 bg-card border-2 border-border hover:border-primary rounded-3xl p-12 flex flex-col items-center justify-center gap-6 cursor-pointer shadow-xl"
+          >
+            <span className="text-8xl">🍽️</span>
+            <span className="text-3xl font-black tracking-wider uppercase text-foreground text-center">
+              {lang === "fr" ? "Sur Place" : "Eat In"}
+            </span>
+          </motion.div>
+          <motion.div 
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => { setKioskDineType("TAKEAWAY"); setStatus("browsing"); }}
+            className="flex-1 bg-card border-2 border-border hover:border-primary rounded-3xl p-12 flex flex-col items-center justify-center gap-6 cursor-pointer shadow-xl"
+          >
+            <span className="text-8xl">🛍️</span>
+            <span className="text-3xl font-black tracking-wider uppercase text-foreground text-center">
+              {lang === "fr" ? "À Emporter" : "Takeaway"}
+            </span>
+          </motion.div>
+        </div>
+      </div>
+    );
+  }
+
   if (status === "confirmed") {
     const formattedItems = lastOrderedItems.map(i => ({
       name: i.name,
@@ -875,6 +935,45 @@ export function ClientOrdering({ tableId, area, isKiosk = false }: { tableId: st
       price: i.price,
       customizations: i.customizations
     }));
+
+    if (isKiosk) {
+      return (
+        <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 gap-8 relative overflow-hidden">
+          <div className="bg-white text-black p-8 rounded shadow-2xl max-w-sm w-full font-mono text-center relative overflow-hidden z-10">
+            <h2 className="text-2xl font-black mt-2 mb-1">LE DOUBLE FACE</h2>
+            <p className="text-xs mb-6 text-gray-500">Order Confirmed</p>
+            
+            <div className="text-6xl font-black mb-6 tracking-tighter text-black">{orderId.slice(-3)}</div>
+            
+            <img 
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${orderId}`} 
+              alt="Order QR Code" 
+              className="mx-auto mb-6"
+            />
+            
+            <div className="border-t-2 border-dashed border-gray-300 my-4" />
+            
+            <div className="flex justify-between text-lg font-bold">
+              <span>TOTAL</span>
+              <span>€{lastOrderedTotal.toFixed(2)}</span>
+            </div>
+            
+            <div className="border-t-2 border-dashed border-gray-300 my-4" />
+            
+            <p className="text-sm font-bold mt-6 mb-4 text-[#C8102E]">
+              {lang === "fr" ? "Veuillez vous rendre à la caisse pour régler votre commande." : "Please proceed to the cashier to pay for your order."}
+            </p>
+          </div>
+          
+          <button
+            onClick={resetKiosk}
+            className="px-8 py-4 bg-primary text-white font-bold text-xl rounded-full hover:opacity-90 transition-opacity shadow-lg z-10 cursor-pointer"
+          >
+            {lang === "fr" ? "Terminer" : "Finish"}
+          </button>
+        </div>
+      );
+    }
 
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 w-full">
