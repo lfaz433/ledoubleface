@@ -871,17 +871,6 @@ export function LandingPage({ onNavigate, tableId }: { onNavigate: (view: string
         )}
       </AnimatePresence>
 
-      {/* Floating Admin Dashboard Button */}
-      <div className="fixed bottom-6 right-6 z-40">
-        <button
-          onClick={() => window.open("?view=admin", "_blank")}
-          className="flex items-center gap-2.5 px-4 py-2.5 bg-card hover:bg-muted text-foreground hover:text-foreground border border-border hover:border-primary/40 rounded-full shadow-lg shadow-black/80 cursor-pointer active:scale-95 transition-all text-xs font-bold tracking-wider uppercase font-mono"
-          title="Open Admin Dashboard in new tab"
-        >
-          <Settings size={14} className="text-primary" />
-          <span>{lang === "fr" ? "Admin Dashboard" : "Admin Dashboard"}</span>
-        </button>
-      </div>
     </div>
   );
 }
