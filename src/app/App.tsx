@@ -7,7 +7,7 @@ import { DriverAuthGate } from "./components/DriverAuthGate";
 import { LandingPage } from "./components/LandingPage";
 import { KitchenDisplay } from "./components/KitchenDisplay";
 import { CustomerDisplay } from "./components/CustomerDisplay";
-import { ArrowLeft, Monitor, Smartphone, Columns, Moon, Sun } from "lucide-react";
+import { ArrowLeft, Monitor, Smartphone, Columns, Moon, Sun, LayoutDashboard } from "lucide-react";
 import { useTheme } from "../lib/theme";
 
 type RouteView = "landing" | "menu" | "admin" | "waiter" | "driver" | "simulator" | "kitchen" | "display";
@@ -320,8 +320,17 @@ function AppCore() {
                 simulatorMode === "split" ? "bg-primary text-foreground shadow-lg shadow-[#C8102E]/20" : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              <Columns size={14} />
+              <LayoutDashboard size={14} />
               <span>Split View</span>
+            </button>
+            <div className="w-px h-4 bg-border mx-1" />
+            <button
+              onClick={() => handleNavigate("kiosk")}
+              className="flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded transition-all bg-purple-600/20 text-purple-400 hover:bg-purple-600/40"
+              title="Launch Kiosk Mode in Full Screen"
+            >
+              <Smartphone size={14} />
+              <span>Launch Kiosk</span>
             </button>
           </div>
 
