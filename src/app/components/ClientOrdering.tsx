@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { ShoppingCart, Plus, Minus, X, ChevronLeft, Check, Clock, Flame, Star, Search, RefreshCw, AlertCircle, ChevronDown } from "lucide-react";
+import { ShoppingCart, Plus, Minus, X, ChevronLeft, Check, Clock, Flame, Star, Search, RefreshCw, AlertCircle, ChevronDown, MapPin, Navigation } from "lucide-react";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { supabase } from "../../lib/supabase";
 import { motion, AnimatePresence, animate, useMotionValue, useTransform } from "motion/react";
@@ -116,6 +116,9 @@ export function ClientOrdering({ tableId, area, isKiosk = false }: { tableId: st
   const [deliveryPhone, setDeliveryPhone] = useState("");
   const [deliveryName, setDeliveryName] = useState("");
   const [deliveryEmail, setDeliveryEmail] = useState("");
+  const [showMapPicker, setShowMapPicker] = useState(false);
+  const [deliveryTimeMode, setDeliveryTimeMode] = useState<"ASAP" | "SCHEDULED">("ASAP");
+  const [deliveryTime, setDeliveryTime] = useState("");
   const [orderId, setOrderId] = useState("");
   const [tableActive, setTableActive] = useState(true);
   const [waiterCallPending, setWaiterCallPending] = useState(false);
@@ -786,12 +789,19 @@ export function ClientOrdering({ tableId, area, isKiosk = false }: { tableId: st
 
     let finalNote = orderNote;
     if (tableId?.toUpperCase() === "DELIVERY") {
-      if (!deliveryName || !deliveryPhone || !deliveryAddress) {
-        alert(t.deliveryError || "Please provide your name, phone number, and delivery address.");
-        setStatus("checkout");
+      if (!deliveryName || !deliveryPhone || !deliveryAddress || (deliveryTimeMode === "SCHEDULED" && !deliveryTime)) {
+        alert("Please fill in all required delivery details (Name, Phone, Address, and Delivery Time if scheduled).");
         return;
       }
-      finalNote = `DELIVERY INFO:\nName: ${deliveryName}\nEmail: ${deliveryEmail || 'N/A'}\nPhone: ${deliveryPhone}\nAddress: ${deliveryAddress}\n\nNote: ${orderNote}`;
+
+      finalNote = `DELIVERY INFO:
+Name: ${deliveryName}
+Email: ${deliveryEmail || 'N/A'}
+Phone: ${deliveryPhone}
+Address: ${deliveryAddress}
+Delivery Time: ${deliveryTimeMode === "ASAP" ? "ASAP (As Soon As Possible)" : deliveryTime}
+
+Note: ${orderNote}`;
     }
     
     try {
@@ -1655,13 +1665,67 @@ export function ClientOrdering({ tableId, area, isKiosk = false }: { tableId: st
                         onChange={(e) => setDeliveryPhone(e.target.value)}
                         className="w-full px-3.5 py-2.5 text-xs bg-muted border border-border rounded-xl text-foreground outline-none focus:border-primary"
                       />
-                      <textarea
-                        placeholder={t.deliveryAddress || "Full Address"}
-                        value={deliveryAddress}
-                        onChange={(e) => setDeliveryAddress(e.target.value)}
-                        rows={2}
-                        className="w-full px-3.5 py-2.5 text-xs bg-muted border border-border rounded-xl text-foreground outline-none focus:border-primary resize-none"
-                      />
+                      {/* Map/Address Picker (Uber Eats / Deliveroo Style) */}
+                      <div className="flex flex-col gap-3">
+                        {/* Delivery Time / Date Picker */}
+                        <div className="flex bg-background border border-border rounded-xl p-1 relative overflow-hidden">
+                          <button
+                            onClick={() => setDeliveryTimeMode("ASAP")}
+                            className={`flex-1 py-2.5 text-xs font-bold rounded-lg z-10 transition-colors ${deliveryTimeMode === "ASAP" ? "text-white" : "text-foreground"}`}
+                          >
+                            {lang === "fr" ? "Dès que possible" : "Deliver Now"}
+                          </button>
+                          <button
+                            onClick={() => setDeliveryTimeMode("SCHEDULED")}
+                            className={`flex-1 py-2.5 text-xs font-bold rounded-lg z-10 transition-colors ${deliveryTimeMode === "SCHEDULED" ? "text-white" : "text-foreground"}`}
+                          >
+                            {lang === "fr" ? "Programmer" : "Schedule"}
+                          </button>
+                          {/* Animated Pill */}
+                          <div
+                            className="absolute top-1 bottom-1 w-[calc(50%-4px)] bg-primary rounded-lg transition-transform duration-300 ease-out"
+                            style={{ transform: deliveryTimeMode === "ASAP" ? "translateX(0)" : "translateX(calc(100% + 8px))" }}
+                          />
+                        </div>
+
+                        {deliveryTimeMode === "SCHEDULED" && (
+                          <motion.input
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: "auto" }}
+                            type="datetime-local"
+                            value={deliveryTime}
+                            onChange={(e) => setDeliveryTime(e.target.value)}
+                            className="w-full px-3.5 py-2.5 text-xs bg-muted border border-border rounded-xl text-foreground outline-none focus:border-primary"
+                          />
+                        )}
+
+                        {/* Location Picker */}
+                        <div 
+                          onClick={() => setShowMapPicker(true)}
+                          className="w-full relative h-32 bg-muted border border-border rounded-xl overflow-hidden cursor-pointer group flex flex-col items-center justify-center text-center"
+                          style={{
+                            backgroundImage: "url('https://images.unsplash.com/photo-1524661135-423995f22d0b?w=800&q=80')",
+                            backgroundSize: "cover",
+                            backgroundPosition: "center"
+                          }}
+                        >
+                          <div className="absolute inset-0 bg-background/60 backdrop-blur-[2px] group-hover:bg-background/40 transition-colors" />
+                          <div className="relative z-10 w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white mb-2 shadow-lg animate-bounce">
+                            <MapPin size={16} />
+                          </div>
+                          <div className="relative z-10 bg-background/90 px-3 py-1.5 rounded-full text-xs font-bold shadow-sm max-w-[90%] truncate">
+                            {deliveryAddress ? deliveryAddress : (lang === "fr" ? "Sélectionner sur la carte" : "Pin delivery location")}
+                          </div>
+                        </div>
+                        
+                        <textarea
+                          placeholder={t.deliveryAddress || "Full Address Details (Floor, Apt, etc.)"}
+                          value={deliveryAddress}
+                          onChange={(e) => setDeliveryAddress(e.target.value)}
+                          rows={2}
+                          className="w-full px-3.5 py-2.5 text-xs bg-muted border border-border rounded-xl text-foreground outline-none focus:border-primary resize-none mt-1"
+                        />
+                      </div>
                     </div>
                   </div>
                 )}
@@ -1738,6 +1802,93 @@ export function ClientOrdering({ tableId, area, isKiosk = false }: { tableId: st
               </div>
             </motion.div>
           </>
+        )}
+      </AnimatePresence>
+
+      {/* Map Address Picker Modal */}
+      <AnimatePresence>
+        {showMapPicker && (
+          <motion.div
+            initial={{ opacity: 0, y: "100%" }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: "100%" }}
+            transition={{ type: "spring", damping: 25, stiffness: 200 }}
+            className="fixed inset-0 z-50 bg-background flex flex-col"
+          >
+            {/* Header */}
+            <div className="px-4 py-4 border-b border-border flex items-center gap-3 bg-secondary z-10 shadow-md">
+              <button onClick={() => setShowMapPicker(false)} className="w-8 h-8 rounded-full bg-background border border-border flex items-center justify-center cursor-pointer">
+                <ChevronLeft size={16} />
+              </button>
+              <div className="flex-1">
+                <div className="relative">
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <input
+                    type="text"
+                    value={deliveryAddress}
+                    onChange={(e) => setDeliveryAddress(e.target.value)}
+                    placeholder={lang === "fr" ? "Rechercher une adresse..." : "Search for your address..."}
+                    className="w-full pl-9 pr-4 py-2 text-xs bg-background border border-border rounded-xl text-foreground outline-none focus:border-primary"
+                    autoFocus
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Interactive Map Area (Visual Demo) */}
+            <div className="flex-1 relative bg-[#E5E3DF]">
+              <img 
+                src="https://images.unsplash.com/photo-1524661135-423995f22d0b?w=800&q=80" 
+                alt="Map Background" 
+                className="w-full h-full object-cover opacity-80"
+              />
+              
+              {/* Map Overlay & Pin */}
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <motion.div
+                  animate={{ y: [0, -10, 0] }}
+                  transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
+                  className="flex flex-col items-center pointer-events-auto cursor-pointer"
+                >
+                  <div className="bg-primary text-white text-[10px] font-bold px-3 py-1.5 rounded-full shadow-lg mb-1 relative">
+                    {lang === "fr" ? "Je suis ici" : "Deliver here"}
+                    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 border-solid border-t-primary border-t-4 border-x-transparent border-x-4 border-b-0"></div>
+                  </div>
+                  <div className="w-8 h-8 bg-black text-white rounded-full flex items-center justify-center shadow-xl shadow-black/40 border-2 border-white">
+                    <MapPin size={16} />
+                  </div>
+                  <div className="w-4 h-1 bg-black/30 rounded-full blur-[1px] mt-1"></div>
+                </motion.div>
+              </div>
+
+              {/* Find my location button */}
+              <button className="absolute bottom-6 right-4 w-10 h-10 bg-white border border-gray-200 rounded-full flex items-center justify-center shadow-lg text-black cursor-pointer hover:bg-gray-50 active:scale-95 transition-all">
+                <Navigation size={18} className="fill-black" />
+              </button>
+            </div>
+
+            {/* Footer Action */}
+            <div className="p-4 bg-card border-t border-border shadow-[0_-10px_20px_rgba(0,0,0,0.1)] z-10 pb-8">
+              <div className="flex items-start gap-3 mb-4">
+                <div className="w-8 h-8 bg-primary/10 text-primary rounded-full flex items-center justify-center shrink-0">
+                  <MapPin size={16} />
+                </div>
+                <div className="flex-1">
+                  <div className="text-sm font-bold text-foreground line-clamp-1">{deliveryAddress || (lang === "fr" ? "Position actuelle" : "Current Location")}</div>
+                  <div className="text-[10px] text-muted-foreground mt-0.5">{lang === "fr" ? "Ajustez le pin sur la carte" : "Move pin to adjust exact location"}</div>
+                </div>
+              </div>
+              <button 
+                onClick={() => {
+                  if (!deliveryAddress) setDeliveryAddress("14 Rue de Rivoli, 75001 Paris"); // fallback mock
+                  setShowMapPicker(false);
+                }}
+                className="w-full py-4 text-xs font-black tracking-widest bg-primary hover:opacity-95 text-foreground rounded-xl transition-all active:scale-98 cursor-pointer shadow-lg shadow-[#C8102E]/25"
+              >
+                {lang === "fr" ? "CONFIRMER L'ADRESSE" : "CONFIRM LOCATION"}
+              </button>
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
     </motion.div>
